@@ -1,0 +1,45 @@
+# 会社の「設定ファイル」。ここを書き換えると全エージェントの前提が変わる。
+company:
+  name: "TODO: 会社名"
+  # 一文で言える存在理由。ここが曖昧だとエージェントの出力も曖昧になる。
+  mission: "TODO: 誰の、どんな課題を、どう解決するのか"
+  # 誰のために作るのか。ペルソナではなく「観測可能な集団」で書く。
+  customer: "TODO: 例) 個人開発でSaaSを運営している人"
+  # 収益モデル。無いなら「未定」と書く。嘘を書くとKPIが機能しない。
+  business_model: "TODO: 例) 月額サブスクリプション"
+  stage: "idea"  # idea | prototype | launched | scaling
+  currency: "JPY"
+
+# 人間（オーナー）が握り続ける権限。AIはここに触れない。
+human_authority:
+  - "法人設立・登記・契約の締結"
+  - "資金の支出と価格の最終決定"
+  - "採用と解雇"
+  - "対外的な公式発信の最終承認"
+  - "company.yaml と charter.md の変更"
+
+# AIが人間の承認なしに実行してよい範囲。
+autonomy:
+  max_spend_per_action: 0        # 円。0 = 支出は常に人間承認。
+  can_publish_externally: false  # false = 下書きまで。公開は人間。
+  can_write_code: true
+  can_merge_pull_requests: false
+
+# 経営リズム。cadence を変えると run.py の対象が変わる。
+cadence:
+  daily: ["ops"]
+  weekly: ["ceo", "cto", "cmo", "cfo", "ops"]
+  monthly: ["ceo", "cfo"]
+
+# 北極星指標と、それを支える先行指標。数値は毎週 metrics.csv から読む。
+kpi:
+  north_star: "TODO: 例) 週次アクティブ課金ユーザー数"
+  guardrails:
+    - "現金残高がゼロ以下にならない"
+    - "顧客への約束を、実装より先に公開しない"
+
+model:
+  # Anthropic API のモデルID
+  default: "claude-sonnet-5"
+  # 戦略判断・矛盾検出など、深く考えさせたい役職はこちら
+  deep: "claude-opus-5"
