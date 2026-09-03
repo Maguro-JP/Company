@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -16,7 +15,8 @@ from .config import Agent, Config, DECISIONS_DIR, load_agents
 # CEOが先、Opsが最後。それ以外はこの順で挟む。
 ROLE_ORDER = ["ceo", "cto", "cmo", "cfo", "ops"]
 
-MAX_TOKENS = 4000
+# 役員の報告は長くなる。ここを絞ると report が途中で切れる。
+MAX_TOKENS = 16000
 
 
 @dataclass
@@ -31,6 +31,13 @@ def _sort_roles(roles: list[str]) -> list[str]:
     return known + unknown
 
 
+NO_CREDENTIALS = (
+    "Anthropic の認証情報が見つかりません。次のいずれかを設定してください:\n"
+    "  export ANTHROPIC_API_KEY=sk-ant-...\n"
+    "  または ant auth login （プロファイルはSDKが自動的に読む）"
+)
+
+
 def _client():
     try:
         from anthropic import Anthropic
@@ -38,8 +45,10 @@ def _client():
         raise SystemExit(
             "anthropic パッケージが必要です: pip install -r requirements.txt"
         ) from exc
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise SystemExit("環境変数 ANTHROPIC_API_KEY が設定されていません。")
+    # 認証情報の解決はSDKに任せる。APIキーだけを見ると、
+    # ant auth login で作ったプロファイルを使っている環境を誤って弾く。
+    # なおSDKは生成時ではなく最初のリクエスト時に認証エラーを出すので、
+    # 検知は _ask 側で行う。
     return Anthropic()
 
 
@@ -54,12 +63,18 @@ def _ask(client, model: str, agent: Agent, shared: str, upstream: list[Report]) 
         "上記を踏まえ、あなたの役割定義に書かれた形式でのみ回答してください。"
         "前置きと結びの挨拶は不要です。"
     )
-    response = client.messages.create(
-        model=model,
-        max_tokens=MAX_TOKENS,
-        system=agent.instructions,
-        messages=[{"role": "user", "content": "\n".join(prompt)}],
-    )
+    try:
+        response = client.messages.create(
+            model=model,
+            max_tokens=MAX_TOKENS,
+            system=agent.instructions,
+            messages=[{"role": "user", "content": "\n".join(prompt)}],
+        )
+    except TypeError as exc:
+        # SDKは認証情報を解決できないとき、リクエスト時に TypeError を投げる。
+        if "authentication method" in str(exc):
+            raise SystemExit(NO_CREDENTIALS) from exc
+        raise
     return "".join(block.text for block in response.content if block.type == "text").strip()
 
 

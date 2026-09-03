@@ -25,9 +25,9 @@ CEOが「今週の一点集中」を外すと全員が外れる。そこが設�
 
 ```bash
 pip install -r requirements.txt
-export ANTHROPIC_API_KEY=...
+export ANTHROPIC_API_KEY=...   # または ant auth login
 
-# 1. まず company.yaml の TODO を埋める
+# 1. 前提が埋まっているか確認する
 python -m company.run --check
 
 # 2. APIを呼ばずに、エージェントに渡る内容を確認する
@@ -62,9 +62,9 @@ metrics.csv が空なら、CFOはランウェイを計算せず「記録なし�
 
 ## 現状と次の一手
 
-土台のみ。`company.yaml` の mission / customer / business_model / north_star が
-TODO のままなので、`--check` は失敗する。ここを埋めるのが最初の作業で、
-それはAIではなくオーナーの仕事（憲章 5 節）。
+`company.yaml` の事業内容は **仮置き** が入っている。オーナーが決めるべき項目を、
+仕組みを動かすために暫定で埋めたもの（憲章 5 節）。実際の事業に書き換えること。
+書き換えないまま回すと、存在しない事業についての報告が積み上がる。
 
 未実装で、必要になったら足すもの:
 
