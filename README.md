@@ -37,6 +37,12 @@ python -m company.run --cadence weekly --dry-run
 python -m company.run --cadence weekly
 ```
 
+テストはAPIを呼ばずにサイクル全体を検証する（クライアントを差し替えている）。
+
+```bash
+python -m unittest discover -s tests
+```
+
 出力は `data/decisions/YYYY-MM-DD-weekly.md` に書き出される。
 末尾のオーナー承認欄を埋めてからコミットする。
 
