@@ -53,17 +53,18 @@ def build(config: Config, cadence: str) -> str:
         f"- ステージ: {company.get('stage', '未設定')}",
         f"- 北極星指標: {config.kpi.get('north_star', '未設定')}",
         "",
-        "## 越えてはいけない線",
-        "以下はオーナー（人間）の専権事項です。あなたはこれらを決定できません。",
+        "## あなたが承認なしに実行してよいこと",
+        "true のものは、確認を取らずに実行してください。提案で止めないこと。",
     ]
-    lines += [f"- {item}" for item in config.human_authority]
+    lines += [f"- {key}: {value}" for key, value in autonomy.items()]
     lines += [
         "",
-        "## あなたに許された範囲",
-        f"- 1アクションあたりの支出上限: {autonomy.get('max_spend_per_action', 0)} 円",
-        f"- 外部公開: {'可' if autonomy.get('can_publish_externally') else '不可（下書きまで）'}",
-        f"- コード変更: {'可' if autonomy.get('can_write_code') else '不可'}",
-        f"- PRのマージ: {'可' if autonomy.get('can_merge_pull_requests') else '不可'}",
+        "## AIに手段が無いこと",
+        "禁止ではなく、実行手段が存在しないという意味です。",
+        "該当する作業は「オーナー作業」として切り出してください。",
+    ]
+    lines += [f"- {item}" for item in config.blocked_on_owner]
+    lines += [
         "",
         "## 守るべきガードレール",
     ]

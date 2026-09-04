@@ -1,73 +1,85 @@
 # Company
 
-AIが経営する会社の運営リポジトリ。
+AIが経営する会社。次に何を作るかをAIが決め、AIが実装し、テストを通してコミットする。
+人間のオーナーは、AIに手段が無い作業（登記・支払い・署名）を代行し、方向がずれたら止める。
 
-役員（CEO / CTO / CMO / CFO / Ops）をそれぞれ独立したエージェントとして定義し、
-週次で会議を回して、決定を記録に残す。人間のオーナーは方向と責任を持ち、
-法務・金銭・対外発信の最終判断だけを握る。
+## 作っているもの
 
-## 仕組み
+`product/` — **Churn Radar**。個人でSaaSを運営している人向けの、解約予兆検知。
 
-```
-company.yaml       会社の前提（ミッション・顧客・権限・KPI）。ここが唯一の設定
-agents/*.md        役職ごとの判断基準。frontmatter + 指示文
-company/           ランタイム。設定を読み、順にエージェントを走らせる
-data/metrics.csv   実測値。エージェントが数値を使う唯一の情報源
-data/decisions/    サイクルごとの記録。書き換えない
-docs/charter.md    憲章。company.yaml より上位
+アカウント自身の過去と比べて、稼働が落ちたものを拾う。他社比較も絶対値のしきい値も使わない。
+週1回使うのが平常な人と毎日使う人では、「減った」の意味が違うため。
+
+```bash
+cd product
+python -m churn_radar sample_events.csv --today 2026-09-01
 ```
 
-サイクルは CEO → CTO → CMO → CFO → Ops の順で走る。
-後続の役職は、先行した役職の報告を前提として受け取るので、
-CEOが「今週の一点集中」を外すと全員が外れる。そこが設計上の急所。
+```
+予兆 3 件（平常時の14日間と比較）
+
+  beta-labs  停止  稼働 14日 → 0日  最終 2026-08-18 (14日前)
+  gamma-io   急減  稼働 13日 → 1日  最終 2026-08-23 (9日前)
+  delta-app  減少  稼働 10日 → 3日  最終 2026-08-28 (4日前)
+```
+
+`account_id,date` の2列があるCSVならそのまま読む。余分な列は無視する。
+
+## 会社の仕組み
+
+```
+company.yaml       前提と権限。autonomy のフラグが唯一の制御点
+agents/*.md        役職ごとの判断基準（ceo / builder / cto / cmo / cfo / ops）
+company/execute.py 実行サイクル。Claude Agent SDK でツールを渡し、実際に作らせる
+company/board.py   レビューサイクル。報告を書かせるだけ（実行はしない）
+product/           プロダクト本体
+data/decisions/    レビューの記録
+docs/charter.md    憲章
+```
+
+**実行サイクル**（`--execute`）では、エージェントに Read / Write / Edit / Bash を渡し、
+`permission_mode="bypassPermissions"` で走らせる。確認を挟まない。挟むと提案止まりになるため。
+終了条件は「テストが通ってコミットされた状態」で、そこまでが1タスク。
+
+**レビューサイクル**は読み取り専用のツールしか渡さない。報告と実行を同じ権限で回すと、
+自分の作業を自分で承認する構造になるため。
 
 ## 使い方
 
 ```bash
 pip install -r requirements.txt
-export ANTHROPIC_API_KEY=...   # または ant auth login
+claude   # 一度ログインする。または export ANTHROPIC_API_KEY=sk-ant-...
 
-# 1. 前提が埋まっているか確認する
-python -m company.run --check
-
-# 2. APIを呼ばずに、エージェントに渡る内容を確認する
-python -m company.run --cadence weekly --dry-run
-
-# 3. 実際に1サイクル回す
-python -m company.run --cadence weekly
+python -m company.run --check                      # 前提が埋まっているか
+python -m company.run --cadence build --execute    # AIが1つ作ってコミットする
+python -m company.run --cadence review             # 進捗と数字の報告
 ```
 
-テストはAPIを呼ばずにサイクル全体を検証する（クライアントを差し替えている）。
+テスト:
 
 ```bash
-python -m unittest discover -s tests
+python -m unittest discover -s tests                    # 会社の仕組み
+cd product && python -m unittest discover -s tests      # プロダクト
 ```
-
-出力は `data/decisions/YYYY-MM-DD-weekly.md` に書き出される。
-末尾のオーナー承認欄を埋めてからコミットする。
 
 ## 設計上の判断
 
-**エージェントに事実を推測させない。** 会社の状態は `company/context.py` が
-組み立てたブロックとして渡し、そこに無いものは「不明」と書かせる。
-metrics.csv が空なら、CFOはランウェイを計算せず「記録なし」と報告する。
-経営判断の土台に幻覚が混ざると、記録全体が信用できなくなるため。
+**権限は設定ファイルに集約する。** `autonomy` の各フラグは共有コンテキストにそのまま
+埋め込まれ、「true のものは確認を取らずに実行してください」と指示される。
+プロンプト各所に散らすより、1箇所で締められる方が安全側に倒しやすい。
 
-**権限を設定ファイルに書く。** `autonomy` の各フラグは共有コンテキストに
-そのまま埋め込まれる。`can_publish_externally: false` の間、CMOは下書きまでで止まる。
-プロンプトに散らすより、1箇所で変えられる方が安全側に倒しやすい。
+**「禁止」と「手段が無い」を分ける。** 支払いや登記は、AIが遠慮しているのではなく
+実行手段が存在しない。混ぜると、エージェントが本来できることまで自粛する。
 
-**Opsは提案しない。** 確認だけを担当させる。提案と検証を同じエージェントに
-持たせると、自分の提案を完了扱いにする方向に寄る。
+**幻覚を経営判断の土台に入れない。** 会社の状態は `company/context.py` が組み立てた
+ブロックとして渡し、そこに無い事実は「不明」と書かせる。`metrics.csv` が空なら、
+CFOはランウェイを計算せず「記録なし」と報告する。
 
-## 現状と次の一手
+**Opsは提案しない。** 確認だけを担当させる。提案と検証を同じエージェントに持たせると、
+自分の提案を完了扱いにする方向に寄る。
 
-`company.yaml` の事業内容は **仮置き** が入っている。オーナーが決めるべき項目を、
-仕組みを動かすために暫定で埋めたもの（憲章 5 節）。実際の事業に書き換えること。
-書き換えないまま回すと、存在しない事業についての報告が積み上がる。
+## 現状
 
-未実装で、必要になったら足すもの:
-
-- `data/metrics.csv` への自動記入（現状は手入力）
-- GitHub Actions での週次実行
-- 停止条件（憲章 4 節）の自動検出
+- プロダクト: 検出ロジックとCLIが動く。テスト20件が通る
+- 会社の仕組み: テスト8件が通る。実行サイクルは認証が通れば動く状態
+- 未着手: 通知（メール/Slack）、`data/metrics.csv` の自動記入、週次の自動実行

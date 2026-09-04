@@ -1,47 +1,46 @@
-# 会社の「設定ファイル」。ここを書き換えると全エージェントの前提が変わる。
-# !!! 以下の4項目は「仮置き」です。オーナーが決めるべき内容を、
-# !!! 仕組みを動かすために暫定で埋めてあります。実際の事業内容に書き換えてください。
+# 会社の設定。AIはこの前提で自律的に動く。
 company:
-  name: "仮）Solo Retention"
-  # 一文で言える存在理由。ここが曖昧だとエージェントの出力も曖昧になる。
+  name: "Churn Radar"
   mission: "個人でSaaSを運営する人が、解約されてから気づく状態をなくす"
-  # 誰のために作るのか。ペルソナではなく「観測可能な集団」で書く。
   customer: "有料ユーザーが10〜300人規模の、個人運営SaaSの開発者"
-  # 収益モデル。無いなら「未定」と書く。嘘を書くとKPIが機能しない。
   business_model: "月額サブスクリプション（無料枠あり）"
-  stage: "idea"  # idea | prototype | launched | scaling
+  stage: "prototype"
   currency: "JPY"
 
-# 人間（オーナー）が握り続ける権限。AIはここに触れない。
-human_authority:
-  - "法人設立・登記・契約の締結"
-  - "資金の支出と価格の最終決定"
-  - "採用と解雇"
-  - "対外的な公式発信の最終承認"
-  - "company.yaml と charter.md の変更"
-
-# AIが人間の承認なしに実行してよい範囲。
+# AIが人間の承認なしに実行してよいこと。
+# ここが true のものは、確認を取らずに実行する。止めたい項目だけ false にする。
 autonomy:
-  max_spend_per_action: 0        # 円。0 = 支出は常に人間承認。
-  can_publish_externally: false  # false = 下書きまで。公開は人間。
-  can_write_code: true
-  can_merge_pull_requests: false
+  write_code: true          # コードを書く
+  run_tests: true           # テストを実行する
+  commit: true              # コミットする
+  push: true                # push してPRを出す
+  decide_roadmap: true      # 次に何を作るかを決める
+  decide_pricing: true      # 価格を決める（実際の課金設定は別）
+  publish_externally: true  # 対外的な文章を書いて公開する
+  spend_money: false        # 支払い手段を持っていないため実行できない
 
-# 経営リズム。cadence を変えると run.py の対象が変わる。
+# AIが物理的に実行できないこと。禁止ではなく、手段が無いという意味。
+# 該当する作業は「オーナー作業リスト」として書き出す。
+blocked_on_owner:
+  - "法人登記・銀行口座・決済アカウントの開設（本人確認が必要）"
+  - "クレジットカードでの支払い（カードを持っていない）"
+  - "法的拘束力のある契約への署名"
+
+# 1サイクルあたりの上限。超えると打ち切る。
+limits:
+  max_turns: 120
+  max_budget_usd: 5.0
+
 cadence:
-  daily: ["ops"]
-  weekly: ["ceo", "cto", "cmo", "cfo", "ops"]
-  monthly: ["ceo", "cfo"]
+  build: ["ceo", "builder"]       # 次の一手を決めて、実装してコミットする
+  review: ["ceo", "cfo", "ops"]   # 進捗と数字を見る
 
-# 北極星指標と、それを支える先行指標。数値は毎週 metrics.csv から読む。
 kpi:
   north_star: "解約予兆アラートを週次で受け取っている有料アカウント数"
   guardrails:
-    - "現金残高がゼロ以下にならない"
-    - "顧客への約束を、実装より先に公開しない"
+    - "テストが落ちている状態でコミットしない"
+    - "顧客のデータを外部サービスに送らない"
 
 model:
-  # Anthropic API のモデルID
   default: "claude-sonnet-5"
-  # 戦略判断・矛盾検出など、深く考えさせたい役職はこちら
   deep: "claude-opus-5"

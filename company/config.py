@@ -44,8 +44,9 @@ class Config:
         return self.raw.get("autonomy", {})
 
     @property
-    def human_authority(self) -> list[str]:
-        return self.raw.get("human_authority", [])
+    def blocked_on_owner(self) -> list[str]:
+        """AIに実行手段が無い作業。禁止事項ではない。"""
+        return self.raw.get("blocked_on_owner", [])
 
     @property
     def kpi(self) -> dict[str, Any]:

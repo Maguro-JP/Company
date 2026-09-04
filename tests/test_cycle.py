@@ -19,8 +19,8 @@ from company.config import Config  # noqa: E402
 CONFIG = Config(
     {
         "company": {"name": "テスト社", "mission": "検証", "stage": "idea"},
-        "human_authority": ["契約の締結"],
-        "autonomy": {"max_spend_per_action": 0, "can_publish_externally": False},
+        "blocked_on_owner": ["法的拘束力のある契約への署名"],
+        "autonomy": {"write_code": True, "publish_externally": True, "spend_money": False},
         "kpi": {"north_star": "週次課金ユーザー", "guardrails": ["現金がゼロを下回らない"]},
         "cadence": {"weekly": ["ops", "ceo", "cfo"]},
         "model": {"default": "model-default", "deep": "model-deep"},
@@ -70,11 +70,13 @@ class CycleTest(unittest.TestCase):
         self.assertIn("先に報告された内容", second)
         self.assertIn("model-deep からの報告", second)
 
-    def test_authority_limits_reach_the_prompt(self):
+    def test_autonomy_and_blockers_reach_the_prompt(self):
+        """許可されている実行範囲と、手段が無い作業の両方が届くこと。"""
         board.run_cycle(CONFIG, "weekly")
         prompt = self.client.calls[0]["prompt"]
-        self.assertIn("契約の締結", prompt)
-        self.assertIn("外部公開: 不可", prompt)
+        self.assertIn("write_code: True", prompt)
+        self.assertIn("提案で止めないこと", prompt)
+        self.assertIn("法的拘束力のある契約への署名", prompt)
 
     def test_record_is_written_with_approval_section(self):
         reports = board.run_cycle(CONFIG, "weekly")

@@ -26,6 +26,11 @@ def main(argv: list[str] | None = None) -> int:
         help="APIを呼ばず、実際に渡されるコンテキストだけを表示する",
     )
     parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="エージェントに実際にコードを書かせてコミットさせる（報告ではなく実行）",
+    )
+    parser.add_argument(
         "--check",
         action="store_true",
         help="company.yaml の未設定項目を確認して終了する",
@@ -50,6 +55,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  - {field}")
         print("\n（コンテキストの確認だけなら --dry-run が使えます）")
         return 1
+
+    if args.execute:
+        from . import execute  # noqa: PLC0415
+
+        execute.run_cycle(config, args.cadence)
+        return 0
 
     reports = board.run_cycle(config, args.cadence, dry_run=args.dry_run)
     if args.dry_run:
