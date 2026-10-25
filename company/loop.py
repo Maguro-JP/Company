@@ -25,7 +25,7 @@ class LoopResult:
     turns: int
     tool_calls: int
     usage: dict[str, int] = field(default_factory=lambda: {"input": 0, "output": 0})
-    stopped_reason: str = "done"  # done | max_turns | stopped | error
+    stopped_reason: str = "done"  # done | max_turns | budget | stopped | error
 
 
 def _args_preview(args: dict[str, Any], limit: int = 200) -> str:
@@ -46,7 +46,10 @@ def run_loop(
     temperature: float = 0.2,
     stop: threading.Event | None = None,
     role: str = "",
+    max_total_tokens: int = 0,
 ) -> LoopResult:
+    """max_total_tokens は入力＋出力の合計の上限。0 なら無制限。
+    超えたターンで止める（途中では切れないので、上限を少し超えて止まる）。"""
     history: list[Any] = [provider.user_message(task)]
     specs = [spec for spec, _ in tools.values()]
     usage = {"input": 0, "output": 0}
@@ -68,6 +71,15 @@ def run_loop(
         usage["input"] += result.usage.get("input", 0)
         usage["output"] += result.usage.get("output", 0)
         history.append(result.assistant_message)
+
+        spent = usage["input"] + usage["output"]
+        if max_total_tokens and spent >= max_total_tokens:
+            if result.text:
+                final_text = result.text
+                emit({"type": "text", "role": role, "text": result.text, "turn": turn})
+            emit({"type": "status", "role": role,
+                  "text": f"トークン上限 {max_total_tokens} に達したので止めました（使用 {spent}）"})
+            return LoopResult(final_text, turn, tool_calls_total, usage, "budget")
 
         if result.text:
             final_text = result.text

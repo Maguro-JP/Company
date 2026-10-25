@@ -150,6 +150,18 @@ class LocalLLMLoopTest(unittest.TestCase):
         self.assertEqual(result.stopped_reason, "max_turns")
         self.assertEqual(result.turns, 2)
 
+    def test_token_budget_stops_the_loop(self):
+        """偽サーバーは1ターン 15 トークン。上限 40 なら 3 ターン目で止まる。"""
+        result, _ = self._run([{"tool": ("list_files", {})}] * 10, max_total_tokens=40)
+        self.assertEqual(result.stopped_reason, "budget")
+        self.assertEqual(result.turns, 3)
+        self.assertGreaterEqual(result.usage["input"] + result.usage["output"], 40)
+        self.assertIn("トークン上限", self.events[-1]["text"])
+
+    def test_zero_budget_means_unlimited(self):
+        result, _ = self._run([{"text": "done"}], max_total_tokens=0)
+        self.assertEqual(result.stopped_reason, "done")
+
     def test_stop_event_halts_before_next_turn(self):
         stop = threading.Event()
         stop.set()

@@ -48,6 +48,7 @@ class SettingsPatch(BaseModel):
     api_key: str | None = None
     temperature: float | None = None
     max_turns: int | None = None
+    max_tokens_per_run: int | None = None
     context: int | None = None
     gpu_layers: int | None = None
 
