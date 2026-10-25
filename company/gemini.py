@@ -125,64 +125,7 @@ class GeminiProvider:
 # 逆方向: Gemini / AI Studio から会社を操作するための関数定義
 # --------------------------------------------------------------------------- #
 
-COMPANY_FUNCTIONS: list[dict[str, Any]] = [
-    {
-        "name": "list_roles",
-        "description": "会社の役職と、実行できるサイクルの一覧を返す。",
-        "parameters": {"type": "object", "properties": {}},
-    },
-    {
-        "name": "start_cycle",
-        "description": "サイクル（build = 次の一手を決めて実装しコミットする / review = 進捗と数字を確認する）を開始する。run_id を返す。",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "cadence": {"type": "string", "description": "build または review"},
-                "instruction": {"type": "string", "description": "オーナーからの指示（任意）"},
-            },
-            "required": ["cadence"],
-        },
-    },
-    {
-        "name": "start_role",
-        "description": "役職を1つだけ動かす。run_id を返す。",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "role": {"type": "string", "description": "ceo / builder / cto / cmo / cfo / ops"},
-                "instruction": {"type": "string", "description": "その役職への指示（任意）"},
-            },
-            "required": ["role"],
-        },
-    },
-    {
-        "name": "get_run",
-        "description": "実行の状態と、これまでの出力（発言・ツール呼び出し）を返す。完了まで繰り返し呼んでよい。",
-        "parameters": {
-            "type": "object",
-            "properties": {"run_id": {"type": "string"}},
-            "required": ["run_id"],
-        },
-    },
-    {
-        "name": "stop_run",
-        "description": "実行中のランを止める。",
-        "parameters": {
-            "type": "object",
-            "properties": {"run_id": {"type": "string"}},
-            "required": ["run_id"],
-        },
-    },
-    {
-        "name": "read_file",
-        "description": "会社のリポジトリ内のファイルを読む（README.md, company.yaml, product/ 配下など）。",
-        "parameters": {
-            "type": "object",
-            "properties": {"path": {"type": "string", "description": "リポジトリルートからの相対パス"}},
-            "required": ["path"],
-        },
-    },
-]
+from .controls import FUNCTIONS as COMPANY_FUNCTIONS  # noqa: E402
 
 
 def company_tool_declarations() -> dict[str, Any]:

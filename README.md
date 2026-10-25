@@ -32,6 +32,13 @@ run.bat
 `data/models/` に自分で置いた `.gguf` も一覧に出る。
 ダウンロードは途中で切れても、もう一度「取得」を押すと続きから再開する。
 
+### AdaptiveAIStudio と連携する
+
+[AdaptiveAIStudio](https://github.com/Maguro-JP/AdaptiveAIStudio) と、どちらからでも動かせる。
+AAS 側の設定に `{ "mcp": { "servers": { "company": { "url": "http://127.0.0.1:8765/mcp" } } } }` を足せば、
+AAS の画面から会社の役職を起こせる。逆に、会社のプロバイダを「AdaptiveAIStudio」にすれば、
+会社の役職が AAS の本体（モデル・作業担当・作業場）に仕事を頼む。手順と確かめた内容は [docs/adaptiveaistudio.md](docs/adaptiveaistudio.md)。
+
 ### Google AI Studio（Gemini）と連携する
 
 両方向で使える。
@@ -100,7 +107,10 @@ company.yaml         前提と権限。autonomy のフラグが唯一の制御�
 agents/*.md          役職ごとの判断基準（ceo / builder / cto / cmo / cfo / ops）
 company/providers.py LLM抽象層。内蔵 / OpenAI互換 / Anthropic を同じ形で扱う
 company/local_llm.py 内蔵エンジン。llama.cpp で GGUF を動かす。カタログとダウンロードもここ
-company/gemini.py    AI Studio 連携。Gemini プロバイダと、Gemini 側に渡す会社の関数定義
+company/controls.py  外から会社を操作する関数（1つの表）。Gemini も MCP もここを呼ぶ
+company/mcp_http.py  MCP（Streamable HTTP）の口。AdaptiveAIStudio がここに繋ぐ
+company/aas.py       AdaptiveAIStudio をモデルとして使うプロバイダ
+company/gemini.py    Google AI Studio 連携。Gemini プロバイダと、Gemini 側に渡す会社の関数定義
 company/gemini_bridge.py  Gemini と会話して会社を操作するブリッジ
 company/tools.py     エージェントのツール。read_file / write_file / list_files / run_command
 company/loop.py      ツール呼び出しループ。プロバイダ非依存
@@ -129,8 +139,9 @@ data/decisions/      review サイクルの記録
 **ループはプロバイダ非依存。** 内蔵も外部サーバーも Gemini も Anthropic も同じループを通る。
 モデルを切り替えても挙動は変わらない。
 
-**外から操作する入口は1つにする。** Gemini からの操作は `/api/gemini/call` に関数名と引数を
-投げるだけ。画面もブリッジも同じ runner を叩くので、どちらで始めても履歴と状態は共有される。
+**外から操作できることは1つの表で決める。** Gemini（`/api/gemini/call`）も AdaptiveAIStudio（`/mcp`）も
+`company/controls.py` の同じ関数を呼ぶ。入口ごとに別の操作ができると、どこから何が起きたか追えなくなる。
+画面・ブリッジ・外部のどれで始めても、同じ runner を叩くので履歴と状態は共有される。
 
 **権限は設定ファイルに集約する。** `autonomy` の各フラグは共有コンテキストに埋め込まれ、
 「true のものは確認を取らずに実行してください」と指示される。
