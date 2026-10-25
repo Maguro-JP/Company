@@ -26,11 +26,6 @@ blocked_on_owner:
   - "クレジットカードでの支払い（カードを持っていない）"
   - "法的拘束力のある契約への署名"
 
-# 1サイクルあたりの上限。超えると打ち切る。
-limits:
-  max_turns: 120
-  max_budget_usd: 5.0
-
 cadence:
   build: ["ceo", "builder"]       # 次の一手を決めて、実装してコミットする
   review: ["ceo", "cfo", "ops"]   # 進捗と数字を見る
@@ -41,6 +36,8 @@ kpi:
     - "テストが落ちている状態でコミットしない"
     - "顧客のデータを外部サービスに送らない"
 
+# モデルとプロバイダは UI の右パネル（data/settings.json）で選ぶ。
+# ここに書くのは、Anthropic を使うときに役職ごとに使い分けたい場合の既定値だけ。
 model:
   default: "claude-sonnet-5"
   deep: "claude-opus-5"

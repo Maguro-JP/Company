@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Company</title>
+<style>
+  :root {
+    --bg: #131314; --panel: #1e1f20; --panel-2: #28292a; --border: #3c3d3f;
+    --text: #e3e3e3; --muted: #9aa0a6; --accent: #8ab4f8; --accent-2: #a8c7fa;
+    --ok: #81c995; --warn: #fdd663; --err: #f28b82; --tool: #c58af9;
+    --radius: 12px; --font: "Segoe UI", "Yu Gothic UI", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    --mono: Consolas, "Cascadia Mono", "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 var(--font); }
+  body { display: grid; grid-template-rows: 52px 1fr; }
+
+  header { display: flex; align-items: center; gap: 14px; padding: 0 18px; border-bottom: 1px solid var(--border); background: var(--bg); }
+  header .brand { font-weight: 600; font-size: 16px; letter-spacing: .2px; }
+  header .company { color: var(--muted); }
+  header .spacer { flex: 1; }
+  header .pill { font-size: 12px; color: var(--muted); padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; }
+
+  main { display: grid; grid-template-columns: 270px 1fr 320px; min-height: 0; }
+  aside, section { min-height: 0; overflow: auto; }
+  aside.left { border-right: 1px solid var(--border); padding: 14px 10px; }
+  aside.right { border-left: 1px solid var(--border); padding: 16px; }
+
+  h3 { margin: 10px 8px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  .nav button { display: flex; width: 100%; align-items: center; gap: 10px; text-align: left; background: none; border: 0; color: var(--text); padding: 9px 10px; border-radius: 8px; cursor: pointer; font: inherit; }
+  .nav button:hover { background: var(--panel); }
+  .nav button.active { background: var(--panel-2); }
+  .nav .sub { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; padding-left: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.running { background: var(--accent); animation: pulse 1.2s infinite; }
+  .dot.done { background: var(--ok); } .dot.error { background: var(--err); } .dot.stopped { background: var(--warn); }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  section.center { display: grid; grid-template-rows: 1fr auto; }
+  .stream { padding: 22px 28px; overflow: auto; }
+  .empty { color: var(--muted); max-width: 560px; margin: 60px auto; text-align: center; }
+  .empty h2 { font-weight: 500; color: var(--text); margin-bottom: 6px; }
+  .msg { max-width: 860px; margin: 0 auto 14px; }
+  .msg .who { font-size: 12px; color: var(--muted); margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
+  .msg .who b { color: var(--text); font-weight: 600; }
+  .msg .body { background: var(--panel); border-radius: var(--radius); padding: 12px 16px; white-space: pre-wrap; word-break: break-word; }
+  .msg.tool .body { background: transparent; border: 1px solid var(--border); padding: 8px 12px; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+  .msg.tool .name { color: var(--tool); }
+  .msg.tool details summary { cursor: pointer; list-style: none; }
+  .msg.tool details summary::-webkit-details-marker { display: none; }
+  .msg.tool pre { margin: 8px 0 0; white-space: pre-wrap; color: var(--text); max-height: 320px; overflow: auto; }
+  .msg.status .body { background: transparent; color: var(--muted); font-size: 12.5px; padding: 4px 0; }
+  .msg.error .body { border: 1px solid var(--err); color: var(--err); background: transparent; }
+  .msg.role .body { background: var(--panel-2); font-weight: 500; }
+
+  .composer { border-top: 1px solid var(--border); padding: 14px 28px 18px; background: var(--bg); }
+  .composer .box { max-width: 860px; margin: 0 auto; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 10px 12px 8px; }
+  .composer textarea { width: 100%; background: none; border: 0; color: var(--text); font: inherit; resize: none; outline: none; min-height: 44px; }
+  .composer .row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .composer .hint { color: var(--muted); font-size: 12px; }
+  .composer .spacer { flex: 1; }
+
+  select, input[type=text], input[type=password], input[type=number] { width: 100%; background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 8px; font: inherit; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  label.field { display: block; margin-bottom: 14px; }
+  label.field > span { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .inline { display: flex; gap: 6px; }
+  .inline select { flex: 1; }
+  button.btn { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 999px; cursor: pointer; font: inherit; }
+  button.btn:hover { border-color: var(--muted); }
+  button.btn.primary { background: var(--accent); border-color: var(--accent); color: #062e6f; font-weight: 600; }
+  button.btn.primary:hover { background: var(--accent-2); }
+  button.btn.danger { border-color: var(--err); color: var(--err); }
+  button.btn:disabled { opacity: .5; cursor: default; }
+  .small { font-size: 12px; color: var(--muted); }
+  .note { font-size: 12px; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+  .note.err { color: var(--err); border-color: var(--err); }
+  .ok { color: var(--ok); }
+
+  @media (max-width: 1000px) {
+    main { grid-template-columns: 1fr; }
+    aside { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Company</span>
+  <span class="company" id="companyName">…</span>
+  <span class="spacer"></span>
+  <span class="pill" id="modelPill">モデル未選択</span>
+</header>
+
+<main>
+  <aside class="left">
+    <h3>サイクル</h3>
+    <div class="nav" id="cadenceNav"></div>
+    <h3>役職</h3>
+    <div class="nav" id="roleNav"></div>
+    <h3>履歴</h3>
+    <div class="nav" id="runNav"></div>
+  </aside>
+
+  <section class="center">
+    <div class="stream" id="stream">
+      <div class="empty">
+        <h2>AIが経営する会社</h2>
+        <p>左でサイクルか役職を選び、下に指示を書いて実行します。指示が空なら、役職定義に従って自分で決めて動きます。</p>
+        <p class="small">右のパネルでモデルを選んでください。ローカルLLM（Ollama / LM Studio）か Anthropic API。</p>
+      </div>
+    </div>
+    <div class="composer">
+      <div class="box">
+        <textarea id="instruction" placeholder="オーナーからの指示（任意）。例: CSVだけでなくJSONも読めるようにして"></textarea>
+        <div class="row">
+          <span class="hint" id="targetHint">対象: 未選択</span>
+          <span class="spacer"></span>
+          <button class="btn danger" id="stopBtn" style="display:none">停止</button>
+          <button class="btn primary" id="runBtn">実行</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="right">
+    <h3 style="margin-left:0">実行設定</h3>
+    <label class="field"><span>プロバイダ</span>
+      <select id="provider">
+        <option value="openai_compatible">ローカル LLM（OpenAI互換）</option>
+        <option value="anthropic">Anthropic API</option>
+      </select>
+    </label>
+    <label class="field" id="baseUrlField"><span>エンドポイント</span>
+      <input type="text" id="baseUrl" placeholder="http://localhost:11434/v1">
+      <span class="small" style="display:block;margin-top:4px">Ollama: :11434/v1 　LM Studio: :1234/v1</span>
+    </label>
+    <label class="field" id="apiKeyField" style="display:none"><span>APIキー（任意。環境変数でも可）</span>
+      <input type="password" id="apiKey" placeholder="sk-ant-…">
+    </label>
+    <label class="field"><span>モデル</span>
+      <div class="inline">
+        <select id="model"></select>
+        <button class="btn" id="refreshModels" title="一覧を取得">↻</button>
+      </div>
+      <div class="note" id="modelNote" style="display:none"></div>
+    </label>
+    <label class="field"><span>Temperature <b id="tempVal">0.2</b></span>
+      <input type="range" id="temperature" min="0" max="1" step="0.05" value="0.2">
+    </label>
+    <label class="field"><span>最大ターン数</span>
+      <input type="number" id="maxTurns" min="1" max="500" value="60">
+    </label>
+    <div class="small" id="saveState"></div>
+
+    <h3 style="margin:22px 0 6px">この会社</h3>
+    <div class="small" id="companyInfo"></div>
+  </aside>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const state = { cadences: {}, roles: [], runs: [], settings: {}, target: null, current: null, es: null };
+
+  // ---------- API ----------
+  const api = async (path, opts) => {
+    const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+    return r.json();
+  };
+
+  // ---------- Settings panel ----------
+  const settingsEls = ['provider', 'baseUrl', 'apiKey', 'model', 'temperature', 'maxTurns'];
+  const readSettings = () => ({
+    provider: $('provider').value, base_url: $('baseUrl').value, api_key: $('apiKey').value,
+    model: $('model').value, temperature: parseFloat($('temperature').value), max_turns: parseInt($('maxTurns').value || '60', 10),
+  });
+  const applySettings = (s) => {
+    $('provider').value = s.provider || 'openai_compatible';
+    $('baseUrl').value = s.base_url || '';
+    $('apiKey').value = s.api_key || '';
+    $('temperature').value = s.temperature ?? 0.2; $('tempVal').textContent = $('temperature').value;
+    $('maxTurns').value = s.max_turns ?? 60;
+    if (s.model) { $('model').innerHTML = `<option>${esc(s.model)}</option>`; $('model').value = s.model; }
+    toggleProviderFields();
+    $('modelPill').textContent = s.model ? `${s.provider === 'anthropic' ? 'Anthropic' : 'Local'} · ${s.model}` : 'モデル未選択';
+  };
+  const toggleProviderFields = () => {
+    const local = $('provider').value === 'openai_compatible';
+    $('baseUrlField').style.display = local ? '' : 'none';
+    $('apiKeyField').style.display = local ? 'none' : '';
+  };
+  let saveTimer;
+  const saveSettings = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      state.settings = await api('/api/settings', { method: 'POST', body: JSON.stringify(readSettings()) });
+      $('saveState').textContent = '保存済み'; setTimeout(() => $('saveState').textContent = '', 1500);
+      applySettings(state.settings);
+    }, 300);
+  };
+  settingsEls.forEach((id) => $(id).addEventListener('input', () => { if (id === 'temperature') $('tempVal').textContent = $('temperature').value; saveSettings(); }));
+  $('provider').addEventListener('change', () => { toggleProviderFields(); if ($('provider').value === 'openai_compatible' && !$('baseUrl').value) $('baseUrl').value = 'http://localhost:11434/v1'; refreshModels(); });
+
+  const refreshModels = async () => {
+    const note = $('modelNote'); note.style.display = 'none'; note.className = 'note';
+    const s = readSettings();
+    const q = new URLSearchParams({ provider: s.provider, base_url: s.base_url, api_key: s.api_key });
+    $('refreshModels').disabled = true;
+    try {
+      const { models, error } = await api('/api/models?' + q);
+      const current = s.model;
+      $('model').innerHTML = models.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+      if (models.includes(current)) $('model').value = current; else if (models.length) saveSettings();
+      if (error) { note.textContent = error; note.className = 'note err'; note.style.display = ''; }
+      else if (!models.length) { note.textContent = 'モデルが見つかりません。'; note.style.display = ''; }
+    } finally { $('refreshModels').disabled = false; }
+  };
+  $('refreshModels').addEventListener('click', refreshModels);
+
+  // ---------- Navigation ----------
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const renderNav = () => {
+    $('cadenceNav').innerHTML = Object.entries(state.cadences).map(([name, roles]) =>
+      `<button data-kind="cycle" data-target="${esc(name)}" class="${isActive('cycle', name)}">${esc(name)}<span class="sub">${roles.join(' → ')}</span></button>`).join('');
+    $('roleNav').innerHTML = state.roles.map((r) =>
+      `<button data-kind="role" data-target="${esc(r.role)}" class="${isActive('role', r.role)}">${esc(r.title)}<span class="sub">${r.writes ? '実装' : '確認'}</span></button>`).join('');
+    $('runNav').innerHTML = state.runs.slice(0, 20).map((r) =>
+      `<button data-run="${r.id}" class="${state.current === r.id ? 'active' : ''}"><span class="dot ${r.status}"></span>${esc(r.target)}<span class="sub">${r.started_at.slice(11, 16)}</span></button>`).join('') || '<div class="small" style="padding:0 10px">まだありません</div>';
+  };
+  const isActive = (kind, target) => state.target && state.target.kind === kind && state.target.target === target ? 'active' : '';
+  document.querySelector('aside.left').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.run) { openRun(b.dataset.run); return; }
+    state.target = { kind: b.dataset.kind, target: b.dataset.target };
+    $('targetHint').textContent = `対象: ${b.dataset.kind === 'cycle' ? 'サイクル' : '役職'} / ${b.dataset.target}`;
+    renderNav();
+  });
+
+  // ---------- Stream ----------
+  const stream = $('stream');
+  const add = (cls, who, html) => {
+    if (stream.querySelector('.empty')) stream.innerHTML = '';
+    const el = document.createElement('div'); el.className = `msg ${cls}`;
+    el.innerHTML = `<div class="who">${who}</div><div class="body">${html}</div>`;
+    stream.appendChild(el);
+    stream.scrollTop = stream.scrollHeight;
+  };
+  const roleTitle = (role) => (state.roles.find((r) => r.role === role) || {}).title || role || '';
+  const render = (ev) => {
+    const who = `<b>${esc(roleTitle(ev.role))}</b> <span>${esc(ev.at || '')}</span>`;
+    switch (ev.type) {
+      case 'role_start': add('role', who, `${esc(ev.title)} が開始 · ${esc(ev.model || '')} · ${ev.writes ? '書き込み可' : '読み取りのみ'}`); break;
+      case 'role_end': add('status', who, `${ev.turns} ターン · ツール ${ev.tool_calls} 回 · 入力 ${ev.usage?.input ?? 0} / 出力 ${ev.usage?.output ?? 0} トークン · ${esc(ev.reason)}`); break;
+      case 'text': add('', who, esc(ev.text)); break;
+      case 'tool_call': add('tool', who, `<span class="name">${esc(ev.name)}</span> ${esc(ev.args)}`); break;
+      case 'tool_result': add('tool', who, `<details><summary>↳ ${esc(ev.name)} の結果 <span class="small">(${ev.ms} ms)</span></summary><pre>${esc(ev.text)}</pre></details>`); break;
+      case 'status': add('status', who, esc(ev.text)); break;
+      case 'error': add('error', who, esc(ev.text)); break;
+      default: add('status', who, esc(JSON.stringify(ev)));
+    }
+  };
+
+  const openRun = async (id) => {
+    if (state.es) { state.es.close(); state.es = null; }
+    state.current = id; stream.innerHTML = ''; renderNav();
+    const run = await api(`/api/runs/${id}`);
+    run.events.forEach(render);
+    setRunning(run.status === 'running');
+    if (run.status === 'running') subscribe(id, run.events.length);
+  };
+  const subscribe = (id, from) => {
+    const es = new EventSource(`/api/runs/${id}/events`);
+    let seen = 0;
+    es.onmessage = (e) => { seen++; if (seen > from) render(JSON.parse(e.data)); };
+    es.addEventListener('end', () => { es.close(); state.es = null; setRunning(false); refreshState(); });
+    es.onerror = () => { es.close(); state.es = null; setRunning(false); };
+    state.es = es;
+  };
+  const setRunning = (on) => { $('runBtn').disabled = on; $('stopBtn').style.display = on ? '' : 'none'; };
+
+  $('runBtn').addEventListener('click', async () => {
+    if (!state.target) { alert('左でサイクルか役職を選んでください'); return; }
+    if (!readSettings().model) { alert('右のパネルでモデルを選んでください'); return; }
+    const instruction = $('instruction').value.trim() || null;
+    try {
+      const run = await api('/api/runs', { method: 'POST', body: JSON.stringify({ ...state.target, instruction }) });
+      $('instruction').value = '';
+      await refreshState();
+      openRun(run.id);
+    } catch (e) { alert(e.message); }
+  });
+  $('stopBtn').addEventListener('click', () => state.current && api(`/api/runs/${state.current}/stop`, { method: 'POST' }));
+  $('instruction').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('runBtn').click(); });
+
+  // ---------- Boot ----------
+  const refreshState = async () => {
+    const s = await api('/api/state');
+    Object.assign(state, { cadences: s.cadences, roles: s.roles, runs: s.runs, settings: s.settings });
+    $('companyName').textContent = s.company.name || '';
+    $('companyInfo').innerHTML = `<div>${esc(s.company.mission || '')}</div><div style="margin-top:6px">顧客: ${esc(s.company.customer || '')}</div><div>ステージ: ${esc(s.company.stage || '')}</div>`;
+    renderNav();
+  };
+  (async () => {
+    await refreshState();
+    applySettings(state.settings);
+    if (!state.target && Object.keys(state.cadences).length) {
+      const first = Object.keys(state.cadences)[0];
+      state.target = { kind: 'cycle', target: first };
+      $('targetHint').textContent = `対象: サイクル / ${first}`; renderNav();
+    }
+    refreshModels();
+  })();
+})();
+</script>
+</body>
+</html>
