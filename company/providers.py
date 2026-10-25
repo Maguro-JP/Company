@@ -227,11 +227,19 @@ class AnthropicProvider:
 
 
 def make_provider(settings: dict[str, Any]) -> Provider:
-    """settings: {provider, model, base_url, api_key}"""
-    kind = settings.get("provider", "openai_compatible")
+    """settings: {provider, model, base_url, api_key, context, gpu_layers}"""
+    kind = settings.get("provider", "builtin")
     model = settings.get("model") or ""
     if not model:
         raise ProviderError("モデルが選択されていません。")
+    if kind == "builtin":
+        from .local_llm import BuiltinProvider  # noqa: PLC0415
+
+        return BuiltinProvider(
+            model=model,
+            n_ctx=int(settings.get("context") or 8192),
+            n_gpu_layers=int(settings.get("gpu_layers", -1)),
+        )
     if kind == "anthropic":
         return AnthropicProvider(model=model)
     if kind == "openai_compatible":

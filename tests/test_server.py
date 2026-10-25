@@ -32,7 +32,7 @@ class ServerTest(unittest.TestCase):
         s = self.client.get("/api/state").json()
         self.assertIn("build", s["cadences"])
         self.assertIn("builder", [r["role"] for r in s["roles"]])
-        self.assertEqual(s["settings"]["provider"], "openai_compatible")
+        self.assertEqual(s["settings"]["provider"], "builtin")
 
     def test_settings_round_trip(self):
         r = self.client.post("/api/settings", json={"model": "fake-7b", "temperature": 0.7}).json()
@@ -50,7 +50,7 @@ class ServerTest(unittest.TestCase):
             {"text": "追加しました"},
         ])
         try:
-            self.client.post("/api/settings", json={"base_url": llm.url, "model": "fake-7b"})
+            self.client.post("/api/settings", json={"provider": "openai_compatible", "base_url": llm.url, "model": "fake-7b"})
             run = self.client.post("/api/runs", json={"kind": "role", "target": "builder", "instruction": "メモを書いて"}).json()
             with self.client.stream("GET", f"/api/runs/{run['id']}/events") as resp:
                 body = "".join(resp.iter_text())

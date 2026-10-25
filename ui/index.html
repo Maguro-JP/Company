@@ -77,6 +77,13 @@
   .note { font-size: 12px; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
   .note.err { color: var(--err); border-color: var(--err); }
   .ok { color: var(--ok); }
+  .cat { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--border); }
+  .cat:first-child { border-top: 0; }
+  .cat .lbl { flex: 1; min-width: 0; }
+  .cat .lbl div { font-size: 12px; color: var(--muted); }
+  .cat button.btn { padding: 4px 10px; font-size: 12px; }
+  .bar { height: 4px; background: var(--panel-2); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
 
   @media (max-width: 1000px) {
     main { grid-template-columns: 1fr; }
@@ -127,7 +134,8 @@
     <h3 style="margin-left:0">実行設定</h3>
     <label class="field"><span>プロバイダ</span>
       <select id="provider">
-        <option value="openai_compatible">ローカル LLM（OpenAI互換）</option>
+        <option value="builtin">内蔵（単体で動く）</option>
+        <option value="openai_compatible">外部ローカルサーバー（Ollama / LM Studio）</option>
         <option value="anthropic">Anthropic API</option>
       </select>
     </label>
@@ -144,6 +152,22 @@
         <button class="btn" id="refreshModels" title="一覧を取得">↻</button>
       </div>
       <div class="note" id="modelNote" style="display:none"></div>
+    </label>
+    <div id="catalogField" class="field">
+      <span class="small" style="display:block;margin-bottom:6px">モデルをアプリ内にダウンロード（初回のみ。以後はオフラインで動く）</span>
+      <div id="catalog"></div>
+    </div>
+    <label class="field" id="contextField"><span>コンテキスト長</span>
+      <select id="context">
+        <option value="4096">4096（省メモリ）</option>
+        <option value="8192">8192</option>
+        <option value="16384">16384</option>
+        <option value="32768">32768（要メモリ）</option>
+      </select>
+    </label>
+    <label class="field" id="gpuField"><span>GPU に載せる層数</span>
+      <input type="number" id="gpuLayers" min="-1" max="200" value="-1">
+      <span class="small" style="display:block;margin-top:4px">-1 = 全部（GPU 版のときだけ効く）。CPU 版では無視される</span>
     </label>
     <label class="field"><span>Temperature <b id="tempVal">0.2</b></span>
       <input type="range" id="temperature" min="0" max="1" step="0.05" value="0.2">
@@ -171,10 +195,11 @@
   };
 
   // ---------- Settings panel ----------
-  const settingsEls = ['provider', 'baseUrl', 'apiKey', 'model', 'temperature', 'maxTurns'];
+  const settingsEls = ['provider', 'baseUrl', 'apiKey', 'model', 'temperature', 'maxTurns', 'context', 'gpuLayers'];
   const readSettings = () => ({
     provider: $('provider').value, base_url: $('baseUrl').value, api_key: $('apiKey').value,
     model: $('model').value, temperature: parseFloat($('temperature').value), max_turns: parseInt($('maxTurns').value || '60', 10),
+    context: parseInt($('context').value, 10), gpu_layers: parseInt($('gpuLayers').value || '-1', 10),
   });
   const applySettings = (s) => {
     $('provider').value = s.provider || 'openai_compatible';
@@ -182,14 +207,16 @@
     $('apiKey').value = s.api_key || '';
     $('temperature').value = s.temperature ?? 0.2; $('tempVal').textContent = $('temperature').value;
     $('maxTurns').value = s.max_turns ?? 60;
+    $('context').value = String(s.context ?? 8192); $('gpuLayers').value = s.gpu_layers ?? -1;
     if (s.model) { $('model').innerHTML = `<option>${esc(s.model)}</option>`; $('model').value = s.model; }
     toggleProviderFields();
-    $('modelPill').textContent = s.model ? `${s.provider === 'anthropic' ? 'Anthropic' : 'Local'} · ${s.model}` : 'モデル未選択';
+    $('modelPill').textContent = s.model ? `${{ anthropic: 'Anthropic', builtin: '内蔵', openai_compatible: '外部' }[s.provider] || s.provider} · ${s.model}` : 'モデル未選択';
   };
   const toggleProviderFields = () => {
-    const local = $('provider').value === 'openai_compatible';
-    $('baseUrlField').style.display = local ? '' : 'none';
-    $('apiKeyField').style.display = local ? 'none' : '';
+    const p = $('provider').value;
+    $('baseUrlField').style.display = p === 'openai_compatible' ? '' : 'none';
+    $('apiKeyField').style.display = p === 'anthropic' ? '' : 'none';
+    ['catalogField', 'contextField', 'gpuField'].forEach((id) => $(id).style.display = p === 'builtin' ? '' : 'none');
   };
   let saveTimer;
   const saveSettings = () => {
@@ -209,15 +236,49 @@
     const q = new URLSearchParams({ provider: s.provider, base_url: s.base_url, api_key: s.api_key });
     $('refreshModels').disabled = true;
     try {
-      const { models, error } = await api('/api/models?' + q);
+      const { models, error, catalog } = await api('/api/models?' + q);
+      if (catalog) renderCatalog(catalog);
       const current = s.model;
       $('model').innerHTML = models.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
       if (models.includes(current)) $('model').value = current; else if (models.length) saveSettings();
       if (error) { note.textContent = error; note.className = 'note err'; note.style.display = ''; }
-      else if (!models.length) { note.textContent = 'モデルが見つかりません。'; note.style.display = ''; }
+      else if (!models.length) { note.textContent = s.provider === 'builtin' ? '下からモデルをダウンロードしてください。' : 'モデルが見つかりません。'; note.style.display = ''; }
     } finally { $('refreshModels').disabled = false; }
   };
   $('refreshModels').addEventListener('click', refreshModels);
+
+  // ---------- Built-in model catalog ----------
+  const gb = (n) => (n / 1e9).toFixed(1) + ' GB';
+  const pollers = {};
+  const renderCatalog = (catalog) => {
+    $('catalog').innerHTML = catalog.map((m) => {
+      const dl = m.downloading;
+      const action = m.downloaded ? '<span class="ok small">取得済み</span>'
+        : dl ? `<span class="small">${dl.percent}%</span>`
+        : `<button class="btn" data-dl="${esc(m.id)}">取得</button>`;
+      return `<div class="cat"><div class="lbl">${esc(m.label)}<div>${gb(m.bytes)}</div>${dl ? `<div class="bar"><i style="width:${dl.percent}%"></i></div>` : ''}${dl && dl.error ? `<div class="err small">${esc(dl.error)}</div>` : ''}</div>${action}</div>`;
+    }).join('');
+    catalog.filter((m) => m.downloading && !pollers[m.id]).forEach((m) => poll(m.id));
+  };
+  const poll = (id) => {
+    pollers[id] = setInterval(async () => {
+      try {
+        const d = await api(`/api/download/${id}`);
+        if (d.finished) { clearInterval(pollers[id]); delete pollers[id]; refreshModels(); if (d.error) alert(d.error); return; }
+        refreshCatalogOnly();
+      } catch { clearInterval(pollers[id]); delete pollers[id]; }
+    }, 1000);
+  };
+  const refreshCatalogOnly = async () => {
+    const { catalog } = await api('/api/models?' + new URLSearchParams({ provider: 'builtin' }));
+    if (catalog) renderCatalog(catalog);
+  };
+  $('catalog').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-dl]'); if (!b) return;
+    b.disabled = true;
+    try { await api('/api/download', { method: 'POST', body: JSON.stringify({ model_id: b.dataset.dl }) }); poll(b.dataset.dl); refreshCatalogOnly(); }
+    catch (err) { alert(err.message); b.disabled = false; }
+  });
 
   // ---------- Navigation ----------
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

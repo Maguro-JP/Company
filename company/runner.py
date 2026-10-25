@@ -22,12 +22,14 @@ from .providers import ProviderError, make_provider
 SETTINGS_PATH = DATA_DIR / "settings.json"
 
 DEFAULT_SETTINGS: dict[str, Any] = {
-    "provider": "openai_compatible",
+    "provider": "builtin",
     "base_url": "http://localhost:11434/v1",
     "model": "",
     "api_key": "",
     "temperature": 0.2,
     "max_turns": 60,
+    "context": 8192,     # 内蔵エンジンのコンテキスト長
+    "gpu_layers": -1,    # 内蔵エンジン。-1 = GPU があれば全部載せる
 }
 
 # 実装系の役職だけ書き込みツールを持つ

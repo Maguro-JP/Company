@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import runner
+from . import local_llm, runner
 from .config import ROOT, load_config
 from .providers import ProviderError, make_provider
 
@@ -47,6 +47,8 @@ class SettingsPatch(BaseModel):
     api_key: str | None = None
     temperature: float | None = None
     max_turns: int | None = None
+    context: int | None = None
+    gpu_layers: int | None = None
 
 
 @app.post("/api/settings")
@@ -56,12 +58,35 @@ def update_settings(patch: SettingsPatch) -> dict[str, Any]:
 
 @app.get("/api/models")
 def models(provider: str, base_url: str = "", api_key: str = "") -> dict[str, Any]:
+    if provider == "builtin":
+        return {"models": [m["id"] for m in local_llm.list_models() if m["downloaded"]],
+                "catalog": local_llm.list_models()}
     try:
         # モデル名は一覧取得に不要なのでダミーを入れる
         p = make_provider({"provider": provider, "base_url": base_url, "api_key": api_key, "model": "-"})
         return {"models": p.list_models()}
     except ProviderError as exc:
         return {"models": [], "error": str(exc)}
+
+
+class DownloadRequest(BaseModel):
+    model_id: str
+
+
+@app.post("/api/download")
+def download(req: DownloadRequest) -> dict[str, Any]:
+    try:
+        return local_llm.DOWNLOADS.start(req.model_id).as_dict()
+    except ProviderError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.get("/api/download/{model_id}")
+def download_status(model_id: str) -> dict[str, Any]:
+    d = local_llm.DOWNLOADS._active.get(model_id)
+    if d is None:
+        raise HTTPException(404, "ダウンロード中ではありません")
+    return d.as_dict()
 
 
 class StartRequest(BaseModel):
