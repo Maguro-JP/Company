@@ -136,6 +136,7 @@
       <select id="provider">
         <option value="builtin">内蔵（単体で動く）</option>
         <option value="openai_compatible">外部ローカルサーバー（Ollama / LM Studio）</option>
+        <option value="gemini">Google AI Studio（Gemini）</option>
         <option value="anthropic">Anthropic API</option>
       </select>
     </label>
@@ -143,8 +144,9 @@
       <input type="text" id="baseUrl" placeholder="http://localhost:11434/v1">
       <span class="small" style="display:block;margin-top:4px">Ollama: :11434/v1 　LM Studio: :1234/v1</span>
     </label>
-    <label class="field" id="apiKeyField" style="display:none"><span>APIキー（任意。環境変数でも可）</span>
-      <input type="password" id="apiKey" placeholder="sk-ant-…">
+    <label class="field" id="apiKeyField" style="display:none"><span>APIキー</span>
+      <input type="password" id="apiKey" placeholder="">
+      <span class="small" id="apiKeyHint" style="display:block;margin-top:4px"></span>
     </label>
     <label class="field"><span>モデル</span>
       <div class="inline">
@@ -210,12 +212,16 @@
     $('context').value = String(s.context ?? 8192); $('gpuLayers').value = s.gpu_layers ?? -1;
     if (s.model) { $('model').innerHTML = `<option>${esc(s.model)}</option>`; $('model').value = s.model; }
     toggleProviderFields();
-    $('modelPill').textContent = s.model ? `${{ anthropic: 'Anthropic', builtin: '内蔵', openai_compatible: '外部' }[s.provider] || s.provider} · ${s.model}` : 'モデル未選択';
+    $('modelPill').textContent = s.model ? `${{ anthropic: 'Anthropic', gemini: 'AI Studio', builtin: '内蔵', openai_compatible: '外部' }[s.provider] || s.provider} · ${s.model}` : 'モデル未選択';
   };
   const toggleProviderFields = () => {
     const p = $('provider').value;
     $('baseUrlField').style.display = p === 'openai_compatible' ? '' : 'none';
-    $('apiKeyField').style.display = p === 'anthropic' ? '' : 'none';
+    $('apiKeyField').style.display = (p === 'anthropic' || p === 'gemini') ? '' : 'none';
+    $('apiKey').placeholder = p === 'gemini' ? 'AIza…' : 'sk-ant-…';
+    $('apiKeyHint').innerHTML = p === 'gemini'
+      ? '<a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> で発行。環境変数 GEMINI_API_KEY でも可'
+      : '環境変数 ANTHROPIC_API_KEY でも可';
     ['catalogField', 'contextField', 'gpuField'].forEach((id) => $(id).style.display = p === 'builtin' ? '' : 'none');
   };
   let saveTimer;

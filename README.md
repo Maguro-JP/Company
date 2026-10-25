@@ -32,6 +32,28 @@ run.bat
 `data/models/` に自分で置いた `.gguf` も一覧に出る。
 ダウンロードは途中で切れても、もう一度「取得」を押すと続きから再開する。
 
+### Google AI Studio（Gemini）と連携する
+
+両方向で使える。
+
+**アプリから AI Studio のモデルを使う。** 右パネルでプロバイダを「Google AI Studio（Gemini）」にし、
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey) で発行したキーを入れる（環境変数 `GEMINI_API_KEY` でも可）。
+「↻」でモデル一覧が出る。Gemini のネイティブ function calling で会社のツールを呼ぶ。
+
+**AI Studio 側から会社を動かす。** アプリを起動したまま、別のターミナルで:
+
+```
+python -m company.gemini_bridge
+> build を回して
+> 進捗は？
+```
+
+Gemini には会社の操作関数（`start_cycle` / `start_role` / `get_run` / `read_file` など）だけを渡し、
+実際の処理は起動中のアプリに中継する。画面から動かしてもブリッジから動かしても、同じ履歴に載る。
+
+自分で Gemini アプリを作る場合は、`GET /api/gemini/functions` が返す関数定義をそのまま `tools` に渡し、
+返ってきた `functionCall` を `POST /api/gemini/call` に中継すれば同じことができる。
+
 ### 外部のローカルサーバーを使う
 
 既に [Ollama](https://ollama.com) か [LM Studio](https://lmstudio.ai) を使っているなら、
@@ -78,6 +100,8 @@ company.yaml         前提と権限。autonomy のフラグが唯一の制御�
 agents/*.md          役職ごとの判断基準（ceo / builder / cto / cmo / cfo / ops）
 company/providers.py LLM抽象層。内蔵 / OpenAI互換 / Anthropic を同じ形で扱う
 company/local_llm.py 内蔵エンジン。llama.cpp で GGUF を動かす。カタログとダウンロードもここ
+company/gemini.py    AI Studio 連携。Gemini プロバイダと、Gemini 側に渡す会社の関数定義
+company/gemini_bridge.py  Gemini と会話して会社を操作するブリッジ
 company/tools.py     エージェントのツール。read_file / write_file / list_files / run_command
 company/loop.py      ツール呼び出しループ。プロバイダ非依存
 company/runner.py    サイクルの組み立て、設定の永続化、実行中ランの管理
@@ -102,8 +126,11 @@ data/decisions/      review サイクルの記録
 プロンプトで指定して自前で解釈する。GGUF ごとに異なるチャットテンプレートの function calling
 対応に左右されないため。小さいモデルが書式を落とすので、例を1つ見せている。
 
-**ループはプロバイダ非依存。** 内蔵も外部サーバーも Anthropic も同じループを通る。
+**ループはプロバイダ非依存。** 内蔵も外部サーバーも Gemini も Anthropic も同じループを通る。
 モデルを切り替えても挙動は変わらない。
+
+**外から操作する入口は1つにする。** Gemini からの操作は `/api/gemini/call` に関数名と引数を
+投げるだけ。画面もブリッジも同じ runner を叩くので、どちらで始めても履歴と状態は共有される。
 
 **権限は設定ファイルに集約する。** `autonomy` の各フラグは共有コンテキストに埋め込まれ、
 「true のものは確認を取らずに実行してください」と指示される。

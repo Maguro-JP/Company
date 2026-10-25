@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import os
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
@@ -242,6 +243,10 @@ def make_provider(settings: dict[str, Any]) -> Provider:
         )
     if kind == "anthropic":
         return AnthropicProvider(model=model)
+    if kind == "gemini":
+        from .gemini import GeminiProvider  # noqa: PLC0415
+
+        return GeminiProvider(model=model, api_key=settings.get("api_key") or os.environ.get("GEMINI_API_KEY", ""))
     if kind == "openai_compatible":
         return OpenAICompatibleProvider(
             base_url=settings.get("base_url") or "http://localhost:11434/v1",

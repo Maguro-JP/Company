@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import local_llm, runner
+from . import gemini, local_llm, runner
 from .config import ROOT, load_config
 from .providers import ProviderError, make_provider
 
@@ -159,3 +159,53 @@ def read_repo_file(path: str) -> dict[str, Any]:
     if not target.is_file():
         raise HTTPException(404, "not found")
     return {"path": path, "content": target.read_text(encoding="utf-8", errors="replace")}
+
+
+# --------------------------------------------------------------------------- #
+# AI Studio / Gemini 側から会社を操作するための入口
+# --------------------------------------------------------------------------- #
+
+
+@app.get("/api/gemini/functions")
+def gemini_functions() -> dict[str, Any]:
+    """Gemini API の tools にそのまま渡せる関数定義。AI Studio の Function calling 設定にも貼れる。"""
+    return gemini.company_tool_declarations()
+
+
+class FunctionCall(BaseModel):
+    name: str
+    args: dict[str, Any] = {}
+
+
+@app.post("/api/gemini/call")
+def gemini_call(call: FunctionCall) -> dict[str, Any]:
+    """関数名と引数で会社を操作する。Gemini の functionCall をそのまま中継できる。"""
+    args = call.args
+    try:
+        if call.name == "list_roles":
+            config = load_config()
+            return {"roles": runner.list_roles(), "cadences": config.raw.get("cadence", {})}
+        if call.name == "start_cycle":
+            return runner.start_cycle(args["cadence"], args.get("instruction")).summary()
+        if call.name == "start_role":
+            return runner.start_role(args["role"], args.get("instruction")).summary()
+        if call.name in ("get_run", "stop_run"):
+            run = runner.REGISTRY.get(args["run_id"])
+            if run is None:
+                return {"error": f"run が見つかりません: {args['run_id']}"}
+            if call.name == "stop_run":
+                run.stop.set()
+                return run.summary()
+            # Gemini に返すので、長いツール出力は刈る
+            events = [
+                {k: (v[:600] + "…" if isinstance(v, str) and len(v) > 600 else v) for k, v in e.items()}
+                for e in run.events if e["type"] in ("text", "tool_call", "status", "error", "role_start", "role_end")
+            ]
+            return {**run.summary(), "events": events}
+        if call.name == "read_file":
+            return read_repo_file(args["path"])
+        return {"error": f"未知の関数です: {call.name}"}
+    except KeyError as exc:
+        return {"error": f"引数が足りません: {exc}"}
+    except (ValueError, FileNotFoundError, HTTPException) as exc:
+        return {"error": str(getattr(exc, "detail", exc))}
