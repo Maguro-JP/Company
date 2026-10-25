@@ -35,8 +35,9 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(s["settings"]["provider"], "builtin")
 
     def test_settings_round_trip(self):
-        r = self.client.post("/api/settings", json={"model": "fake-7b", "temperature": 0.7}).json()
+        r = self.client.post("/api/settings", json={"model": "fake-7b", "temperature": 0.7, "max_tokens_per_run": 5000}).json()
         self.assertEqual(r["model"], "fake-7b")
+        self.assertEqual(r["max_tokens_per_run"], 5000)
         self.assertEqual(self.client.get("/api/state").json()["settings"]["temperature"], 0.7)
 
     def test_models_endpoint_reports_unreachable_server(self):

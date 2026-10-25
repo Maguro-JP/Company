@@ -28,6 +28,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "api_key": "",
     "temperature": 0.2,
     "max_turns": 60,
+    "max_tokens_per_run": 0,   # 1つの役職の実行あたりの入力＋出力トークン上限。0 = 無制限
     "context": 8192,     # 内蔵エンジンのコンテキスト長
     "gpu_layers": -1,    # 内蔵エンジン。-1 = GPU があれば全部載せる
 }
@@ -182,6 +183,7 @@ def run_role(
         temperature=float(settings.get("temperature", 0.2)),
         stop=run.stop,
         role=role,
+        max_total_tokens=int(settings.get("max_tokens_per_run", 0) or 0),
     )
     run.emit({"type": "role_end", "role": role, "turns": result.turns,
               "tool_calls": result.tool_calls, "usage": result.usage, "reason": result.stopped_reason})

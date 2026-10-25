@@ -178,6 +178,10 @@
     <label class="field"><span>最大ターン数</span>
       <input type="number" id="maxTurns" min="1" max="500" value="60">
     </label>
+    <label class="field"><span>トークン上限（1役職の実行あたり）</span>
+      <input type="number" id="maxTokens" min="0" step="1000" value="0">
+      <span class="small" style="display:block;margin-top:4px">入力＋出力の合計。0 = 無制限。クラウドで放置して回すときの費用の歯止め</span>
+    </label>
     <div class="small" id="saveState"></div>
 
     <h3 style="margin:22px 0 6px">この会社</h3>
@@ -198,18 +202,19 @@
   };
 
   // ---------- Settings panel ----------
-  const settingsEls = ['provider', 'baseUrl', 'apiKey', 'model', 'temperature', 'maxTurns', 'context', 'gpuLayers'];
+  const settingsEls = ['provider', 'baseUrl', 'apiKey', 'model', 'temperature', 'maxTurns', 'maxTokens', 'context', 'gpuLayers'];
   const readSettings = () => ({
     provider: $('provider').value, base_url: $('baseUrl').value, api_key: $('apiKey').value,
     model: $('model').value, temperature: parseFloat($('temperature').value), max_turns: parseInt($('maxTurns').value || '60', 10),
     context: parseInt($('context').value, 10), gpu_layers: parseInt($('gpuLayers').value || '-1', 10),
+    max_tokens_per_run: parseInt($('maxTokens').value || '0', 10),
   });
   const applySettings = (s) => {
     $('provider').value = s.provider || 'openai_compatible';
     $('baseUrl').value = s.base_url || '';
     $('apiKey').value = s.api_key || '';
     $('temperature').value = s.temperature ?? 0.2; $('tempVal').textContent = $('temperature').value;
-    $('maxTurns').value = s.max_turns ?? 60;
+    $('maxTurns').value = s.max_turns ?? 60; $('maxTokens').value = s.max_tokens_per_run ?? 0;
     $('context').value = String(s.context ?? 8192); $('gpuLayers').value = s.gpu_layers ?? -1;
     if (s.model) { $('model').innerHTML = `<option>${esc(s.model)}</option>`; $('model').value = s.model; }
     toggleProviderFields();
