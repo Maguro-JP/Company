@@ -1,0 +1,43 @@
+# 会社の設定。AIはこの前提で自律的に動く。
+company:
+  name: "Churn Radar"
+  mission: "個人でSaaSを運営する人が、解約されてから気づく状態をなくす"
+  customer: "有料ユーザーが10〜300人規模の、個人運営SaaSの開発者"
+  business_model: "月額サブスクリプション（無料枠あり）"
+  stage: "prototype"
+  currency: "JPY"
+
+# AIが人間の承認なしに実行してよいこと。
+# ここが true のものは、確認を取らずに実行する。止めたい項目だけ false にする。
+autonomy:
+  write_code: true          # コードを書く
+  run_tests: true           # テストを実行する
+  commit: true              # コミットする
+  push: true                # push してPRを出す
+  decide_roadmap: true      # 次に何を作るかを決める
+  decide_pricing: true      # 価格を決める（実際の課金設定は別）
+  publish_externally: true  # 対外的な文章を書いて公開する
+  spend_money: false        # 支払い手段を持っていないため実行できない
+
+# AIが物理的に実行できないこと。禁止ではなく、手段が無いという意味。
+# 該当する作業は「オーナー作業リスト」として書き出す。
+blocked_on_owner:
+  - "法人登記・銀行口座・決済アカウントの開設（本人確認が必要）"
+  - "クレジットカードでの支払い（カードを持っていない）"
+  - "法的拘束力のある契約への署名"
+
+cadence:
+  build: ["ceo", "builder"]       # 次の一手を決めて、実装してコミットする
+  review: ["ceo", "cfo", "ops"]   # 進捗と数字を見る
+
+kpi:
+  north_star: "解約予兆アラートを週次で受け取っている有料アカウント数"
+  guardrails:
+    - "テストが落ちている状態でコミットしない"
+    - "顧客のデータを外部サービスに送らない"
+
+# モデルとプロバイダは UI の右パネル（data/settings.json）で選ぶ。
+# ここに書くのは、Anthropic を使うときに役職ごとに使い分けたい場合の既定値だけ。
+model:
+  default: "claude-sonnet-5"
+  deep: "claude-opus-5"
