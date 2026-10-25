@@ -247,6 +247,10 @@ def make_provider(settings: dict[str, Any]) -> Provider:
         from .gemini import GeminiProvider  # noqa: PLC0415
 
         return GeminiProvider(model=model, api_key=settings.get("api_key") or os.environ.get("GEMINI_API_KEY", ""))
+    if kind == "aas":
+        from .aas import AasProvider, DEFAULT_URL  # noqa: PLC0415
+
+        return AasProvider(base_url=settings.get("base_url") or DEFAULT_URL, model=model)
     if kind == "openai_compatible":
         return OpenAICompatibleProvider(
             base_url=settings.get("base_url") or "http://localhost:11434/v1",

@@ -136,13 +136,14 @@
       <select id="provider">
         <option value="builtin">内蔵（単体で動く）</option>
         <option value="openai_compatible">外部ローカルサーバー（Ollama / LM Studio）</option>
+        <option value="aas">AdaptiveAIStudio（起動中の本体に任せる）</option>
         <option value="gemini">Google AI Studio（Gemini）</option>
         <option value="anthropic">Anthropic API</option>
       </select>
     </label>
     <label class="field" id="baseUrlField"><span>エンドポイント</span>
       <input type="text" id="baseUrl" placeholder="http://localhost:11434/v1">
-      <span class="small" style="display:block;margin-top:4px">Ollama: :11434/v1 　LM Studio: :1234/v1</span>
+      <span class="small" id="baseUrlHint" style="display:block;margin-top:4px">Ollama: :11434/v1 　LM Studio: :1234/v1</span>
     </label>
     <label class="field" id="apiKeyField" style="display:none"><span>APIキー</span>
       <input type="password" id="apiKey" placeholder="">
@@ -212,11 +213,13 @@
     $('context').value = String(s.context ?? 8192); $('gpuLayers').value = s.gpu_layers ?? -1;
     if (s.model) { $('model').innerHTML = `<option>${esc(s.model)}</option>`; $('model').value = s.model; }
     toggleProviderFields();
-    $('modelPill').textContent = s.model ? `${{ anthropic: 'Anthropic', gemini: 'AI Studio', builtin: '内蔵', openai_compatible: '外部' }[s.provider] || s.provider} · ${s.model}` : 'モデル未選択';
+    $('modelPill').textContent = s.model ? `${{ anthropic: 'Anthropic', gemini: 'AI Studio', aas: 'AdaptiveAIStudio', builtin: '内蔵', openai_compatible: '外部' }[s.provider] || s.provider} · ${s.model}` : 'モデル未選択';
   };
   const toggleProviderFields = () => {
     const p = $('provider').value;
-    $('baseUrlField').style.display = p === 'openai_compatible' ? '' : 'none';
+    $('baseUrlField').style.display = (p === 'openai_compatible' || p === 'aas') ? '' : 'none';
+    $('baseUrl').placeholder = p === 'aas' ? 'http://127.0.0.1:4174' : 'http://localhost:11434/v1';
+    $('baseUrlHint').textContent = p === 'aas' ? 'AdaptiveAIStudio の画面の URL（既定 4174）。会社のフォルダを作業場にして起動しておく' : 'Ollama: :11434/v1 　LM Studio: :1234/v1';
     $('apiKeyField').style.display = (p === 'anthropic' || p === 'gemini') ? '' : 'none';
     $('apiKey').placeholder = p === 'gemini' ? 'AIza…' : 'sk-ant-…';
     $('apiKeyHint').innerHTML = p === 'gemini'
@@ -234,7 +237,14 @@
     }, 300);
   };
   settingsEls.forEach((id) => $(id).addEventListener('input', () => { if (id === 'temperature') $('tempVal').textContent = $('temperature').value; saveSettings(); }));
-  $('provider').addEventListener('change', () => { toggleProviderFields(); if ($('provider').value === 'openai_compatible' && !$('baseUrl').value) $('baseUrl').value = 'http://localhost:11434/v1'; refreshModels(); });
+  $('provider').addEventListener('change', () => {
+    toggleProviderFields();
+    const p = $('provider').value;
+    const v = $('baseUrl').value;
+    if (p === 'openai_compatible' && (!v || v.includes('4174'))) $('baseUrl').value = 'http://localhost:11434/v1';
+    if (p === 'aas' && (!v || v.includes('/v1'))) $('baseUrl').value = 'http://127.0.0.1:4174';
+    refreshModels();
+  });
 
   const refreshModels = async () => {
     const note = $('modelNote'); note.style.display = 'none'; note.className = 'note';
