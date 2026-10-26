@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from company import aas, runner, server  # noqa: E402
+from company import config as config_module  # noqa: E402
 from company import tools as toolkit  # noqa: E402
 from company.loop import run_loop  # noqa: E402
 from company.providers import ProviderError  # noqa: E402

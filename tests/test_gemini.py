@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from company import gemini, gemini_bridge, runner, server  # noqa: E402
+from company import config as config_module  # noqa: E402
 from company import tools as toolkit  # noqa: E402
 from company.loop import run_loop  # noqa: E402
 from company.providers import ProviderError, make_provider  # noqa: E402
@@ -137,13 +138,14 @@ class CompanyFromGeminiTest(unittest.TestCase):
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        self._root, self._settings = toolkit.ROOT, runner.SETTINGS_PATH
+        self._root, self._settings, self._runs = toolkit.ROOT, runner.SETTINGS_PATH, config_module.RUNS_PATH
         toolkit.ROOT = self.tmp
         runner.SETTINGS_PATH = self.tmp / "settings.json"
+        config_module.RUNS_PATH = self.tmp / "runs.csv"
         self.client = TestClient(server.app)
 
     def tearDown(self):
-        toolkit.ROOT, runner.SETTINGS_PATH = self._root, self._settings
+        toolkit.ROOT, runner.SETTINGS_PATH, config_module.RUNS_PATH = self._root, self._settings, self._runs
 
     def test_function_declarations_are_served(self):
         decl = self.client.get("/api/gemini/functions").json()

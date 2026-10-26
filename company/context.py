@@ -8,6 +8,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
+from . import config as config_module
 from .config import Config, DECISIONS_DIR, METRICS_PATH
 
 RECENT_DECISIONS = 3
@@ -37,6 +38,24 @@ def _decisions_block(directory: Path = DECISIONS_DIR) -> str:
     return "\n\n".join(
         f"--- {f.name} ---\n{f.read_text(encoding='utf-8').strip()}" for f in files
     )
+
+
+RECENT_RUNS = 8
+
+
+def _runs_block() -> str:
+    path = config_module.RUNS_PATH
+    if not path.exists():
+        return "（まだ実行の実績がありません）"
+    with path.open(encoding="utf-8", newline="") as fh:
+        rows = [r for r in csv.DictReader(fh)]
+    if not rows:
+        return "（まだ実行の実績がありません）"
+    lines = ["at,role,provider,model,turns,tool_calls,input_tokens,output_tokens,reason"]
+    for r in rows[-RECENT_RUNS:]:
+        lines.append(",".join(str(r.get(k, "")) for k in
+                              ("at", "role", "provider", "model", "turns", "tool_calls", "input_tokens", "output_tokens", "reason")))
+    return "\n".join(lines)
 
 
 def build(config: Config, cadence: str) -> str:
@@ -74,6 +93,12 @@ def build(config: Config, cadence: str) -> str:
         "## 直近の実測値 (data/metrics.csv)",
         "```csv",
         _metrics_block(),
+        "```",
+        "",
+        "## 直近の実行の実績 (data/runs.csv)",
+        "役職が実際にどれだけ回ったか。推測ではなくこの数字を使う。",
+        "```csv",
+        _runs_block(),
         "```",
         "",
         "## 直近の意思決定記録",
