@@ -53,6 +53,7 @@
   .msg.status .body { background: transparent; color: var(--muted); font-size: 12.5px; padding: 4px 0; }
   .msg.error .body { border: 1px solid var(--err); color: var(--err); background: transparent; }
   .msg.role .body { background: var(--panel-2); font-weight: 500; }
+  .msg.live .body { border: 1px dashed var(--border); background: transparent; color: var(--muted); }
 
   .composer { border-top: 1px solid var(--border); padding: 14px 28px 18px; background: var(--bg); }
   .composer .box { max-width: 860px; margin: 0 auto; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 10px 12px 8px; }
@@ -330,8 +331,22 @@
     stream.scrollTop = stream.scrollHeight;
   };
   const roleTitle = (role) => (state.roles.find((r) => r.role === role) || {}).title || role || '';
+  let live = null; // 生成中の枠。確定の出来事が来たら消す
+  const dropLive = () => { if (live) { live.remove(); live = null; } };
   const render = (ev) => {
     const who = `<b>${esc(roleTitle(ev.role))}</b> <span>${esc(ev.at || '')}</span>`;
+    if (ev.type === 'delta') {
+      if (!live) {
+        if (stream.querySelector('.empty')) stream.innerHTML = '';
+        live = document.createElement('div'); live.className = 'msg live';
+        live.innerHTML = `<div class="who">${who} <span class="small">生成中…</span></div><div class="body"></div>`;
+        stream.appendChild(live);
+      }
+      live.querySelector('.body').textContent += ev.text;
+      stream.scrollTop = stream.scrollHeight;
+      return;
+    }
+    dropLive();
     switch (ev.type) {
       case 'role_start': add('role', who, `${esc(ev.title)} が開始 · ${esc(ev.model || '')} · ${ev.writes ? '書き込み可' : '読み取りのみ'}`); break;
       case 'role_end': add('status', who, `${ev.turns} ターン · ツール ${ev.tool_calls} 回 · 入力 ${ev.usage?.input ?? 0} / 出力 ${ev.usage?.output ?? 0} トークン · ${esc(ev.reason)}`); break;

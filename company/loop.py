@@ -52,6 +52,13 @@ def run_loop(
     超えたターンで止める（途中では切れないので、上限を少し超えて止まる）。"""
     history: list[Any] = [provider.user_message(task)]
     specs = [spec for spec, _ in tools.values()]
+    turn_box = {"n": 0}
+
+    def on_delta(delta: str) -> None:
+        emit({"type": "delta", "role": role, "text": delta, "turn": turn_box["n"]})
+
+    # 流せるプロバイダ（内蔵エンジン）だけが見る。他は属性を無視する
+    provider.on_delta = on_delta  # type: ignore[attr-defined]
     usage = {"input": 0, "output": 0}
     tool_calls_total = 0
     final_text = ""
@@ -62,6 +69,7 @@ def run_loop(
             return LoopResult(final_text, turn - 1, tool_calls_total, usage, "stopped")
 
         started = time.time()
+        turn_box["n"] = turn
         try:
             result = provider.complete(system, history, specs, temperature)
         except ProviderError as exc:
