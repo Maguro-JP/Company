@@ -30,14 +30,15 @@ class AasMcpClientTest(unittest.TestCase):
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        self._root, self._settings = toolkit.ROOT, runner.SETTINGS_PATH
+        self._root, self._settings, self._runs = toolkit.ROOT, runner.SETTINGS_PATH, config_module.RUNS_PATH
         toolkit.ROOT = self.tmp
         runner.SETTINGS_PATH = self.tmp / "settings.json"
+        config_module.RUNS_PATH = self.tmp / "runs.csv"
         self.client = TestClient(server.app)
         self.n = 0
 
     def tearDown(self):
-        toolkit.ROOT, runner.SETTINGS_PATH = self._root, self._settings
+        toolkit.ROOT, runner.SETTINGS_PATH, config_module.RUNS_PATH = self._root, self._settings, self._runs
 
     def _rpc(self, method, params=None, session=None, notify=False):
         self.n += 1
