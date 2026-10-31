@@ -12,7 +12,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from company import runner, server  # noqa: E402
+from company import config as config_module  # noqa: E402
+from company import context, runner, server  # noqa: E402
 from company import tools as toolkit  # noqa: E402
 from tests.test_loop import FakeLLM  # noqa: E402
 
@@ -20,13 +21,14 @@ from tests.test_loop import FakeLLM  # noqa: E402
 class ServerTest(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        self._root, self._settings = toolkit.ROOT, runner.SETTINGS_PATH
+        self._root, self._settings, self._runs = toolkit.ROOT, runner.SETTINGS_PATH, config_module.RUNS_PATH
         toolkit.ROOT = self.tmp
         runner.SETTINGS_PATH = self.tmp / "settings.json"
+        config_module.RUNS_PATH = self.tmp / "runs.csv"
         self.client = TestClient(server.app)
 
     def tearDown(self):
-        toolkit.ROOT, runner.SETTINGS_PATH = self._root, self._settings
+        toolkit.ROOT, runner.SETTINGS_PATH, config_module.RUNS_PATH = self._root, self._settings, self._runs
 
     def test_state_lists_roles_and_cadences(self):
         s = self.client.get("/api/state").json()
@@ -67,6 +69,17 @@ class ServerTest(unittest.TestCase):
         self.assertTrue((self.tmp / "note.md").exists())
         # オーナーの指示がプロンプトに入っていること
         self.assertIn("メモを書いて", llm.requests[0]["messages"][-1]["content"])
+        # 実績が1行残り、次の共有コンテキストに載ること
+        rows = (self.tmp / "runs.csv").read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(rows[0].startswith("at,run_id,kind,target,role,"))
+        self.assertIn(",builder,openai_compatible,fake-7b,2,1,20,10,done", rows[1])
+        shared = context.build(runner.load_config(), "review")
+        self.assertIn("直近の実行の実績", shared)
+        self.assertIn("builder,openai_compatible,fake-7b", shared)
+
+    def test_context_says_no_runs_yet(self):
+        self.assertIn("まだ実行の実績がありません", context.build(runner.load_config(), "review"))
 
     def test_unknown_role_is_rejected(self):
         r = self.client.post("/api/runs", json={"kind": "role", "target": "nobody"})

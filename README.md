@@ -120,6 +120,7 @@ app.py               起動。pywebview でウィンドウ、--browser でブラ
 ui/index.html        画面。依存なしの単一ファイル
 product/             プロダクト本体
 data/decisions/      review サイクルの記録
+data/runs.csv        役職ごとの実行の実績（ターン・トークン・終了理由）。review の共有コンテキストに直近分が載る
 ```
 
 実装系の役職（builder / cto / cmo）だけ `write_file` を持つ。確認系（ceo / cfo / ops）は読み取りと
@@ -162,5 +163,4 @@ cd product && python -m unittest discover -s tests  # プロダクト
 ## 未着手
 
 - 通知（メール / Slack）
-- `data/metrics.csv` の自動記入
 - 内蔵エンジンのストリーミング表示（今は1ターン分まとめて出る）

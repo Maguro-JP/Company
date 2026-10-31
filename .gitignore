@@ -5,3 +5,4 @@ venv/
 .env
 data/settings.json
 data/models/
+data/runs.csv

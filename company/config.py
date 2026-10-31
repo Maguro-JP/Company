@@ -15,6 +15,7 @@ AGENTS_DIR = ROOT / "agents"
 DATA_DIR = ROOT / "data"
 DECISIONS_DIR = DATA_DIR / "decisions"
 METRICS_PATH = DATA_DIR / "metrics.csv"
+RUNS_PATH = DATA_DIR / "runs.csv"   # 役職ごとの実行の実績。runner が追記し、context が読む
 
 FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 

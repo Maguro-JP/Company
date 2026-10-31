@@ -5,6 +5,7 @@ UI（server.py）とCLI（run.py）の両方がここを使う。
 
 from __future__ import annotations
 
+import csv
 import json
 import threading
 import uuid
@@ -15,6 +16,7 @@ from typing import Any
 
 from . import context as context_builder
 from . import tools as toolkit
+from . import config as config_module
 from .config import AGENTS_DIR, DATA_DIR, DECISIONS_DIR, Config, load_agent, load_config
 from .loop import Event, LoopResult, run_loop
 from .providers import ProviderError, make_provider
@@ -187,7 +189,34 @@ def run_role(
     )
     run.emit({"type": "role_end", "role": role, "turns": result.turns,
               "tool_calls": result.tool_calls, "usage": result.usage, "reason": result.stopped_reason})
+    try:
+        append_run_log(run, role, settings, result)
+    except OSError as exc:  # 記録が書けなくても実行は成立している
+        run.emit({"type": "status", "role": role, "text": f"実績を記録できませんでした: {exc}"})
     return result
+
+
+RUN_LOG_FIELDS = ["at", "run_id", "kind", "target", "role", "provider", "model",
+                  "turns", "tool_calls", "input_tokens", "output_tokens", "reason"]
+
+
+def append_run_log(run: Run, role: str, settings: dict[str, Any], result: LoopResult) -> None:
+    """役職の実行を1行で残す。後から「実際にどれだけ回ったか」を数字で見るため。"""
+    path = config_module.RUNS_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    new = not path.exists() or path.stat().st_size == 0
+    with path.open("a", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=RUN_LOG_FIELDS)
+        if new:
+            writer.writeheader()
+        writer.writerow({
+            "at": datetime.now().isoformat(timespec="seconds"),
+            "run_id": run.id, "kind": run.kind, "target": run.target, "role": role,
+            "provider": settings.get("provider", ""), "model": settings.get("model", ""),
+            "turns": result.turns, "tool_calls": result.tool_calls,
+            "input_tokens": result.usage.get("input", 0), "output_tokens": result.usage.get("output", 0),
+            "reason": result.stopped_reason,
+        })
 
 
 def write_record(config: Config, cadence: str, reports: list[tuple[str, str]]) -> Path:
