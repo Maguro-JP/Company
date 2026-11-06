@@ -31,6 +31,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "temperature": 0.2,
     "max_turns": 60,
     "max_tokens_per_run": 0,   # 1つの役職の実行あたりの入力＋出力トークン上限。0 = 無制限
+    "roles": {},         # 役職ごとの上書き {"ceo": {"provider": "...", "model": "...", "api_key": "..."}}
     "context": 8192,     # 内蔵エンジンのコンテキスト長
     "gpu_layers": -1,    # 内蔵エンジン。-1 = GPU があれば全部載せる
 }
@@ -77,9 +78,25 @@ def save_settings(patch: dict[str, Any]) -> dict[str, Any]:
     for key in DEFAULT_SETTINGS:
         if key in patch:
             settings[key] = patch[key]
+    if not isinstance(settings.get("roles"), dict):
+        settings["roles"] = {}
     SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     SETTINGS_PATH.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
     return settings
+
+
+ROLE_OVERRIDE_KEYS = ("provider", "model", "api_key", "base_url", "temperature", "max_turns", "max_tokens_per_run")
+
+
+def settings_for_role(settings: dict[str, Any], role: str) -> dict[str, Any]:
+    """役職ごとの上書きを被せる。空の値は上書きしない（「全体に従う」の意味）。"""
+    merged = dict(settings)
+    override = (settings.get("roles") or {}).get(role) or {}
+    for key in ROLE_OVERRIDE_KEYS:
+        value = override.get(key)
+        if value not in (None, ""):
+            merged[key] = value
+    return merged
 
 
 def list_roles() -> list[dict[str, str]]:
@@ -164,11 +181,12 @@ def run_role(
     instruction: str | None = None,
 ) -> LoopResult | None:
     agent = load_agent(role)
+    settings = settings_for_role(settings, role)
     shared = context_builder.build(config, cadence)
     can_write = role in WRITER_ROLES and bool(config.autonomy.get("write_code", True))
 
     run.emit({"type": "role_start", "role": role, "title": agent.title,
-              "model": settings.get("model"), "writes": can_write})
+              "provider": settings.get("provider"), "model": settings.get("model"), "writes": can_write})
     try:
         provider = make_provider(settings)
     except ProviderError as exc:

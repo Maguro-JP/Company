@@ -227,12 +227,59 @@ class AnthropicProvider:
 # --------------------------------------------------------------------------- #
 
 
+# OpenAI 互換の口を持つサービス。URL と鍵の環境変数名だけが違うので、1つの実装で全部を扱う。
+# 新しいサービスを足すときは、ここに1行足すだけでよい（画面の一覧もここから作る）。
+PRESETS: list[dict[str, Any]] = [
+    {"id": "openai", "label": "OpenAI", "base_url": "https://api.openai.com/v1", "key_env": "OPENAI_API_KEY"},
+    {"id": "openrouter", "label": "OpenRouter（多数のモデルを1つの鍵で）", "base_url": "https://openrouter.ai/api/v1", "key_env": "OPENROUTER_API_KEY"},
+    {"id": "groq", "label": "Groq", "base_url": "https://api.groq.com/openai/v1", "key_env": "GROQ_API_KEY"},
+    {"id": "deepseek", "label": "DeepSeek", "base_url": "https://api.deepseek.com/v1", "key_env": "DEEPSEEK_API_KEY"},
+    {"id": "xai", "label": "xAI（Grok）", "base_url": "https://api.x.ai/v1", "key_env": "XAI_API_KEY"},
+    {"id": "mistral", "label": "Mistral", "base_url": "https://api.mistral.ai/v1", "key_env": "MISTRAL_API_KEY"},
+    {"id": "together", "label": "Together AI", "base_url": "https://api.together.xyz/v1", "key_env": "TOGETHER_API_KEY"},
+    {"id": "perplexity", "label": "Perplexity", "base_url": "https://api.perplexity.ai", "key_env": "PERPLEXITY_API_KEY"},
+    {"id": "ollama", "label": "Ollama（手元）", "base_url": "http://localhost:11434/v1", "key_env": "", "local": True},
+    {"id": "lmstudio", "label": "LM Studio（手元）", "base_url": "http://localhost:1234/v1", "key_env": "", "local": True},
+]
+PRESET_BY_ID = {p["id"]: p for p in PRESETS}
+
+# 専用の実装を持つもの。画面の一覧の先頭に並ぶ。
+NATIVE: list[dict[str, Any]] = [
+    {"id": "builtin", "label": "内蔵（単体で動く）", "key_env": "", "local": True},
+    {"id": "aas", "label": "AdaptiveAIStudio（起動中の本体に任せる）", "key_env": "", "local": True, "base_url": "http://127.0.0.1:4174"},
+    {"id": "gemini", "label": "Google AI Studio（Gemini）", "key_env": "GEMINI_API_KEY"},
+    {"id": "anthropic", "label": "Anthropic", "key_env": "ANTHROPIC_API_KEY"},
+    {"id": "openai_compatible", "label": "OpenAI 互換（URL を自分で書く）", "key_env": "", "local": True, "custom": True},
+]
+
+
+def provider_catalog() -> list[dict[str, Any]]:
+    """画面に出す一覧。鍵が環境変数に入っているかも返す（値は返さない）。"""
+    out = []
+    for entry in [*NATIVE, *PRESETS]:
+        env = entry.get("key_env", "")
+        out.append({
+            "id": entry["id"], "label": entry["label"], "base_url": entry.get("base_url", ""),
+            "needs_key": bool(env), "key_env": env, "key_in_env": bool(env and os.environ.get(env)),
+            "local": bool(entry.get("local")), "custom": bool(entry.get("custom")),
+        })
+    return out
+
+
 def make_provider(settings: dict[str, Any]) -> Provider:
     """settings: {provider, model, base_url, api_key, context, gpu_layers}"""
     kind = settings.get("provider", "builtin")
     model = settings.get("model") or ""
     if not model:
         raise ProviderError("モデルが選択されていません。")
+    if kind in PRESET_BY_ID:
+        preset = PRESET_BY_ID[kind]
+        key = settings.get("api_key") or (os.environ.get(preset["key_env"]) if preset["key_env"] else "") or ""
+        if preset["key_env"] and not key:
+            raise ProviderError(
+                f"{preset['label']} の API キーがありません。右パネルに入れるか、環境変数 {preset['key_env']} を設定してください。"
+            )
+        return OpenAICompatibleProvider(base_url=preset["base_url"], model=model, api_key=key)
     if kind == "builtin":
         from .local_llm import BuiltinProvider  # noqa: PLC0415
 

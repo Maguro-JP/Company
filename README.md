@@ -61,15 +61,30 @@ Gemini には会社の操作関数（`start_cycle` / `start_role` / `get_run` / 
 自分で Gemini アプリを作る場合は、`GET /api/gemini/functions` が返す関数定義をそのまま `tools` に渡し、
 返ってきた `functionCall` を `POST /api/gemini/call` に中継すれば同じことができる。
 
-### 外部のローカルサーバーを使う
+### ほかの AI を使う
 
-既に [Ollama](https://ollama.com) か [LM Studio](https://lmstudio.ai) を使っているなら、
-プロバイダを「外部ローカルサーバー」にすると、そちらのモデルを使える
-（Ollama: `http://localhost:11434/v1`、LM Studio: `http://localhost:1234/v1`）。
+右パネルのプロバイダは、内蔵・AdaptiveAIStudio・Google AI Studio・Anthropic のほかに、OpenAI 互換の口を持つサービスを一覧で選べる。
+鍵は右パネルに入れるか、環境変数に置く（画面には「鍵あり」と出る。値は画面に出ない）。
 
-### Anthropic API を使う
+| プロバイダ | 環境変数 | 備考 |
+|---|---|---|
+| OpenAI | `OPENAI_API_KEY` | |
+| OpenRouter | `OPENROUTER_API_KEY` | 1 つの鍵で多数のモデル |
+| Groq | `GROQ_API_KEY` | |
+| DeepSeek | `DEEPSEEK_API_KEY` | |
+| xAI（Grok） | `XAI_API_KEY` | |
+| Mistral | `MISTRAL_API_KEY` | |
+| Together AI | `TOGETHER_API_KEY` | |
+| Perplexity | `PERPLEXITY_API_KEY` | |
+| Ollama / LM Studio | 不要 | 手元で起動しておく |
+| OpenAI 互換（URL を自分で書く） | 任意 | vLLM、llama-server、社内のプロキシなど |
 
-右パネルでプロバイダを「Anthropic API」にし、API キーを入れるか環境変数 `ANTHROPIC_API_KEY` を設定する。
+一覧に無いサービスは `company/providers.py` の `PRESETS` に 1 行足すだけで画面に出る。
+
+### 役職ごとに別の AI を使う
+
+右パネルの「役職ごとの AI」で、役職ごとにプロバイダとモデルを選べる。空なら全体の設定に従う。
+例えば CEO だけ Anthropic、実装担当は内蔵モデル、という分け方ができる。実行の実績（data/runs.csv）には役職ごとに実際に使ったプロバイダとモデルが残る。
 
 ## 画面の使い方
 
@@ -105,7 +120,7 @@ python -m churn_radar sample_events.csv --today 2026-09-01
 ```
 company.yaml         前提と権限。autonomy のフラグが唯一の制御点
 agents/*.md          役職ごとの判断基準（ceo / builder / cto / cmo / cfo / ops）
-company/providers.py LLM抽象層。内蔵 / OpenAI互換 / Anthropic を同じ形で扱う
+company/providers.py LLM抽象層。内蔵 / OpenAI 互換（プリセット 10 件） / Gemini / Anthropic / AAS を同じ形で扱う
 company/local_llm.py 内蔵エンジン。llama.cpp で GGUF を動かす。カタログとダウンロードもここ
 company/controls.py  外から会社を操作する関数（1つの表）。Gemini も MCP もここを呼ぶ
 company/mcp_http.py  MCP（Streamable HTTP）の口。AdaptiveAIStudio がここに繋ぐ

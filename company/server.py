@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from . import controls, gemini, local_llm, mcp_http, runner
 from .config import ROOT, load_config
-from .providers import ProviderError, make_provider
+from .providers import ProviderError, make_provider, provider_catalog
 
 UI_DIR = ROOT / "ui"
 
@@ -49,6 +49,7 @@ class SettingsPatch(BaseModel):
     temperature: float | None = None
     max_turns: int | None = None
     max_tokens_per_run: int | None = None
+    roles: dict[str, dict[str, Any]] | None = None
     context: int | None = None
     gpu_layers: int | None = None
 
@@ -56,6 +57,11 @@ class SettingsPatch(BaseModel):
 @app.post("/api/settings")
 def update_settings(patch: SettingsPatch) -> dict[str, Any]:
     return runner.save_settings(patch.model_dump(exclude_none=True))
+
+
+@app.get("/api/providers")
+def providers() -> dict[str, Any]:
+    return {"providers": provider_catalog()}
 
 
 @app.get("/api/models")
