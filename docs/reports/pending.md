@@ -22,3 +22,10 @@
 - 検査: precheck の結果は会話の ❔ に書く。会社側テスト 58 件、プロダクト側 20 件通過
 - 推す案: 1・2 のあとに squash でマージ
 - 答え:
+
+## 4. PR 待ち: claude/FIX-multi-ai-20261107（様々な AI を使えるようにする）
+
+- 中身: OpenAI 互換のプリセット 10 件（OpenAI / OpenRouter / Groq / DeepSeek / xAI / Mistral / Together / Perplexity / Ollama / LM Studio）と、役職ごとの AI の割り当て。HEAD b628250
+- 検査: precheck の結果は会話の ❔ に書く。会社側テスト 62 件、プロダクト側 20 件通過。Chromium で一覧の表示・鍵の欄・役職の割り当ての保存を確認
+- 推す案: 1〜3 のあとに squash でマージ
+- 答え:
