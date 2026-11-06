@@ -250,26 +250,33 @@ def write_record(config: Config, cadence: str, reports: list[tuple[str, str]]) -
 
 
 def _execute(run: Run, roles: list[str], cadence: str, instruction: str | None) -> None:
-    config = load_config()
-    settings = load_settings()
-    reports: list[tuple[str, str]] = []
-    status = "done"
-    for role in roles:
-        if run.stop.is_set():
-            status = "stopped"
-            break
-        result = run_role(run, config, settings, role, cadence, instruction)
-        if result is None:
-            status = "error"
-            break
-        if result.stopped_reason == "stopped":
-            status = "stopped"
-            break
-        reports.append((load_agent(role).title, result.final_text))
-    if reports and run.kind == "cycle" and status == "done":
-        path = write_record(config, cadence, reports)
-        run.emit({"type": "status", "role": "", "text": f"記録を書き出しました: {path.relative_to(DATA_DIR.parent)}"})
-    run.finish(status)
+    try:
+        config = load_config()
+        settings = load_settings()
+        reports: list[tuple[str, str]] = []
+        status = "done"
+        for role in roles:
+            if run.stop.is_set():
+                status = "stopped"
+                break
+            result = run_role(run, config, settings, role, cadence, instruction)
+            if result is None:
+                status = "error"
+                break
+            if result.stopped_reason == "stopped":
+                status = "stopped"
+                break
+            reports.append((load_agent(role).title, result.final_text))
+        if reports and run.kind == "cycle" and status == "done":
+            path = write_record(config, cadence, reports)
+            run.emit({"type": "status", "role": "", "text": f"記録を書き出しました: {path.name}"})
+
+
+    except Exception as exc:  # どこで落ちてもランを「running」のまま残さない
+        run.emit({"type": "error", "role": "", "text": f"実行中に落ちました: {type(exc).__name__}: {exc}"})
+        status = "error"
+    finally:
+        run.finish(status)
 
 
 def start_cycle(cadence: str, instruction: str | None = None) -> Run:
