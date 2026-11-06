@@ -78,14 +78,15 @@ class RoleAssignmentThroughRunTest(unittest.TestCase):
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        self._root, self._settings, self._runs = toolkit.ROOT, runner.SETTINGS_PATH, config_module.RUNS_PATH
+        self._root, self._settings, self._runs, self._dec = toolkit.ROOT, runner.SETTINGS_PATH, config_module.RUNS_PATH, runner.DECISIONS_DIR
         toolkit.ROOT = self.tmp
         runner.SETTINGS_PATH = self.tmp / "settings.json"
         config_module.RUNS_PATH = self.tmp / "runs.csv"
+        runner.DECISIONS_DIR = self.tmp / "decisions"   # サイクルの記録を本物の data/ に書かない
         self.client = TestClient(server.app)
 
     def tearDown(self):
-        toolkit.ROOT, runner.SETTINGS_PATH, config_module.RUNS_PATH = self._root, self._settings, self._runs
+        toolkit.ROOT, runner.SETTINGS_PATH, config_module.RUNS_PATH, runner.DECISIONS_DIR = self._root, self._settings, self._runs, self._dec
 
     def test_ceo_goes_to_its_own_provider(self):
         default_llm = FakeLLM([{"text": "builder 側"}])
@@ -110,6 +111,7 @@ class RoleAssignmentThroughRunTest(unittest.TestCase):
         self.assertEqual([(e["role"], e["model"]) for e in starts], [("ceo", "fake-ceo"), ("builder", "fake-default")])
         rows = (self.tmp / "runs.csv").read_text(encoding="utf-8").splitlines()
         self.assertIn(",ceo,openai_compatible,fake-ceo,", rows[1])
+        self.assertEqual(len(list((self.tmp / "decisions").glob("*.md"))), 1)
 
     def test_providers_endpoint(self):
         ids = [p["id"] for p in self.client.get("/api/providers").json()["providers"]]
