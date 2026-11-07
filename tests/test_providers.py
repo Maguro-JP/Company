@@ -120,3 +120,88 @@ class RoleAssignmentThroughRunTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ErrorWordingTest(unittest.TestCase):
+    """失敗を人の言葉で言う。生の番号や errno だけでは次の一手が分からない。"""
+
+    def test_http_status_becomes_kind(self):
+        self.assertEqual(providers.classify_http_error(401, ""), "auth")
+        self.assertEqual(providers.classify_http_error(429, '{"error":{"code":"rate_limit_exceeded"}}'), "rate_limited")
+        self.assertEqual(providers.classify_http_error(429, '{"error":{"code":"insufficient_quota"}}'), "quota_exhausted")
+        self.assertEqual(providers.classify_http_error(404, 'model "x" not found'), "model_missing")
+        self.assertEqual(providers.classify_http_error(404, "no route"), "invalid_request")
+        self.assertEqual(providers.classify_http_error(400, "context_length_exceeded"), "context_too_long")
+        self.assertEqual(providers.classify_http_error(503, ""), "unavailable")
+
+    def test_http_error_message_is_japanese_and_keeps_detail(self):
+        err = providers.http_error("http://x/v1/chat/completions", 401, "Unauthorized")
+        self.assertEqual(err.kind, "auth")
+        self.assertIn("API キー", str(err))
+        self.assertIn("HTTP 401", str(err))
+
+    def test_network_reason_is_explained(self):
+        self.assertIn("断られました", providers.explain_network_error("[Errno 111] Connection refused"))
+        self.assertIn("名前を引けません", providers.explain_network_error("[Errno -2] Name or service not known"))
+
+    def test_dead_server_fails_fast_with_wording(self):
+        import socket
+        import time
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+        p = providers.OpenAICompatibleProvider(f"http://127.0.0.1:{port}/v1", model="m", timeout=600, connect_timeout=2)
+        started = time.time()
+        with self.assertRaises(providers.ProviderError) as ctx:
+            p.list_models()
+        self.assertLess(time.time() - started, 5)
+        self.assertEqual(ctx.exception.kind, "unavailable")
+        self.assertIn("断られました", str(ctx.exception))
+
+
+class AnswerCheckTest(unittest.TestCase):
+    """「答えるか確かめる」は 1 問送って、答えと秒数を返す。"""
+
+    def setUp(self):
+        import json
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                Handler.seen = body
+                out = json.dumps({"choices": [{"message": {"role": "assistant", "content": "2"}}],
+                                  "usage": {"prompt_tokens": 5, "completion_tokens": 1}}).encode()
+                self.send_response(200); self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(out))); self.end_headers(); self.wfile.write(out)
+
+        self.handler = Handler
+        self.server = HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self.url = f"http://127.0.0.1:{self.server.server_port}/v1"
+        self.tmp = Path(tempfile.mkdtemp())
+        self._settings = runner.SETTINGS_PATH
+        runner.SETTINGS_PATH = self.tmp / "settings.json"
+
+    def tearDown(self):
+        self.server.shutdown()
+        runner.SETTINGS_PATH = self._settings
+
+    def test_answer_check_returns_answer_and_seconds(self):
+        r = providers.answer_check({"provider": "openai_compatible", "base_url": self.url, "model": "m"})
+        self.assertEqual(r["answer"], "2")
+        self.assertEqual(r["question"], "1+1=")
+        self.assertIsInstance(r["seconds"], float)
+        self.assertNotIn("tools", self.handler.seen)
+
+    def test_check_endpoint_reports_error_in_words(self):
+        client = TestClient(server.app)
+        ok = client.post("/api/check", json={"provider": "openai_compatible", "base_url": self.url, "model": "m"}).json()
+        self.assertEqual(ok["answer"], "2")
+        with mock.patch.dict(os.environ, {}, clear=True):
+            bad = client.post("/api/check", json={"provider": "openai", "model": "gpt"}).json()
+        self.assertIn("OPENAI_API_KEY", bad["error"])

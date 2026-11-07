@@ -9,7 +9,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import socket
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Protocol
@@ -52,7 +56,81 @@ class Provider(Protocol):
 
 
 class ProviderError(RuntimeError):
-    pass
+    """kind は失敗の種類。画面と記録に出す文は人の言葉にそろえる（AdaptiveAIStudio の errors.ts と同じ分け方）。"""
+
+    def __init__(self, message: str, kind: str = "invalid_request"):
+        super().__init__(message)
+        self.kind = kind
+
+
+# 失敗の種類と、人に見せる一文。生の HTTP ステータスや errno だけを出すと、次の一手が分からない。
+KIND_TEXT = {
+    "auth": "API キーが拒否されました。右パネルのキーか、環境変数の値を確かめてください。",
+    "rate_limited": "利用制限に当たりました。少し待ってからもう一度実行してください。",
+    "quota_exhausted": "残高か利用枠を使い切っています。サービス側の課金画面を確かめてください。",
+    "model_missing": "そのモデルは相手に無いと言われました。「↻」で一覧を取り直して選んでください。",
+    "context_too_long": "依頼が長すぎてモデルに収まりません。最大ターン数かコンテキスト長を見直してください。",
+    "unavailable": "相手のサーバーが応答できない状態です（5xx）。時間をおいて再実行してください。",
+    "timeout": "時間切れです。相手が遅いか、途中で止まっています。",
+}
+
+
+def explain_network_error(reason: object) -> str:
+    """接続の失敗を人の言葉で言う。errno の名前では何が起きたか分からない（AdaptiveAIStudio の net-why.ts と同じ分け方）。"""
+    text = str(reason)
+    if re.search(r"Connection refused|ECONNREFUSED|errno 111", text, re.I):
+        return "繋ぐ先に断られました。サーバーが起動していないか、ポートが違います。"
+    if re.search(r"Name or service not known|nodename nor servname|getaddrinfo|ENOTFOUND|errno -2", text, re.I):
+        return "相手の名前を引けません。回線が繋がっていないか、URL の綴りが違います。"
+    if re.search(r"timed out|timeout", text, re.I):
+        return "時間切れです。相手が応答しません。"
+    if re.search(r"CERTIFICATE|certificate|SSL|TLS", text):
+        return "証明書か暗号化のやりとりで断られました。会社の回線（プロキシ）で起きることがあります。"
+    if re.search(r"reset|ECONNRESET|Broken pipe", text, re.I):
+        return "途中で切れました。"
+    return text
+
+
+def classify_http_error(status: int, body: str) -> str:
+    """HTTP ステータスと本文から失敗の種類を決める。429 は制限と枠切れが同じ番号なので本文で見分ける。"""
+    if status == 402:
+        return "quota_exhausted"
+    if status == 429:
+        return "quota_exhausted" if re.search(r"insufficient_quota|billing_hard_limit|per[- ]?day|credit balance|out of credits|spending limit", body, re.I) else "rate_limited"
+    if status in (401, 403):
+        return "auth"
+    if status == 413:
+        return "context_too_long"
+    if status == 404 and re.search(r"model_not_found|model\b[^\n]{0,80}?(not found|does not exist|not exist|unknown)|(unknown|no such) model", body, re.I):
+        return "model_missing"
+    if status in (408, 504):
+        return "timeout"
+    if status >= 500:
+        return "unavailable"
+    if status == 400 and re.search(r"context_length_exceeded|request_too_large|maximum context|too many tokens|context[ _-]?(length|window)", body, re.I):
+        return "context_too_long"
+    if status == 400 and re.search(r"does not support tools|tools? (is|are) not supported", body, re.I):
+        return "model_missing"
+    return "invalid_request"
+
+
+def http_error(url: str, status: int, body: str) -> ProviderError:
+    kind = classify_http_error(status, body)
+    head = KIND_TEXT.get(kind, "")
+    return ProviderError(f"{head} ({url} -> HTTP {status}: {body[:300]})".strip(), kind)
+
+
+def check_connect(url: str, timeout: float) -> None:
+    """TCP で繋がるかだけを短く見る。urllib の timeout は生成の待ち時間と同じ値になるので、
+    止まっている相手に対して 10 分待つことになる（AdaptiveAIStudio で実際に起きた）。繋ぐ時間と答えを待つ時間は分ける。"""
+    parts = urllib.parse.urlsplit(url)
+    host = parts.hostname or ""
+    port = parts.port or (443 if parts.scheme == "https" else 80)
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            pass
+    except OSError as exc:
+        raise ProviderError(f"{url} に接続できません: {explain_network_error(exc)}", "unavailable") from exc
 
 
 # --------------------------------------------------------------------------- #
@@ -65,32 +143,36 @@ class OpenAICompatibleProvider:
 
     name = "openai_compatible"
 
-    def __init__(self, base_url: str, model: str, api_key: str = "", timeout: float = 600):
+    # 待ち時間は 3 つに分ける。繋がるまで（短い）、一覧（短い）、生成（長い。大きなモデルの読み込みに数分かかる）。
+    def __init__(self, base_url: str, model: str, api_key: str = "", timeout: float = 600,
+                 connect_timeout: float = 10, list_timeout: float = 5):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.api_key = api_key
         self.timeout = timeout
+        self.connect_timeout = connect_timeout
+        self.list_timeout = list_timeout
 
-    def _request(self, path: str, payload: dict | None = None) -> dict:
+    def _request(self, path: str, payload: dict | None = None, timeout: float | None = None) -> dict:
         url = f"{self.base_url}{path}"
+        check_connect(url, self.connect_timeout)
         data = json.dumps(payload).encode("utf-8") if payload is not None else None
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         req = urllib.request.Request(url, data=data, headers=headers, method="POST" if data else "GET")
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with urllib.request.urlopen(req, timeout=timeout or self.timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="replace")[:500]
-            raise ProviderError(f"{url} -> HTTP {exc.code}: {body}") from exc
-        except urllib.error.URLError as exc:
-            raise ProviderError(
-                f"{url} に接続できません: {exc.reason}。ローカルLLMサーバーが起動しているか確認してください。"
-            ) from exc
+            body = exc.read().decode("utf-8", errors="replace")
+            raise http_error(url, exc.code, body) from exc
+        except (urllib.error.URLError, OSError) as exc:
+            reason = getattr(exc, "reason", exc)
+            raise ProviderError(f"{url} に接続できません: {explain_network_error(reason)}", "unavailable") from exc
 
     def list_models(self) -> list[str]:
-        data = self._request("/models")
+        data = self._request("/models", timeout=self.list_timeout)
         return sorted(m.get("id", "") for m in data.get("data", []) if m.get("id"))
 
     def user_message(self, text: str) -> Any:
@@ -305,3 +387,22 @@ def make_provider(settings: dict[str, Any]) -> Provider:
             api_key=settings.get("api_key") or "",
         )
     raise ProviderError(f"未対応のプロバイダ: {kind}")
+
+
+CHECK_QUESTION = "1+1="
+
+
+def answer_check(settings: dict[str, Any], question: str = CHECK_QUESTION) -> dict[str, Any]:
+    """選んだ AI が本当に答えるかを 1 問で確かめる。設定が合っているかは、ここでしか分からない
+    （AdaptiveAIStudio の「本当に答えるか確かめる」と同じ）。ツールは渡さない。"""
+    started = time.time()
+    provider = make_provider(settings)
+    turn = provider.complete("短く答えてください。", [provider.user_message(question)], [], 0.0)
+    return {
+        "provider": settings.get("provider", ""),
+        "model": settings.get("model", ""),
+        "question": question,
+        "answer": turn.text,
+        "seconds": round(time.time() - started, 1),
+        "usage": turn.usage,
+    }

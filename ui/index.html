@@ -76,6 +76,7 @@
   .small { font-size: 12px; color: var(--muted); }
   .note { font-size: 12px; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
   .note.err { color: var(--err); border-color: var(--err); }
+  .note.ok { color: var(--ok); border-color: var(--ok); border-style: solid; }
   .ok { color: var(--ok); }
   .ra { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 5px 0; border-top: 1px solid var(--border); align-items: center; font-size: 12px; }
   .ra:first-child { border-top: 0; }
@@ -151,6 +152,7 @@
         <select id="model"></select>
         <button class="btn" id="refreshModels" title="一覧を取得">↻</button>
       </div>
+      <button class="btn" id="checkModel" style="margin-top:6px" title="選んだ AI に 1+1= を送り、本当に答えるかを見る">本当に答えるか確かめる</button>
       <div class="note" id="modelNote" style="display:none"></div>
     </label>
     <div id="catalogField" class="field">
@@ -296,6 +298,20 @@
     } finally { $('refreshModels').disabled = false; }
   };
   $('refreshModels').addEventListener('click', refreshModels);
+
+  // 設定が合っているかは、実際に 1 問送るまで分からない。結果は数字（秒）と答えで見せる
+  const checkModel = async () => {
+    const note = $('modelNote'); const btn = $('checkModel');
+    const s = readSettings();
+    btn.disabled = true; note.className = 'note'; note.style.display = ''; note.textContent = '送っています…';
+    try {
+      const r = await api('/api/check', { method: 'POST', body: JSON.stringify({ provider: s.provider, model: s.model, base_url: s.base_url, api_key: s.api_key, context: s.context, gpu_layers: s.gpu_layers }) });
+      if (r.error) { note.textContent = r.error; note.className = 'note err'; }
+      else { note.textContent = `答えました（${r.seconds} 秒）: ${r.question} → ${r.answer || '（空）'}`; note.className = 'note ok'; }
+    } catch (e) { note.textContent = String(e); note.className = 'note err'; }
+    finally { btn.disabled = false; }
+  };
+  $('checkModel').addEventListener('click', checkModel);
 
   // ---------- Built-in model catalog ----------
   const gb = (n) => (n / 1e9).toFixed(1) + ' GB';
