@@ -16,6 +16,7 @@ from typing import Any
 
 from . import context as context_builder
 from . import notify
+from . import partners
 from . import tools as toolkit
 from . import config as config_module
 from .config import AGENTS_DIR, DATA_DIR, DECISIONS_DIR, Config, load_agent, load_config
@@ -200,7 +201,7 @@ def run_role(
         provider=provider,
         system=agent.instructions,
         task=_task_for(role, shared, instruction),
-        tools=toolkit.toolset(can_write),
+        tools={**toolkit.toolset(can_write), **partners.toolset()},
         emit=run.emit,
         max_turns=int(settings.get("max_turns", 60)),
         temperature=float(settings.get("temperature", 0.2)),
