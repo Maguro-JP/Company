@@ -17,6 +17,15 @@ import webbrowser
 
 import uvicorn
 
+# Windows のコンソールは cp1252 のことがあり、日本語を print すると UnicodeEncodeError で起動ごと落ちる
+# （Actions の Windows ランナーで実際に落ちた）。pythonw では stdout が無いので、その場合は触らない
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(errors="replace")
+        except (ValueError, OSError):
+            pass
+
 
 def _free_port(preferred: int) -> int:
     with socket.socket() as s:
