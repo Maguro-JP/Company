@@ -135,7 +135,7 @@ class LocalLLMLoopTest(unittest.TestCase):
 
     def test_run_command_returns_exit_code_and_output(self):
         self._run([
-            {"tool": ("run_command", {"command": f"{sys.executable} -c \"print('ok'); import sys; sys.exit(3)\""})},
+            {"tool": ("run_command", {"command": f"\"{sys.executable}\" -c \"print('ok'); import sys; sys.exit(3)\""})},
             {"text": "done"},
         ])
         res = [e for e in self.events if e["type"] == "tool_result"][0]
