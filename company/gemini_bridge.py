@@ -18,6 +18,14 @@ from typing import Any
 
 from .gemini import BASE_URL, COMPANY_FUNCTIONS, ProviderError, _request
 
+# Windows のコンソールは cp1252 のことがあり、矢印や日本語を出すと UnicodeEncodeError で落ちる
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(errors="replace")
+        except (ValueError, OSError):
+            pass
+
 SYSTEM = """あなたは、AIが経営する会社のオーナー補佐です。ユーザーの意図を会社の操作に変換します。
 - 何かを始めるときは start_cycle か start_role を呼び、返ってきた run_id を覚える
 - 進捗を聞かれたら get_run を呼んで、要点だけを日本語で報告する（ツール出力を丸写ししない）

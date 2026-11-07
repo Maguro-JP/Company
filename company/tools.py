@@ -31,7 +31,8 @@ ToolFn = Callable[[dict[str, Any]], str]
 def _resolve(raw: str) -> Path:
     path = (ROOT / raw).resolve() if not Path(raw).is_absolute() else Path(raw).resolve()
     try:
-        path.relative_to(ROOT)
+        # ROOT も resolve する。Windows の短い名前（RUNNER~1）のまま比べると、同じ場所でも外と判定して書き込みを拒んだ
+        path.relative_to(Path(ROOT).resolve())
     except ValueError:
         raise PermissionError(f"リポジトリの外は触れません: {raw}")
     return path
