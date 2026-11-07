@@ -27,7 +27,7 @@ if [ -n "$(git status --porcelain -- company ui agents product app.py company.ya
 fi
 
 echo "== 会社の本体（HEAD）"
-git archive HEAD company ui agents product app.py company.yaml README.md VERSION docs/charter.md | tar -x -C "$SRC"
+git archive HEAD company ui agents product app.py company.yaml README.md VERSION docs/charter.md docs/help | tar -x -C "$SRC"
 rm -rf "$SRC/product/.git"
 mkdir -p "$SRC/data/decisions"
 

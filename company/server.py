@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import controls, gemini, local_llm, mcp_http, runner
+from . import controls, gemini, local_llm, mcp_http, runner, updater
 from . import paths
 from .config import ROOT, load_config
 from .providers import ProviderError, answer_check, make_provider, provider_catalog
@@ -37,6 +37,7 @@ def index() -> FileResponse:
 def state() -> dict[str, Any]:
     config = load_config()
     return {
+        "version": updater.current(),
         "company": config.company,
         "autonomy": config.autonomy,
         "cadences": {k: v for k, v in config.raw.get("cadence", {}).items()},
@@ -196,6 +197,40 @@ def read_repo_file(path: str) -> dict[str, Any]:
     if not target.is_file():
         raise HTTPException(404, "not found")
     return {"path": path, "content": target.read_text(encoding="utf-8", errors="replace")}
+
+
+# --------------------------------------------------------------------------- #
+# アプリ本体の更新（CharacterDesigner の「更新を確かめる」と同じ）
+# --------------------------------------------------------------------------- #
+
+
+@app.get("/api/update")
+def update_check(quiet: bool = True) -> dict[str, Any]:
+    """新しい版が出ていないか見るだけ。quiet=false はユーザーが押したときで、確かめられない理由も返す。"""
+    try:
+        found = updater.check(quiet=quiet)
+    except Exception as exc:
+        return {"current": updater.current(), "error": f"確かめられませんでした: {exc}"}
+    return {"current": updater.current(), "newer": found}
+
+
+@app.post("/api/update")
+def update_apply() -> dict[str, Any]:
+    """新しい Setup.exe を取って起こす。入れるかどうかはその案内でユーザーが決める。"""
+    if any(r.status == "running" for r in runner.REGISTRY.all()):
+        raise HTTPException(409, "いま実行中です。終わってから更新してください")
+    try:
+        found = updater.check(quiet=False)
+    except Exception as exc:
+        raise HTTPException(502, f"確かめられませんでした: {exc}") from exc
+    if not found or not found.get("setup"):
+        return {"current": updater.current(), "newer": None}
+    try:
+        path = updater.download(found["setup"])
+        updater.launch(path)
+    except Exception as exc:
+        raise HTTPException(500, f"更新を取れませんでした: {exc}") from exc
+    return {"current": updater.current(), "newer": found, "setup": str(path)}
 
 
 # --------------------------------------------------------------------------- #

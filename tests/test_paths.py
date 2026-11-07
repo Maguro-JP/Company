@@ -93,3 +93,50 @@ class MigrateTest(unittest.TestCase):
         self.assertTrue((self.ws / "data" / "decisions" / "2026-11-01-build.md").exists())
         self.assertTrue((self.ws / "product" / "mine.py").exists())
         self.assertTrue((self.ws / "migrate.log").exists())
+
+
+class UpdaterTest(unittest.TestCase):
+    """更新の確認は、手元の VERSION より新しい版の Setup.exe だけを答える。"""
+
+    def setUp(self):
+        import json
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        payload = {"tag_name": "v9.9.9", "html_url": "https://example.invalid/r",
+                   "assets": [{"name": "Company-Setup.exe", "browser_download_url": "https://example.invalid/Company-Setup.exe"}],
+                   "body": "notes"}
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_GET(self):
+                out = json.dumps(payload).encode()
+                self.send_response(200); self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(out))); self.end_headers(); self.wfile.write(out)
+
+        self.server = HTTPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self.url = f"http://127.0.0.1:{self.server.server_port}/latest"
+
+    def tearDown(self):
+        self.server.shutdown()
+
+    def test_newer_compares_numbers(self):
+        from company import updater
+        self.assertTrue(updater.newer("v0.2.0", "0.1.9"))
+        self.assertFalse(updater.newer("0.2.0", "0.2.0"))
+        self.assertFalse(updater.newer("0.1.0", "0.2.0"))
+
+    def test_check_returns_setup_when_newer(self):
+        from company import updater
+        found = updater.check(self.url)
+        self.assertEqual(found["version"], "9.9.9")
+        self.assertTrue(found["setup"].endswith("Company-Setup.exe"))
+
+    def test_check_is_quiet_when_unreachable(self):
+        from company import updater
+        self.assertIsNone(updater.check("http://127.0.0.1:9/latest", timeout=1))
+        with self.assertRaises(Exception):
+            updater.check("http://127.0.0.1:9/latest", timeout=1, quiet=False)
