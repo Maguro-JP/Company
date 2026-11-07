@@ -8,9 +8,18 @@ Windows のアプリウィンドウ（またはブラウザ）から操作する
 
 ## 入れる（Windows）
 
-[Releases](https://github.com/Maguro-JP/Company/releases) の `Company-Setup.exe` を実行する。管理者権限は要らず、
-`%LOCALAPPDATA%\Programs\Company` に Python ごと入る。デスクトップとスタートメニューの「Company」で開く。
-更新は新しい Setup.exe を実行するだけで、モデルと記録（`data\`）は残る。
+[Releases](https://github.com/Maguro-JP/Company/releases) の `Company-Setup.exe` を実行する。
+デスクトップとスタートメニューの「Company」で開く。置き場は自作の AdaptiveAIStudio・CharacterDesigner と同じ並び。
+
+| 置き場 | 中身 | 更新のとき |
+|---|---|---|
+| `C:\Program Files\Company\` | プログラム（company、ui、同梱の Python、app.py） | 丸ごと置き換える。書き換えない |
+| `C:\ProgramData\Company\` | 作業場（company.yaml、agents、product、docs、data）。AI がここを書き換え、git のリポジトリとして履歴を持つ | 残す。新しい版で増えたファイルだけ足す |
+| `C:\LLM\gguf\` | 言葉の模型。自作のアプリどうしで共有する | 残す。アンインストールでも消さない |
+
+作業場を ProgramData に置くのは、利用者名が全角だと AppData の道で llama.cpp が模型を開けないため。
+環境変数 `COMPANY_HOME` で作業場を、`LLM_HOME` で模型の置き場を移せる（`company/paths.py`）。
+前の版（利用者ごとに入れていた v0.1.x）があれば、Setup.exe が作業場と記録と模型を新しい置き場へ移してから前の版を消す。
 
 Setup.exe は `packaging/company/build.sh` で組み、`.github/workflows/setup.yml` が main への push のたびに
 Linux で組んで Windows のランナーに入れ、テストとウィンドウが開くことを見てから Release に置く。
@@ -148,6 +157,8 @@ app.py               起動。pywebview でウィンドウ、--browser でブラ
 ui/index.html        画面。依存なしの単一ファイル。キャラクターの動き（CSS）もここ
 ui/characters/       役職のキャラクターの絵（PNG、背景は透明）。無い役職は index.html の SVG の姿に落ちる
 ui/icon/             アプリのアイコン（app.ico はショートカットと Setup.exe、app-256.png はウィンドウ、app-64.png は画面のタブ）
+company/paths.py     置き場（プログラム・作業場・模型）を 1 か所で決める
+company/migrate.py   配布版の作業場を整える。最初の起動と更新、前の版からの移行
 packaging/company/   Setup.exe の組み方（build.sh、installer.nsi）。VERSION が版
 product/             プロダクト本体
 data/decisions/      review サイクルの記録

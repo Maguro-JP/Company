@@ -9,7 +9,10 @@ from typing import Any
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent.parent
+from . import paths
+
+# 作業場。開発中はリポジトリそのもの、配布版は ProgramData\Company（company/paths.py）
+ROOT = paths.workspace_root()
 CONFIG_PATH = ROOT / "company.yaml"
 AGENTS_DIR = ROOT / "agents"
 DATA_DIR = ROOT / "data"

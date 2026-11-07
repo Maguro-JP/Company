@@ -13,3 +13,4 @@
 | 6 | 役職のキャラクターとアニメーション | 画面の上に役職 6 人が並び、実行中の役職が thinking → working → done の順に動き、吹き出しに文が出る（Chromium で確認） | 完成 | マージ済み（#19） | 2026-11-07 |
 | 7 | Windows の Setup.exe と Release | Actions の setup が通り、Windows ランナーで入れてテストとウィンドウが確認され、Releases に v0.1.0 が置かれる | 完成 | v0.1.0 公開済み | 2026-11-07 |
 | 8 | キャラクターの絵とアプリのアイコン | ui/characters/ に 6 人の PNG、ui/icon/ に app.ico があり、画面と Setup.exe とショートカットに出る | 確認待ち | v0.1.1 の Release と Windows の写し | 2026-11-07 |
+| 9 | 配布版の置き場を他のアプリにそろえる | Program Files にプログラム、ProgramData\Company に作業場、C:\LLM\gguf に模型が置かれ、Actions の Windows で入れ直しても作業場が残る | 確認待ち | PR 待ち。入れ直しの確認は Actions で見る | 2026-11-07 |
