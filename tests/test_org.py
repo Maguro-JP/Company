@@ -23,7 +23,8 @@ class OrgTest(unittest.TestCase):
         self.assertEqual(kinds, set(org.KINDS))
         self.assertEqual(tree["kind"], "holding")
         self.assertEqual(tree["name"], "Company")
-        self.assertEqual({c["kind"] for c in tree["children"]}, {"company"})
+        self.assertEqual({c["kind"] for c in tree["children"]}, {"company", "division"})
+        self.assertIn("法務部門", [c["name"] for c in tree["children"]])
         self.assertIn("ceo", tree["roles"])
         self.assertGreaterEqual(len(org.sections(tree)), 28)
 

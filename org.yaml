@@ -11,6 +11,36 @@ kind: holding
 about: "AI の役職が経営する親会社。子会社（オーナーの各ツール）を道具として使い、会社を回す"
 roles: [ceo, cfo, ops, cto, cmo, builder]
 children:
+  # Company にしか無い機能（売り）。子会社のツールに組み込まず、親会社が一か所で持つ
+  - name: "検品部門"
+    kind: division
+    about: "出来た物を数字で見て通す・戻す。絵、文、コード、帳票"
+    children:
+      - name: "検品部"
+        kind: department
+        children:
+          - { name: "コード検品課", kind: section, about: "テストが落ちた状態でコミットさせない（run_command の前検査）" }
+          - { name: "成果物検品課", kind: section, about: "絵・文・帳票の崩れを数字で見る（相手の検品の口があればそれを使う）" }
+  - name: "セキュリティ部門"
+    kind: division
+    about: "鍵の混入、脆弱性、外へ出る通信"
+    children:
+      - name: "保安部"
+        kind: department
+        children:
+          - { name: "鍵検査課", kind: section, about: "差分と記録に鍵・個人情報が無いかを見る（secret-leak-check）" }
+          - { name: "脆弱性課", kind: section, about: "週 1 回の見回り（vuln-watch）" }
+          - { name: "通信記録課", kind: section, about: "外へ出る通信と呼んだ口の記録" }
+  - name: "法務部門"
+    kind: division
+    about: "法令遵守と、法人として気にすべきこと"
+    children:
+      - name: "法務部"
+        kind: department
+        children:
+          - { name: "個人情報課", kind: section, about: "個人情報の扱いと公開範囲（public に出す前の検査）" }
+          - { name: "著作権課", kind: section, about: "絵・音・文の出所と利用の可否" }
+          - { name: "取引記録課", kind: section, about: "取引・判断の記録と監査の跡（data/decisions）" }
   - name: "AdaptiveAIStudio"
     kind: company
     about: "モデル非依存の AI 開発の土台"

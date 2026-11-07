@@ -8,6 +8,10 @@ Company はその一員で、ほかのツールを「相手が得意なこと」
 
 public のリポジトリなので、公開しているツールだけを名前で書く。非公開のものは作業場の `data/partners.json` に置く。
 
+## Company の位置づけ
+
+Company はオマケではなく、既製品のソフトやユーザーの自作ツールも AI で動かす製品。自社製品は当たり前に使えるというだけで、抱き合わせにしない。売りは Company にしか無い機能（細かな検品、セキュリティ、法令遵守）。詳しくは [group-strategy.md](group-strategy.md) の 0。
+
 ## 共通の決まり（シリーズ全体）
 
 - 置き場: プログラムは `C:\Program Files\<App>`、設定・記録・部品は `C:\ProgramData\<App>`、模型は `C:\LLM`（`gguf\`、`huggingface\`）で共有
