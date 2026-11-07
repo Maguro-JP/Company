@@ -23,7 +23,9 @@ COMMAND_TIMEOUT_SEC = 300
 # コミットの直前にこのコマンドを走らせ、落ちていればコミット自体を実行しない。
 # git の後ろに来てよいのは、オプション（-c key=val、-C path、-q など）だけ。`git log --grep commit` を巻き込まない
 COMMIT_PATTERN = re.compile(r"\bgit(?:\s+-\S*(?:\s+[^-\s]\S*)?)*\s+commit\b")
-TEST_COMMAND = f"cd product && {sys.executable} -m unittest discover -s tests"
+# Python の道に空白が入る（C:\Program Files\Company\python）ので引用符で包む。包まずに落ちた
+PYTHON = f'"{sys.executable}"'
+TEST_COMMAND = f"cd product && {PYTHON} -m unittest discover -s tests"
 
 ToolFn = Callable[[dict[str, Any]], str]
 

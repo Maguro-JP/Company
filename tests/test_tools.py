@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from company import tools as toolkit  # noqa: E402
 
-PY = sys.executable
+PY = f'"{sys.executable}"'   # 道に空白が入っても通るように包む（配布版の Program Files）
 
 
 class CommitGuardTest(unittest.TestCase):
