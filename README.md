@@ -165,4 +165,3 @@ cd product && python -m unittest discover -s tests  # プロダクト
 
 - Windows 実機での起動確認（オーナー作業）
 - 停止条件の自動化（憲章 4 節）
-- 内蔵エンジンのストリーミング表示（今は1ターン分まとめて出る）

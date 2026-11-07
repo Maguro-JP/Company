@@ -66,6 +66,82 @@ class InstructionsTest(unittest.TestCase):
         self.assertEqual(local_llm.tool_instructions([]), "")
 
 
+class FakeEngine:
+    """llama.cpp の create_chat_completion を模す。stream=True では塊を順に返す。"""
+
+    def __init__(self, text: str):
+        self.text = text
+        self.calls: list[dict] = []
+
+    def create_chat_completion(self, **kw):
+        self.calls.append(kw)
+        if kw.get("stream"):
+            def gen():
+                for i in range(0, len(self.text), 3):
+                    yield {"choices": [{"delta": {"content": self.text[i:i + 3]}}]}
+                yield {"choices": [{"delta": {}}], "usage": {"prompt_tokens": 9, "completion_tokens": 4}}
+            return gen()
+        return {"choices": [{"message": {"content": self.text}}], "usage": {"prompt_tokens": 9, "completion_tokens": 4}}
+
+
+class StreamingTest(unittest.TestCase):
+    def setUp(self):
+        self._engine = local_llm._engine
+        self.tmp = Path(tempfile.mkdtemp())
+        (self.tmp / "m.gguf").write_bytes(b"GGUF")
+        self._root = toolkit.ROOT
+        toolkit.ROOT = self.tmp
+
+    def tearDown(self):
+        local_llm._engine = self._engine
+        toolkit.ROOT = self._root
+
+    def _provider(self, text):
+        engine = FakeEngine(text)
+        local_llm._engine = lambda *a, **k: engine
+        p = local_llm.BuiltinProvider("m.gguf")
+        p.path = self.tmp / "m.gguf"
+        return p, engine
+
+    def test_deltas_are_streamed_when_a_listener_is_set(self):
+        p, engine = self._provider("こんにちは、世界")
+        got = []
+        p.on_delta = got.append
+        turn = p.complete("s", [p.user_message("hi")], [], 0.2)
+        self.assertTrue(engine.calls[0]["stream"])
+        self.assertEqual("".join(got), "こんにちは、世界")
+        self.assertEqual(turn.text, "こんにちは、世界")
+        self.assertEqual(turn.usage, {"input": 9, "output": 4})
+
+    def test_usage_is_estimated_when_the_stream_has_none(self):
+        p, engine = self._provider("abcdefgh")
+        engine.create_chat_completion = lambda **kw: iter([{"choices": [{"delta": {"content": "abcdefgh"}}]}])
+        p.on_delta = lambda d: None
+        turn = p.complete("s", [p.user_message("hi")], [], 0.2)
+        self.assertEqual(turn.usage["output"], 2)
+        self.assertGreater(turn.usage["input"], 0)
+
+    def test_without_listener_it_does_not_stream(self):
+        p, engine = self._provider("x")
+        p.complete("s", [p.user_message("hi")], [], 0.2)
+        self.assertNotIn("stream", engine.calls[0])
+
+    def test_tool_call_still_parsed_from_streamed_text(self):
+        p, _ = self._provider('<tool_call>{"name": "list_files", "arguments": {}}')
+        p.on_delta = lambda d: None
+        turn = p.complete("s", [p.user_message("hi")], [], 0.2)
+        self.assertEqual(turn.tool_calls[0].name, "list_files")
+
+    def test_loop_emits_delta_events_before_the_final_text(self):
+        p, _ = self._provider("終わりました")
+        events = []
+        run_loop(p, "s", "t", toolkit.toolset(False), events.append, max_turns=2, role="ops")
+        kinds = [e["type"] for e in events]
+        self.assertIn("delta", kinds)
+        self.assertLess(kinds.index("delta"), kinds.index("text"))
+        self.assertEqual("".join(e["text"] for e in events if e["type"] == "delta"), "終わりました")
+
+
 class CatalogTest(unittest.TestCase):
     def test_catalog_entries_resolve_to_model_dir(self):
         for entry in local_llm.CATALOG:

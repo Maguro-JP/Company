@@ -181,6 +181,17 @@ def _engine(path: Path, n_ctx: int, n_gpu_layers: int):
         return _ENGINES[key]
 
 
+def _count_tokens(engine, text: str) -> int:
+    """エンジンの字句器で数える。無ければ 4 文字 1 トークンで概算する。"""
+    tokenize = getattr(engine, "tokenize", None)
+    if tokenize is not None:
+        try:
+            return len(tokenize(text.encode("utf-8"), add_bos=False))
+        except Exception:
+            pass
+    return max(1, len(text) // 4) if text else 0
+
+
 def tool_instructions(tools: list[ToolSpec]) -> str:
     if not tools:
         return ""
@@ -261,12 +272,36 @@ class BuiltinProvider:
             raise ProviderError(f"モデルがまだダウンロードされていません: {self.model_id}。右パネルから取得してください。")
         engine = _engine(self.path, self.n_ctx, self.n_gpu_layers)
         messages = [{"role": "system", "content": system + tool_instructions(tools)}, *history]
+        on_delta = getattr(self, "on_delta", None)
         try:
             with _ENGINE_LOCK:
-                resp = engine.create_chat_completion(
-                    messages=messages, temperature=temperature, max_tokens=self.max_tokens,
-                    stop=["</tool_call>", "<tool_result"],
-                )
+                if on_delta is None:
+                    resp = engine.create_chat_completion(
+                        messages=messages, temperature=temperature, max_tokens=self.max_tokens,
+                        stop=["</tool_call>", "<tool_result"],
+                    )
+                else:
+                    # 生成中の文字を流す。使い終わるまで _ENGINE_LOCK を持つ（llama.cpp は同時に1つ）
+                    parts: list[str] = []
+                    usage_seen: dict = {}
+                    for chunk in engine.create_chat_completion(
+                        messages=messages, temperature=temperature, max_tokens=self.max_tokens,
+                        stop=["</tool_call>", "<tool_result"], stream=True,
+                    ):
+                        delta = ((chunk.get("choices") or [{}])[0].get("delta") or {}).get("content") or ""
+                        if delta:
+                            parts.append(delta)
+                            on_delta(delta)
+                        if chunk.get("usage"):
+                            usage_seen = chunk["usage"]
+                    text_out = "".join(parts)
+                    if not usage_seen:
+                        # llama.cpp のストリームは usage を返さない。字句器で数える（トークン上限の判定に使うため）
+                        usage_seen = {
+                            "prompt_tokens": _count_tokens(engine, "\n".join(m.get("content") or "" for m in messages)),
+                            "completion_tokens": _count_tokens(engine, text_out),
+                        }
+                    resp = {"choices": [{"message": {"content": text_out}}], "usage": usage_seen}
         except Exception as exc:
             msg = str(exc)
             if "exceed" in msg or "context" in msg.lower():
