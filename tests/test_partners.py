@@ -195,3 +195,28 @@ class DiscoveryTest(unittest.TestCase):
                 r = partners.auto_register_aas("http://127.0.0.1:1/mcp")
             self.assertTrue(r["changed"])
             self.assertIn("company", json.loads(cfg.read_text(encoding="utf-8"))["mcp"]["servers"])
+
+
+class AggregateMcpTest(unittest.TestCase):
+    """Company の /mcp を 1 つ繋げば、子会社の道具も出る（売り）。偽の標準入出力の MCP で。"""
+
+    def test_company_mcp_lists_and_calls_partner_tools(self):
+        with tempfile.TemporaryDirectory() as d:
+            script = Path(d) / "fake_mcp.py"
+            script.write_text(FAKE_MCP, encoding="utf-8")
+            entries = [{"id": "ledger", "name": "台帳", "mcp": {"command": [sys.executable, "-I", str(script)], "cwd": d}}]
+            with mock.patch.object(partners, "builtin", return_value=[]), \
+                 mock.patch.object(partners, "PARTNERS_FILE", Path(d) / "partners.json"):
+                partners.save_extra(entries)
+                client = TestClient(server.app)
+                listed = client.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"}).json()
+                names = [t["name"] for t in listed["result"]["tools"]]
+                self.assertIn("start_cycle", names)
+                self.assertIn("ledger__device_summary", names)
+                called = client.post("/mcp", json={"jsonrpc": "2.0", "id": 2, "method": "tools/call",
+                                                   "params": {"name": "ledger__device_summary", "arguments": {"q": "x"}}}).json()
+                self.assertFalse(called["result"]["isError"])
+                self.assertIn('"total": 3', called["result"]["content"][0]["text"])
+                missing = client.post("/mcp", json={"jsonrpc": "2.0", "id": 3, "method": "tools/call",
+                                                    "params": {"name": "nobody__x", "arguments": {}}}).json()
+                self.assertTrue(missing["result"]["isError"])
