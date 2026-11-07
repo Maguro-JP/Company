@@ -108,6 +108,10 @@ def builtin() -> list[dict[str, Any]]:
             "about": "チャットで頼むと AI が絵を描く。描いた絵はピクチャの CharacterDesigner に出る",
             "files": {"dir": _pictures(), "glob": "*.png"},
         },
+        # これから作るクリエイティブのツール（docs/knowledge/creative-series.md）。席だけ用意し、相手ができたら口を足す
+        {"id": "video", "name": "映像（予定）", "about": "映像を作るツール。できたら MCP でつなぐ", "planned": True},
+        {"id": "music", "name": "音楽（予定）", "about": "音楽を作るツール。できたら MCP でつなぐ", "planned": True},
+        {"id": "voice", "name": "ボイス（予定）", "about": "声を作るツール。役職のキャラクターの声に使う", "planned": True},
         {
             "id": "ciel", "name": "Ciel",
             "about": "Claude Code のスキルを作り・配る。入っているスキルは .claude/skills",
@@ -154,7 +158,10 @@ def probe(partner: dict[str, Any]) -> dict[str, Any]:
     """生きているかを 1 回だけ見る。待つのは短く（画面の一覧で全部を見るため）。"""
     out: dict[str, Any] = {"id": partner["id"], "name": partner.get("name", partner["id"]),
                            "about": partner.get("about", ""), "alive": False, "detail": "", "tools": 0,
-                           "give": partner.get("give", "")}
+                           "give": partner.get("give", ""), "planned": bool(partner.get("planned"))}
+    if out["planned"]:
+        out["detail"] = "まだ無い（予定）"
+        return out
     http = partner.get("http")
     files = partner.get("files")
     mcp = partner.get("mcp")

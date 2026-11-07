@@ -150,7 +150,11 @@ class PartnersApiTest(unittest.TestCase):
             with mock.patch.dict(os.environ, {"AAS_CONFIG": str(Path(d) / "aas.config.json")}):
                 r = client.get("/api/partners").json()
                 ids = [p["id"] for p in r["partners"]]
-                self.assertEqual(ids[:4], ["aas", "netvision", "characterdesigner", "ciel"])
+                self.assertEqual(ids[:3], ["aas", "netvision", "characterdesigner"])
+                self.assertIn("ciel", ids)
+                planned = [p for p in r["partners"] if p["planned"]]
+                self.assertEqual([p["id"] for p in planned], ["video", "music", "voice"])
+                self.assertTrue(all(not p["alive"] for p in planned))
                 reg = client.post("/api/partners/aas/register").json()
                 self.assertEqual(reg["url"], "http://testserver/mcp")
                 self.assertTrue(Path(reg["path"]).exists())

@@ -519,7 +519,7 @@
     for (const p of r.partners) {
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;flex-direction:column;gap:2px;padding:6px 0;border-top:1px solid var(--border)';
-      const dot = p.alive ? '<span style="color:#3ec46d">●</span>' : '<span style="color:#c44">●</span>';
+      const dot = p.planned ? '<span style="color:#999">○</span>' : (p.alive ? '<span style="color:#3ec46d">●</span>' : '<span style="color:#c44">●</span>');
       const tools = p.tools ? `　道具 ${p.tools}` : (p.files !== undefined ? `　${p.files} 件` : '');
       let extra = '';
       if (p.give === 'register_mcp') extra = `<button class="btn" data-register="${esc(p.id)}" style="padding:2px 8px;margin-top:4px" ${p.alive ? '' : 'disabled'} title="起動のたびに自動で登録しています。向こうの設定を消したときだけ押す">登録し直す</button>`;
