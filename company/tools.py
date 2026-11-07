@@ -7,6 +7,7 @@ Windows / Linux の両方で動くよう shell=True で実行する。
 from __future__ import annotations
 
 import re
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -104,6 +105,13 @@ def _tests_block_commit(command: str) -> str | None:
     )
 
 
+def _command_env() -> dict[str, str]:
+    """配布版（同梱の Python）でも `python` が通るように、動かしている Python の場所を PATH の先頭に足す。"""
+    env = dict(os.environ)
+    env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
+    return env
+
+
 def run_command(args: dict[str, Any]) -> str:
     command = args["command"]
     refusal = _tests_block_commit(command)
@@ -114,6 +122,7 @@ def run_command(args: dict[str, Any]) -> str:
             command,
             shell=True,
             cwd=str(ROOT),
+            env=_command_env(),
             capture_output=True,
             text=True,
             encoding="utf-8",

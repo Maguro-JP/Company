@@ -48,7 +48,8 @@ python3 -m pip install $W --target "$SP" \
   fastapi starlette pydantic pydantic-core typing_extensions annotated-types anyio sniffio idna \
   uvicorn h11 click colorama PyYAML \
   pywebview pythonnet clr-loader bottle cffi pycparser \
-  numpy diskcache jinja2 MarkupSafe
+  numpy diskcache jinja2 MarkupSafe \
+  anthropic httpx httpcore certifi distro jiter docstring-parser
 python3 -m pip install $W --target "$SP" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu "llama-cpp-python==0.3.19"
 # proxy_tools は wheel が無い（sdist だけ）。純 Python の 1 パッケージなので、展開して置く
 python3 -m pip download -q --disable-pip-version-check --no-deps --no-binary :all: -d "$B/sdist" proxy_tools
@@ -61,7 +62,7 @@ for f in VERSION app.py company.yaml company/server.py company/local_llm.py ui/i
          python/python.exe python/pythonw.exe \
          python/Lib/site-packages/fastapi python/Lib/site-packages/uvicorn python/Lib/site-packages/webview \
          python/Lib/site-packages/pythonnet python/Lib/site-packages/clr_loader python/Lib/site-packages/proxy_tools \
-         python/Lib/site-packages/llama_cpp python/Lib/site-packages/yaml; do
+         python/Lib/site-packages/llama_cpp python/Lib/site-packages/yaml python/Lib/site-packages/anthropic python/Lib/site-packages/httpx; do
   [ -e "$SRC/$f" ] || missing="$missing $f"
 done
 [ -z "$missing" ] || { echo "欠けている:$missing" >&2; exit 1; }

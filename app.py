@@ -39,6 +39,25 @@ def _wait_ready(url: str, timeout: float = 15) -> bool:
     return False
 
 
+def _ensure_git_repo() -> None:
+    """配布版は git のリポジトリとして入らない。判断と実行の一次記録はコミット履歴（憲章 3 節）なので、
+    git があれば最初の起動でリポジトリにする。git が無ければそのまま動き、コミットだけが失敗として報告される。"""
+    import shutil  # noqa: PLC0415
+    import subprocess  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
+
+    root = Path(__file__).resolve().parent
+    if (root / ".git").exists() or not shutil.which("git"):
+        return
+    try:
+        subprocess.run(["git", "init", "-q"], cwd=root, check=True, timeout=30)
+        subprocess.run(["git", "add", "-A"], cwd=root, check=True, timeout=60)
+        subprocess.run(["git", "-c", "user.name=Company", "-c", "user.email=company@localhost",
+                        "commit", "-q", "-m", "配布版の初期状態"], cwd=root, check=True, timeout=60)
+    except (subprocess.SubprocessError, OSError):
+        pass
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="AIが経営する会社を起動する")
     parser.add_argument("--browser", action="store_true", help="アプリウィンドウではなくブラウザで開く")
@@ -46,6 +65,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-open", action="store_true", help="サーバーだけ起動する")
     args = parser.parse_args(argv)
 
+    _ensure_git_repo()
     port = _free_port(args.port)
     url = f"http://127.0.0.1:{port}"
 
