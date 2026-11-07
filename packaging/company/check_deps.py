@@ -34,6 +34,8 @@ def main(sp: Path) -> int:
     have: dict[str, Path] = {}
     for d in sp.glob("*.dist-info"):
         have[norm(d.name.split("-")[0])] = d
+    # dist-info の無い物（sdist から置いた proxy_tools）は、パッケージの名前で在るとみなす
+    present = set(have) | {norm(e.stem) for e in sp.iterdir() if not e.name.endswith((".dist-info", ".pth"))}
     missing: list[str] = []
     for name, d in sorted(have.items()):
         meta = (d / "METADATA").read_text(encoding="utf-8", errors="replace")
@@ -45,7 +47,7 @@ def main(sp: Path) -> int:
                 env = dict(WIN, extra="")
                 if not req.marker.evaluate(env):
                     continue
-            if norm(req.name) not in have:
+            if norm(req.name) not in present:
                 missing.append(f"{name} -> {req.name}")
     if missing:
         print("依存が抜けている:\n  " + "\n  ".join(missing))
