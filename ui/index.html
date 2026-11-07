@@ -42,9 +42,9 @@
   /* ---------- キャラクター ----------
      役職を人の姿で見せる。誰が今動いているか、考えているのか、道具を使っているのかが、文字を読まなくても分かる。
      動きは CSS だけで付け、JS は状態の class を付け替えるだけにする（流れる文字の描画を邪魔しない）。 */
-  .stage { display: flex; justify-content: center; align-items: flex-end; gap: 14px; padding: 14px 20px 4px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, transparent, rgba(255,255,255,.02)); min-height: 196px; }
-  .chara { position: relative; width: 120px; text-align: center; color: var(--muted); font-size: 11px; transition: transform .3s; }
-  .chara .art { height: 150px; width: auto; max-width: 118px; object-fit: contain; display: block; margin: 0 auto 2px; transform-origin: 50% 100%; animation: breathe 3.2s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(0,0,0,.45)); }
+  .stage { display: flex; justify-content: center; align-items: flex-end; gap: 8px; padding: 44px 16px 4px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, transparent, rgba(255,255,255,.02)); min-height: 226px; overflow: hidden; }
+  .chara { position: relative; width: 108px; text-align: center; color: var(--muted); font-size: 11px; transition: transform .3s; }
+  .chara .art { height: 150px; width: auto; max-width: 106px; object-fit: contain; display: block; margin: 0 auto 2px; transform-origin: 50% 100%; animation: breathe 3.2s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(0,0,0,.45)); }
   .chara svg.art { width: 72px; height: 88px; overflow: visible; }
   .chara .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chara .eye { animation: blink 4.6s infinite; transform-origin: center; transform-box: fill-box; }
