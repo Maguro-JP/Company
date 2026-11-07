@@ -52,6 +52,13 @@ run.bat
 `data/models/` に自分で置いた `.gguf` も一覧に出る。
 ダウンロードは途中で切れても、もう一度「取得」を押すと続きから再開する。
 
+### 会社の形（親会社 → 子会社 → 部門 → 部署 → 課）
+
+`org.yaml` に会社の木を書く。課にツールの席（`seats`。`company/partners.py` の id）と役職（`roles`。agents の名前）が付き、
+右パネルの「会社の形」に、課ごとのつながり（緑）と予定（○）が出る。`GET /api/org` で木とつながりを、`POST /api/org` で木の置き換えを行う
+（無い席、無い役職、二重の席は保存しない）。ツールが増えたら課を 1 行足し、`partners.py` の席の `planned` を外すだけでつながる。
+部門と課の一覧は [docs/knowledge/creative-series.md](docs/knowledge/creative-series.md)。
+
 ### 同じ作者のツールと連携する
 
 右パネルの「連携しているツール」に、同じ作者のツールが並ぶ（`company/partners.py`）。
@@ -181,6 +188,7 @@ company/paths.py     置き場（プログラム・作業場・模型）を 1 �
 company/migrate.py   配布版の作業場を整える。最初の起動と更新、前の版からの移行
 company/updater.py   アプリ本体の更新。releases/latest と VERSION を比べ、Setup.exe を取って開く
 company/partners.py  同じ作者のツールとの連携。疎通、MCP の呼び手、役職の道具への橋、AdaptiveAIStudio への登録
+company/org.py       会社の形（親会社 → 子会社 → 部門 → 部署 → 課）。org.yaml を読み、席と役職を検証し、画面用に数を乗せる
 docs/help/install.md 入れる・置き場・更新・前の版から・消す
 docs/knowledge/learning/user-tools.md  オーナーが作った道具の表（公開分。何か・起こし方・口・置き場）。参考にするとき・呼ぶときはここから
 packaging/company/   Setup.exe の組み方（build.sh、installer.nsi）。VERSION が版

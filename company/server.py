@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import controls, gemini, local_llm, mcp_http, partners, runner, updater
+from . import controls, gemini, local_llm, mcp_http, org, partners, runner, updater
 from . import paths
 from .config import ROOT, load_config
 from .providers import ProviderError, answer_check, make_provider, provider_catalog
@@ -245,6 +245,31 @@ def partners_list() -> dict[str, Any]:
     """相手ごとに生きているかを短く見る。落ちている相手は理由つきで出す。"""
     return {"partners": [partners.probe(p) for p in partners.load()],
             "file": str(partners.PARTNERS_FILE)}
+
+
+@app.get("/api/org")
+def org_tree() -> dict[str, Any]:
+    """会社の形（親会社 → 子会社 → 部門 → 部署 → 課）に、席のつながりを乗せて返す。"""
+    tree = org.load()
+    probes = {p["id"]: partners.probe(p) for p in partners.load()}
+    known_roles = {r["role"] for r in runner.list_roles()}
+    return {"tree": org.annotate(tree, probes), "file": str(org.ORG_PATH),
+            "errors": org.validate(tree, set(probes), known_roles)}
+
+
+class OrgPatch(BaseModel):
+    tree: dict[str, Any]
+
+
+@app.post("/api/org")
+def org_save(patch: OrgPatch) -> dict[str, Any]:
+    """木を丸ごと置き換える。誤り（無い席、無い役職、二重の席）があれば保存しない。"""
+    known_roles = {r["role"] for r in runner.list_roles()}
+    errors = org.validate(patch.tree, {p["id"] for p in partners.load()}, known_roles)
+    if errors:
+        raise HTTPException(400, "；".join(errors))
+    org.save(patch.tree)
+    return {"file": str(org.ORG_PATH), "sections": len(org.sections(patch.tree))}
 
 
 @app.get("/api/partners/{partner_id}/tools")

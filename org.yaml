@@ -1,0 +1,159 @@
+# 会社の形。親会社 → 子会社 → 部門 → 部署 → 課 の木。
+# Company はこの木で、どの課がどのツール（partners の席）と役職を持つかを管理する。
+# 実際にツールを作るのはオーナーで、課は「そのツールが担う仕事の単位」。ツールができたら seat の planned が外れる。
+# 書き方: kind は holding | company | division | department | section。seats は partners の id、roles は agents の役職。
+
+name: "Maguro Holdings"
+kind: holding
+about: "オーナーのクリエイティブツールのシリーズを束ねる親会社（構想）。実体はオーナー 1 人"
+children:
+  - name: "Company"
+    kind: company
+    about: "AI の役職が会社を回す。ほかの子会社のツールを道具として使う"
+    children:
+      - name: "経営部門"
+        kind: division
+        children:
+          - name: "経営企画部"
+            kind: department
+            children:
+              - { name: "戦略課", kind: section, about: "何をやらないかを決める、週の一点集中", roles: [ceo] }
+          - name: "財務部"
+            kind: department
+            children:
+              - { name: "経理課", kind: section, about: "費用の記録、採算", roles: [cfo] }
+          - name: "運営部"
+            kind: department
+            children:
+              - { name: "実行管理課", kind: section, about: "実行の記録、ルーティン、判断待ち", roles: [ops] }
+      - name: "開発部門"
+        kind: division
+        children:
+          - name: "製品部"
+            kind: department
+            children:
+              - { name: "実装課", kind: section, about: "product/ を育てる", roles: [builder, cto] }
+              - { name: "品質課", kind: section, about: "テスト、検品の数字" }
+          - name: "マーケティング部"
+            kind: department
+            children:
+              - { name: "広報課", kind: section, about: "対外の文章、紹介", roles: [cmo] }
+      - name: "情報システム部門"
+        kind: division
+        children:
+          - name: "基盤部"
+            kind: department
+            children:
+              - { name: "脆弱性課", kind: section, about: "週 1 回の見回り（vuln-watch）" }
+
+  - name: "AdaptiveAIStudio"
+    kind: company
+    about: "モデル非依存の AI 開発の土台"
+    children:
+      - name: "開発部門"
+        kind: division
+        children:
+          - name: "設計・実装部"
+            kind: department
+            children:
+              - { name: "作業課", kind: section, about: "画面で AI に作業を頼む、作業場で書く", seats: [aas] }
+
+  - name: "Ciel"
+    kind: company
+    about: "働き方のスキルを作り・配る"
+    children:
+      - name: "開発部門"
+        kind: division
+        children:
+          - name: "作法部"
+            kind: department
+            children:
+              - { name: "スキル課", kind: section, about: "スキルを作る・直す・配る", seats: [ciel] }
+
+  - name: "CharacterDesigner"
+    kind: company
+    about: "チャットで頼むと AI が絵を描く"
+    children:
+      - name: "ビジュアル部門"
+        kind: division
+        children:
+          - name: "キャラクター部"
+            kind: department
+            children:
+              - { name: "設定画課", kind: section, about: "設定画、色指定、三面図", seats: [character_design] }
+              - { name: "作画課", kind: section, about: "チャットで頼んで描く、描き直し", seats: [illustration, characterdesigner] }
+              - { name: "検品課", kind: section, about: "崩れを数字で見る、通す・戻す", seats: [art_check] }
+              - { name: "スプライト課", kind: section, about: "ドット絵、歩き・待機のコマ", seats: [sprite] }
+          - name: "美術部"
+            kind: department
+            children:
+              - { name: "背景課", kind: section, about: "背景、小物、舞台", seats: [background_art] }
+              - { name: "UI 課", kind: section, about: "アプリの画面の絵、アイコン", seats: [ui_art] }
+
+  - name: "映像（これから）"
+    kind: company
+    about: "映像を作るツール。オーナーの予定"
+    children:
+      - name: "映像部門"
+        kind: division
+        children:
+          - name: "企画部"
+            kind: department
+            children:
+              - { name: "絵コンテ課", kind: section, about: "台本から絵コンテ", seats: [storyboard] }
+          - name: "制作部"
+            kind: department
+            children:
+              - { name: "動画生成課", kind: section, about: "絵と文から動画", seats: [video_gen] }
+              - { name: "編集課", kind: section, about: "切る、つなぐ、テロップ", seats: [video_edit] }
+              - { name: "字幕課", kind: section, about: "字幕、多言語", seats: [subtitle] }
+          - name: "配信部"
+            kind: department
+            children:
+              - { name: "書き出し課", kind: section, about: "形式、サイズ、配信先", seats: [video_publish] }
+
+  - name: "音楽（これから）"
+    kind: company
+    about: "音を作るツール。オーナーの予定"
+    children:
+      - name: "音響部門"
+        kind: division
+        children:
+          - name: "制作部"
+            kind: department
+            children:
+              - { name: "作曲課", kind: section, about: "曲の生成、BGM", seats: [compose] }
+              - { name: "効果音課", kind: section, about: "SE の生成、当て込み", seats: [sfx] }
+              - { name: "環境音課", kind: section, about: "眠りと集中の音", seats: [ambient] }
+          - name: "仕上げ部"
+            kind: department
+            children:
+              - { name: "ミックス課", kind: section, about: "音量、整音、書き出し", seats: [mix] }
+
+  - name: "ボイス（これから）"
+    kind: company
+    about: "声を作るツール。オーナーの予定"
+    children:
+      - name: "ボイス部門"
+        kind: division
+        children:
+          - name: "音声部"
+            kind: department
+            children:
+              - { name: "合成音声課", kind: section, about: "文を声にする", seats: [tts] }
+              - { name: "キャスト課", kind: section, about: "キャラクターごとの声の管理", seats: [voice_cast] }
+              - { name: "吹き替え課", kind: section, about: "動画に声を当てる", seats: [dubbing] }
+              - { name: "文字起こし課", kind: section, about: "音声を文に", seats: [transcribe] }
+
+  - name: "NetVision"
+    kind: company
+    about: "ネットワーク機器の台帳・保守期限"
+    children:
+      - name: "情報システム部門"
+        kind: division
+        children:
+          - name: "台帳部"
+            kind: department
+            children:
+              - { name: "機器課", kind: section, about: "機器・拠点・保守期限", seats: [netvision] }
+              - { name: "備品課", kind: section, about: "棚卸、周期", seats: [inventory] }

@@ -18,3 +18,4 @@
 | 11 | 同じ作者のツールとの連携 | 右パネルに相手の一覧と疎通が出て、MCP の相手の道具を役職の AI が `<相手>__<道具>` で呼べ、AdaptiveAIStudio の設定に Company の /mcp を書ける。偽の MCP と Company 自身の /mcp で経路を通す | 完成 | tests/test_partners.py。本物の NetVision の MCP で list と call を確認（tech.md）。AdaptiveAIStudio は手元に無く未確認 | 2026-11-07 |
 | 12 | 配布版が Windows で入れてすぐ動く | Actions の Windows で、入れる→起動→内蔵の模型を取る→1 問答える→CEO を 1 周→data/runs.csv に 1 行、まで緑 | 完成 | setup.yml の run 16 で緑（模型 491 MB を 30 秒で取り、1+1=2、CEO 1 周、runs.csv 1 行）。ユーザーの機械での不動は logs\\app.log で切り分ける | 2026-11-07 |
 | 13 | 役職の AI がオーナーの働き方（Ciel のスキル）で動く | 毎回の指示の先頭に CLAUDE.md の決めたこと、lessons の「次から」、work-style ほかのスキルが模型の大きさに合わせて入り、配布版にもスキルが同梱される | 完成 | company/workstyle.py、tests/test_workstyle.py。実モデルでの効き目は未確認 | 2026-11-07 |
+| 14 | 会社の形（親会社 → 子会社 → 部門 → 部署 → 課）で管理する | org.yaml の木に課ごとの席と役職が付き、右パネルの「会社の形」に課ごとのつながりが出て、GET/POST /api/org で読める・直せる。無い席・無い役職・二重の席は保存しない | 完成 | company/org.py、tests/test_org.py（5 件）。画面は Chromium の写しで確認 | 2026-11-07 |

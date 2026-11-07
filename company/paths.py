@@ -22,7 +22,7 @@ WINDOWS = sys.platform == "win32"
 APP = "Company"
 
 # 作業場に置く物（配布版の最初の起動で Program Files からここへ写す。更新では無い物だけ足す）
-WORKSPACE_ITEMS = ("company.yaml", "agents", "product", "docs", "README.md", "CLAUDE.md", ".claude")
+WORKSPACE_ITEMS = ("company.yaml", "org.yaml", "agents", "product", "docs", "README.md", "CLAUDE.md", ".claude")
 
 
 def is_installed(env: dict[str, str] | None = None, app_root: Path | None = None) -> bool:
