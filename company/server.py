@@ -185,7 +185,7 @@ def events(run_id: str) -> StreamingResponse:
 def read_repo_file(path: str) -> dict[str, Any]:
     target = (ROOT / path).resolve()
     try:
-        target.relative_to(ROOT)
+        target.relative_to(ROOT.resolve())
     except ValueError:
         raise HTTPException(403, "リポジトリの外です")
     if not target.is_file():

@@ -59,7 +59,9 @@ jobs:
         shell: pwsh
         run: |
           $py = "$env:LOCALAPPDATA\Programs\Company\python\python.exe"
-          & $py -c "import webview, fastapi, uvicorn, yaml, llama_cpp; print('import ok', webview.__version__)"
+          & $py -c "import webview, fastapi, uvicorn, yaml, llama_cpp, anthropic; print('import ok')"
+          if ($LASTEXITCODE -ne 0) { throw "import が落ちた" }
+          $env:PYTHONUTF8 = "1"
           & $py -m unittest discover -s tests -t .
           if ($LASTEXITCODE -ne 0) { throw "テストが落ちた" }
       - name: アプリのウィンドウが開く
