@@ -104,7 +104,9 @@ def main(argv: list[str] | None = None) -> int:
             print("pywebview が無いのでブラウザで開きます（pip install pywebview で窓になります）")
         else:
             webview.create_window("Company", url, width=1380, height=860, min_size=(960, 600))
-            icon = str(Path(__file__).resolve().parent / "ui" / "icon" / "app-256.png")
+            # Windows（WinForms）は .ico しか受けない。PNG を渡すと "must be a picture that can be used as a Icon" で落ちる
+            icon_dir = Path(__file__).resolve().parent / "ui" / "icon"
+            icon = str(icon_dir / ("app.ico" if sys.platform == "win32" else "app-256.png"))
             try:
                 webview.start(icon=icon)
             except TypeError:  # icon を受けない古い pywebview
