@@ -156,7 +156,8 @@ class ErrorWordingTest(unittest.TestCase):
             p.list_models()
         self.assertLess(time.time() - started, 5)
         self.assertEqual(ctx.exception.kind, "unavailable")
-        self.assertIn("断られました", str(ctx.exception))
+        # Windows は閉じたポートでも拒否が返らず時間切れになることがある（Actions のランナーで実際にそうだった）
+        self.assertRegex(str(ctx.exception), "断られました|時間切れです")
 
 
 class AnswerCheckTest(unittest.TestCase):
