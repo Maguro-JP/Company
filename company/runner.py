@@ -16,7 +16,7 @@ from typing import Any
 
 from . import context as context_builder
 from . import notify
-from . import partners
+from . import partners, workstyle
 from . import tools as toolkit
 from . import config as config_module
 from .config import AGENTS_DIR, DATA_DIR, DECISIONS_DIR, Config, load_agent, load_config
@@ -199,7 +199,7 @@ def run_role(
 
     result = run_loop(
         provider=provider,
-        system=agent.instructions,
+        system=f"{workstyle.build(max_chars=workstyle.budget_for(int(settings.get('context', 8192) or 8192)))}\n\n{agent.instructions}",
         task=_task_for(role, shared, instruction),
         tools={**toolkit.toolset(can_write), **partners.toolset()},
         emit=run.emit,

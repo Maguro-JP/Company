@@ -27,7 +27,7 @@ if [ -n "$(git status --porcelain -- company ui agents product app.py company.ya
 fi
 
 echo "== 会社の本体（HEAD）"
-git archive HEAD company ui agents product app.py company.yaml README.md VERSION docs/charter.md docs/help | tar -x -C "$SRC"
+git archive HEAD company ui agents product app.py company.yaml README.md CLAUDE.md VERSION docs/charter.md docs/help docs/reports/deliverables.md .claude/skills | tar -x -C "$SRC"
 rm -rf "$SRC/product/.git"
 mkdir -p "$SRC/data/decisions"
 
@@ -59,7 +59,7 @@ python3 "$ROOT/packaging/company/check_deps.py" "$SP"
 
 echo "== 同梱物の欠けを見る"
 missing=""
-for f in VERSION app.py company.yaml company/server.py company/local_llm.py ui/index.html ui/icon/app.ico ui/characters/ceo.png agents/ceo.md product/churn_radar \
+for f in VERSION app.py company.yaml CLAUDE.md .claude/skills/work-style/SKILL.md .claude/skills/lessons/LESSONS.md company/server.py company/local_llm.py ui/index.html ui/icon/app.ico ui/characters/ceo.png agents/ceo.md product/churn_radar \
          python/python.exe python/pythonw.exe \
          python/Lib/site-packages/fastapi python/Lib/site-packages/uvicorn python/Lib/site-packages/webview \
          python/Lib/site-packages/pythonnet python/Lib/site-packages/clr_loader python/Lib/site-packages/proxy_tools \
