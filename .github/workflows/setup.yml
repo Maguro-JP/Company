@@ -129,6 +129,20 @@ jobs:
           if (-not (Test-Path $csv)) { throw "data\runs.csv が無い（実走の記録が残っていない）" }
           Get-Content $csv
           Stop-Process -Id $p.Id -Force
+          Start-Sleep -Seconds 3
+          # ショートカットと同じ起こし方（pythonw -E -s app.py、作業ディレクトリは Program Files）。ユーザーの機械では「起動すらしない」
+          $q = Start-Process -FilePath "$dir\python\pythonw.exe" -ArgumentList "-E","-s","app.py" -WorkingDirectory $dir -PassThru
+          $win2 = $null
+          foreach ($i in 1..60) {
+            Start-Sleep -Seconds 2
+            if ($q.HasExited) { break }
+            $win2 = Get-Process | Where-Object { $_.MainWindowTitle -eq "Company" }
+            if ($win2) { break }
+          }
+          Get-Content "$env:ProgramData\Company\logs\app.log" -ErrorAction SilentlyContinue
+          if (-not $win2) { throw "ショートカットの起こし方（pythonw -E -s）で Company のウィンドウが開かない（exited=$($q.HasExited) code=$($q.ExitCode)）" }
+          "shortcut-window: " + $win2.ProcessName + " / " + $win2.MainWindowTitle
+          Stop-Process -Id $q.Id -Force
       - uses: actions/upload-artifact@v4
         if: always()
         with:

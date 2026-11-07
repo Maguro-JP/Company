@@ -16,8 +16,6 @@ import urllib.request
 import webbrowser
 from pathlib import Path
 
-import uvicorn
-
 # Windows のコンソールは cp1252 のことがあり、日本語を print すると UnicodeEncodeError で起動ごと落ちる
 # （Actions の Windows ランナーで実際に落ちた）。pythonw では stdout が無いので、その場合は触らない
 for _stream in (sys.stdout, sys.stderr):
@@ -38,13 +36,16 @@ def _free_port(preferred: int) -> int:
             return s.getsockname()[1]
 
 
-def _wait_ready(url: str, timeout: float = 15) -> bool:
+def _wait_ready(url: str, timeout: float = 15, failed=None) -> bool:
+    """応答するまで待つ。failed() が真になったら（サーバーのスレッドが死んだら）待たずに戻る。"""
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
             urllib.request.urlopen(url, timeout=1)
             return True
         except Exception:
+            if failed and failed():
+                return False
             time.sleep(0.2)
     return False
 
@@ -83,11 +84,24 @@ def main(argv: list[str] | None = None) -> int:
     port = _free_port(args.port)
     url = f"http://127.0.0.1:{port}"
 
-    server = uvicorn.Server(uvicorn.Config("company.server:app", host="127.0.0.1", port=port, log_level="warning"))
-    threading.Thread(target=server.run, daemon=True).start()
-    if not _wait_ready(f"{url}/api/state"):
-        print("サーバーが起動しませんでした", file=sys.stderr)
-        return 1
+    import uvicorn  # noqa: PLC0415  読めないときの理由を _report_crash で見せるため、ここで読む
+
+    # サーバーが落ちた理由を拾う。スレッドの中の例外は黙って消えるので、箱に入れて主から見る
+    failure: dict[str, BaseException] = {}
+
+    def serve() -> None:
+        try:
+            uvicorn.Server(uvicorn.Config("company.server:app", host="127.0.0.1", port=port, log_level="warning")).run()
+        except BaseException as exc:  # noqa: BLE001
+            failure["exc"] = exc
+
+    thread = threading.Thread(target=serve, daemon=True)
+    thread.start()
+    # 最初の起動は作業場の写しと部品の読み込みで時間がかかる（ウイルス対策が 1 ファイルずつ見る機械では 15 秒を超えた）
+    if not _wait_ready(f"{url}/api/state", timeout=120, failed=lambda: not thread.is_alive()):
+        if "exc" in failure:
+            raise RuntimeError(f"サーバーが起動できませんでした: {failure['exc']!r}") from failure["exc"]
+        raise RuntimeError("サーバーが 120 秒たっても応答しません（ウイルス対策か、ポートの制限の可能性）")
     print(f"起動: {url}")
     try:
         log = _log_path()
@@ -118,6 +132,8 @@ def main(argv: list[str] | None = None) -> int:
                 webview.start(icon=icon)
             except TypeError:  # icon を受けない古い pywebview
                 webview.start()
+            except Exception as exc:  # noqa: BLE001  WebView2 が無い、GUI の部品が読めない等
+                raise RuntimeError(f"アプリのウィンドウを開けませんでした（Edge WebView2 が入っているか確かめてください）: {exc!r}") from exc
             return 0
 
     webbrowser.open(url)
