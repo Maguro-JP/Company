@@ -163,6 +163,7 @@ company/paths.py     置き場（プログラム・作業場・模型）を 1 �
 company/migrate.py   配布版の作業場を整える。最初の起動と更新、前の版からの移行
 company/updater.py   アプリ本体の更新。releases/latest と VERSION を比べ、Setup.exe を取って開く
 docs/help/install.md 入れる・置き場・更新・前の版から・消す
+docs/knowledge/learning/user-tools.md  オーナーが作った道具の表（公開分。何か・起こし方・口・置き場）。参考にするとき・呼ぶときはここから
 packaging/company/   Setup.exe の組み方（build.sh、installer.nsi）。VERSION が版
 product/             プロダクト本体
 data/decisions/      review サイクルの記録
