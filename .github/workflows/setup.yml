@@ -139,8 +139,12 @@ jobs:
             $win2 = Get-Process | Where-Object { $_.MainWindowTitle -eq "Company" }
             if ($win2) { break }
           }
-          Get-Content "$env:ProgramData\Company\logs\app.log" -ErrorAction SilentlyContinue
-          if (-not $win2) { throw "ショートカットの起こし方（pythonw -E -s）で Company のウィンドウが開かない（exited=$($q.HasExited) code=$($q.ExitCode)）" }
+          $applog = Get-Content "$env:ProgramData\Company\logs\app.log" -Raw -ErrorAction SilentlyContinue
+          $applog
+          # 失敗のメッセージボックスも題が Company なので、ウィンドウの題だけでは見分けられない。記録の「起動 http」で判定する
+          if ((-not $win2) -or (-not $applog) -or ($applog -notmatch "起動 http://127\.0\.0\.1:\d+") -or ($applog -match "起動に失敗")) {
+            throw "ショートカットの起こし方（pythonw -E -s）で Company が立たない（exited=$($q.HasExited) code=$($q.ExitCode)）"
+          }
           "shortcut-window: " + $win2.ProcessName + " / " + $win2.MainWindowTitle
           Stop-Process -Id $q.Id -Force
       - uses: actions/upload-artifact@v4

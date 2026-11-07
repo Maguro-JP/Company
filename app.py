@@ -80,6 +80,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-open", action="store_true", help="サーバーだけ起動する")
     args = parser.parse_args(argv)
 
+    # pythonw（ショートカット）では stdout と stderr が None。uvicorn の記録の設定が isatty を呼んで
+    # 「Unable to configure formatter 'default'」で落ち、サーバーが立たずに何も開かなかった（Windows ランナーで再現）。
+    # 画面が無いときは、出力を logs\\app.log に向ける
+    if sys.stdout is None or sys.stderr is None:
+        try:
+            log = _log_path()
+            log.parent.mkdir(parents=True, exist_ok=True)
+            fh = log.open("a", encoding="utf-8", buffering=1)
+            if sys.stdout is None:
+                sys.stdout = fh
+            if sys.stderr is None:
+                sys.stderr = fh
+        except OSError:
+            pass
+
     _prepare_workspace()
     port = _free_port(args.port)
     url = f"http://127.0.0.1:{port}"
@@ -91,7 +106,7 @@ def main(argv: list[str] | None = None) -> int:
 
     def serve() -> None:
         try:
-            uvicorn.Server(uvicorn.Config("company.server:app", host="127.0.0.1", port=port, log_level="warning")).run()
+            uvicorn.Server(uvicorn.Config("company.server:app", host="127.0.0.1", port=port, log_level="warning", log_config=None)).run()
         except BaseException as exc:  # noqa: BLE001
             failure["exc"] = exc
 
