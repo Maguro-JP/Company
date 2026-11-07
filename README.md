@@ -6,7 +6,16 @@ Windows のアプリウィンドウ（またはブラウザ）から操作する
 
 ![UI](docs/ui.png)
 
-## 起動（Windows）
+## 入れる（Windows）
+
+[Releases](https://github.com/Maguro-JP/Company/releases) の `Company-Setup.exe` を実行する。管理者権限は要らず、
+`%LOCALAPPDATA%\Programs\Company` に Python ごと入る。デスクトップとスタートメニューの「Company」で開く。
+更新は新しい Setup.exe を実行するだけで、モデルと記録（`data\`）は残る。
+
+Setup.exe は `packaging/company/build.sh` で組み、`.github/workflows/setup.yml` が main への push のたびに
+Linux で組んで Windows のランナーに入れ、テストとウィンドウが開くことを見てから Release に置く。
+
+## 開発で起動する（Windows）
 
 ```
 run.bat
@@ -94,7 +103,7 @@ Gemini には会社の操作関数（`start_cycle` / `start_role` / `get_run` / 
 AI Studio と同じ三分割。
 
 - **左**: サイクル（`build` = 決めて作る、`review` = 進捗と数字を見る）と役職。クリックで対象を選ぶ
-- **中央**: 実行ログ。モデルの発言、ツール呼び出し、その結果が順に流れる。下の欄にオーナーの指示を書ける（任意）
+- **中央**: 上に役職のキャラクターが並ぶ。今動いている役職が前に出て、考えている・話している・ツールを使っている・終わった、が姿と吹き出しで分かる。その下に実行ログ。モデルの発言、ツール呼び出し、その結果が順に流れる。下の欄にオーナーの指示を書ける（任意）
 - **右**: プロバイダ、モデル、モデルのダウンロード、コンテキスト長、GPU 層数、temperature、最大ターン数、トークン上限、通知（Slack / Discord の Webhook）。変更は即保存される
 
 指示を空のまま「実行」すると、役職定義（`agents/*.md`）に従って自分で判断して動く。
@@ -136,7 +145,8 @@ company/runner.py    サイクルの組み立て、設定の永続化、実行�
 company/notify.py    ランの終わりを Webhook（Slack / Discord）に1通知らせる
 company/server.py    HTTP API と SSE（UIが使う）
 app.py               起動。pywebview でウィンドウ、--browser でブラウザ
-ui/index.html        画面。依存なしの単一ファイル
+ui/index.html        画面。依存なしの単一ファイル。役職のキャラクター（SVG と CSS の動き）もここ
+packaging/company/   Setup.exe の組み方（build.sh、installer.nsi）。VERSION が版
 product/             プロダクト本体
 data/decisions/      review サイクルの記録
 data/runs.csv        役職ごとの実行の実績（ターン・トークン・終了理由）。review の共有コンテキストに直近分が載る
@@ -182,5 +192,5 @@ cd product && python -m unittest discover -s tests  # プロダクト
 
 ## 未着手
 
-- Windows 実機での起動確認（オーナー作業）
+- Windows 実機での起動確認（Actions の Windows ランナーでは見る。手元の機械はオーナー作業）
 - 停止条件の自動化（憲章 4 節）

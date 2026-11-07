@@ -5,7 +5,10 @@
 
 | # | 成果物 | 完成条件 | 状態 | 残り | 更新 |
 |---|---|---|---|---|---|
-| 1 | 内蔵エンジンのストリーミング表示 | `python -m unittest tests.test_local_llm` の StreamingTest が通り、画面で生成中の枠に文字が流れる | 確認待ち | PR 待ち（pending 1） | 2026-11-07 |
-| 2 | Webhook 通知 | `python -m unittest tests.test_notify` が通り、偽の受け口に run id 入りの JSON が 1 通届く | 確認待ち | PR 待ち（pending 2） | 2026-11-07 |
-| 3 | 停止条件の自動化（テストが落ちた状態でのコミットを止める） | `python -m unittest tests.test_tools` で、テストが落ちるときの `git commit` が拒まれ、通るときは通る | 進行中 | 実装とテスト | 2026-11-07 |
+| 1 | 内蔵エンジンのストリーミング表示 | `python -m unittest tests.test_local_llm` の StreamingTest が通り、画面で生成中の枠に文字が流れる | 完成 | マージ済み（#15） | 2026-11-07 |
+| 2 | Webhook 通知 | `python -m unittest tests.test_notify` が通り、偽の受け口に run id 入りの JSON が 1 通届く | 完成 | マージ済み（#16） | 2026-11-07 |
+| 3 | 停止条件の自動化（テストが落ちた状態でのコミットを止める） | `python -m unittest tests.test_tools` で、テストが落ちるときの `git commit` が拒まれ、通るときは通る | 完成 | マージ済み（#17） | 2026-11-07 |
 | 4 | 実モデルでの初回実走の記録 | build を 1 周回し、data/runs.csv に 1 行と docs/knowledge/ai.md に記録が残る（仮） | 未着手 | オーナーのキーかモデルが要る | 2026-11-07 |
+| 5 | 様々な AI を使える構成 | プリセット 10 件と役職ごとの割り当てが画面に出て、「本当に答えるか確かめる」で偽のサーバーから答えが返る | 完成 | マージ済み（#18） | 2026-11-07 |
+| 6 | 役職のキャラクターとアニメーション | 画面の上に役職 6 人が並び、実行中の役職が thinking → working → done の順に動き、吹き出しに文が出る（Chromium で確認） | 確認待ち | PR 待ち | 2026-11-07 |
+| 7 | Windows の Setup.exe と Release | Actions の setup が通り、Windows ランナーで入れてテストとウィンドウが確認され、Releases に v0.1.0 が置かれる | 進行中 | PR とマージ、Actions の結果 | 2026-11-07 |
