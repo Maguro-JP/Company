@@ -12,6 +12,7 @@ on:
       - "product/**"
       - "app.py"
       - "company.yaml"
+      - "tests/**"
       - "VERSION"
       - "packaging/company/**"
       - ".github/workflows/setup.yml"
@@ -68,14 +69,20 @@ jobs:
         shell: pwsh
         run: |
           $dir = "$env:LOCALAPPDATA\Programs\Company"
-          $p = Start-Process -FilePath "$dir\python\pythonw.exe" -ArgumentList "app.py","--port","8765" -WorkingDirectory $dir -PassThru
-          $ok = $false
-          foreach ($i in 1..60) {
+          # pythonw だと落ちても何も残らないので、python.exe で出力をファイルに取る
+          $p = Start-Process -FilePath "$dir\python\python.exe" -ArgumentList "-u","app.py","--port","8765" -WorkingDirectory $dir -PassThru -RedirectStandardOutput "$env:GITHUB_WORKSPACE\app.log" -RedirectStandardError "$env:GITHUB_WORKSPACE\app.err"
+          $url = $null
+          foreach ($i in 1..90) {
             Start-Sleep -Seconds 1
-            try { $r = Invoke-RestMethod "http://127.0.0.1:8765/api/state"; $ok = $true; break } catch {}
+            if ($p.HasExited) { break }
+            $m = Select-String -Path "$env:GITHUB_WORKSPACE\app.log" -Pattern "http://127\.0\.0\.1:\d+" -ErrorAction SilentlyContinue
+            if ($m) { $url = $m.Matches[0].Value; break }
           }
-          if (-not $ok) { throw "サーバーが起動しない" }
-          "roles: " + ($r.roles | ForEach-Object { $_.role }) -join ","
+          Get-Content "$env:GITHUB_WORKSPACE\app.log" -ErrorAction SilentlyContinue
+          Get-Content "$env:GITHUB_WORKSPACE\app.err" -ErrorAction SilentlyContinue
+          if (-not $url) { throw "サーバーが起動しない（exited=$($p.HasExited)）" }
+          $r = Invoke-RestMethod "$url/api/state"
+          "roles: " + (($r.roles | ForEach-Object { $_.role }) -join ",")
           Start-Sleep -Seconds 8
           $win = Get-Process | Where-Object { $_.MainWindowTitle -eq "Company" }
           if (-not $win) { Get-Process | Where-Object { $_.MainWindowTitle } | Select-Object ProcessName, MainWindowTitle; throw "Company のウィンドウが無い" }
@@ -92,7 +99,10 @@ jobs:
         if: always()
         with:
           name: windows-screenshot
-          path: window.png
+          path: |
+            window.png
+            app.log
+            app.err
           if-no-files-found: ignore
 
   release:

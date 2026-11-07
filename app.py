@@ -50,10 +50,14 @@ def _ensure_git_repo() -> None:
     if (root / ".git").exists() or not shutil.which("git"):
         return
     try:
+        # 同梱の Python（150 MB）と記録は履歴に入れない。入れると最初のコミットに 1 分以上かかり、起動が遅れる
+        ignore = root / ".gitignore"
+        if not ignore.exists():
+            ignore.write_text("python/\ndata/\n__pycache__/\n", encoding="utf-8")
         subprocess.run(["git", "init", "-q"], cwd=root, check=True, timeout=30)
-        subprocess.run(["git", "add", "-A"], cwd=root, check=True, timeout=60)
+        subprocess.run(["git", "add", "-A"], cwd=root, check=True, timeout=120)
         subprocess.run(["git", "-c", "user.name=Company", "-c", "user.email=company@localhost",
-                        "commit", "-q", "-m", "配布版の初期状態"], cwd=root, check=True, timeout=60)
+                        "commit", "-q", "-m", "配布版の初期状態"], cwd=root, check=True, timeout=120)
     except (subprocess.SubprocessError, OSError):
         pass
 
