@@ -14,10 +14,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .config import DATA_DIR
+from . import paths
 from .providers import ProviderError, ToolCall, ToolSpec, Turn
 
-MODELS_DIR = DATA_DIR / "models"
+MODELS_DIR = paths.models_dir()   # 配布版と Windows は共有の C:\LLM\gguf、開発中は data/models
 
 # 初回にアプリ内からダウンロードできるモデル。全て Qwen 公式の GGUF。
 CATALOG: list[dict[str, Any]] = [

@@ -49,25 +49,25 @@ def _wait_ready(url: str, timeout: float = 15) -> bool:
     return False
 
 
-def _ensure_git_repo() -> None:
-    """配布版は git のリポジトリとして入らない。判断と実行の一次記録はコミット履歴（憲章 3 節）なので、
-    git があれば最初の起動でリポジトリにする。git が無ければそのまま動き、コミットだけが失敗として報告される。"""
+def _prepare_workspace() -> None:
+    """配布版は、プログラム（Program Files）と作業場（ProgramData\\Company）を分ける（company/paths.py）。
+    最初の起動で作業場を作り、更新のあとは無い物だけ足す。判断と実行の一次記録はコミット履歴（憲章 3 節）なので、
+    git があれば作業場をリポジトリにする。git が無ければそのまま動き、コミットだけが失敗として報告される。"""
     import shutil  # noqa: PLC0415
     import subprocess  # noqa: PLC0415
-    from pathlib import Path  # noqa: PLC0415
 
-    root = Path(__file__).resolve().parent
-    if (root / ".git").exists() or not shutil.which("git"):
+    from company import migrate, paths  # noqa: PLC0415
+
+    workspace = paths.workspace_root()
+    if workspace.resolve() != paths.APP_ROOT.resolve():
+        migrate.ensure_workspace(paths.APP_ROOT, workspace)
+    if (workspace / ".git").exists() or not shutil.which("git"):
         return
     try:
-        # 同梱の Python（150 MB）と記録は履歴に入れない。入れると最初のコミットに 1 分以上かかり、起動が遅れる
-        ignore = root / ".gitignore"
-        if not ignore.exists():
-            ignore.write_text("python/\ndata/\n__pycache__/\n", encoding="utf-8")
-        subprocess.run(["git", "init", "-q"], cwd=root, check=True, timeout=30)
-        subprocess.run(["git", "add", "-A"], cwd=root, check=True, timeout=120)
+        subprocess.run(["git", "init", "-q"], cwd=workspace, check=True, timeout=30)
+        subprocess.run(["git", "add", "-A"], cwd=workspace, check=True, timeout=120)
         subprocess.run(["git", "-c", "user.name=Company", "-c", "user.email=company@localhost",
-                        "commit", "-q", "-m", "配布版の初期状態"], cwd=root, check=True, timeout=120)
+                        "commit", "-q", "-m", "作業場の初期状態"], cwd=workspace, check=True, timeout=120)
     except (subprocess.SubprocessError, OSError):
         pass
 
@@ -79,7 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-open", action="store_true", help="サーバーだけ起動する")
     args = parser.parse_args(argv)
 
-    _ensure_git_repo()
+    _prepare_workspace()
     port = _free_port(args.port)
     url = f"http://127.0.0.1:{port}"
 

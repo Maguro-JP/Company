@@ -15,10 +15,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import controls, gemini, local_llm, mcp_http, runner
+from . import paths
 from .config import ROOT, load_config
 from .providers import ProviderError, answer_check, make_provider, provider_catalog
 
-UI_DIR = ROOT / "ui"
+UI_DIR = paths.APP_ROOT / "ui"   # 画面はプログラム側。作業場（ROOT）ではない
 
 app = FastAPI(title="Company", docs_url=None, redoc_url=None)
 app.include_router(mcp_http.router)

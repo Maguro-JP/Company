@@ -53,13 +53,17 @@ jobs:
         shell: pwsh
         run: |
           Start-Process -FilePath "dist\Company-Setup.exe" -ArgumentList "/S" -Wait
-          $dir = "$env:LOCALAPPDATA\Programs\Company"
+          $dir = "$env:ProgramFiles\Company"
           if (-not (Test-Path "$dir\python\python.exe")) { throw "入っていない: $dir" }
           Get-ChildItem $dir | Select-Object Name | Format-Table -HideTableHeaders
+          $ws = "$env:ProgramData\Company"
+          if (-not (Test-Path "$ws\company.yaml")) { Get-Content "$ws\migrate.log" -ErrorAction SilentlyContinue; throw "作業場が無い: $ws" }
+          "workspace: " + ((Get-ChildItem $ws | ForEach-Object { $_.Name }) -join ",")
+          if (-not (Test-Path "$env:SystemDrive\LLM\gguf")) { throw "模型の置き場が無い" }
       - name: 同梱の Python で会社のテストを流す
         shell: pwsh
         run: |
-          $py = "$env:LOCALAPPDATA\Programs\Company\python\python.exe"
+          $py = "$env:ProgramFiles\Company\python\python.exe"
           & $py -c "import webview, fastapi, uvicorn, yaml, llama_cpp, anthropic; print('import ok')"
           if ($LASTEXITCODE -ne 0) { throw "import が落ちた" }
           $env:PYTHONUTF8 = "1"
@@ -68,7 +72,7 @@ jobs:
       - name: アプリのウィンドウが開く
         shell: pwsh
         run: |
-          $dir = "$env:LOCALAPPDATA\Programs\Company"
+          $dir = "$env:ProgramFiles\Company"
           # pythonw だと落ちても何も残らないので、python.exe で出力をファイルに取る
           $p = Start-Process -FilePath "$dir\python\python.exe" -ArgumentList "-u","app.py","--port","8765" -WorkingDirectory $dir -PassThru -RedirectStandardOutput "$env:GITHUB_WORKSPACE\app.log" -RedirectStandardError "$env:GITHUB_WORKSPACE\app.err"
           $url = $null
@@ -83,6 +87,7 @@ jobs:
           if (-not $url) { throw "サーバーが起動しない（exited=$($p.HasExited)）" }
           $r = Invoke-RestMethod "$url/api/state"
           "roles: " + (($r.roles | ForEach-Object { $_.role }) -join ",")
+          if (-not (Test-Path "$env:ProgramData\Company\.git")) { throw "作業場が git のリポジトリになっていない" }
           Start-Sleep -Seconds 8
           $win = Get-Process | Where-Object { $_.MainWindowTitle -eq "Company" }
           if (-not $win) { Get-Process | Where-Object { $_.MainWindowTitle } | Select-Object ProcessName, MainWindowTitle; throw "Company のウィンドウが無い" }
