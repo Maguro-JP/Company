@@ -62,7 +62,7 @@ run.bat
 | 相手 | 口 | Company からできること |
 |---|---|---|
 | AdaptiveAIStudio | HTTP（`:4174`）、MCP の登録先 | 入っていれば起動のたびに向こうの `aas.config.json` に `/mcp` を自動で書き、向こうから会社を動かせる。プロバイダに選べば、役職の仕事を向こうに頼む |
-| NetVision | HTTP（`:8000`）、MCP（配布版の `NetVision-mcp.bat`、開発中は `python -m app.mcp_server`） | 機器・拠点・保守期限を役職の AI が引く。置き場は Setup.exe の鍵、`C:\NetVision`、Program Files から自動で探す |
+| NetVision | HTTP（`:8000`）、MCP（配布版の `NetVision-mcp.bat`、開発中は `python -m app.mcp_server`） | 機器・拠点・保守期限を役職の AI が `netvision__device_summary` などで引く（本物の MCP で list と call を確認。docs/knowledge/tech.md）。置き場は Setup.exe の鍵、`C:\NetVision`、Program Files から自動で探す |
 | CharacterDesigner | ピクチャ\CharacterDesigner | 描いた絵の数を見る |
 | Ciel | `.claude/skills` | 入っているスキルの数を見る |
 

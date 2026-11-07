@@ -32,3 +32,13 @@
 setup.yml の Windows のジョブに入れ、main への push のたびに見る。
 
 ユーザーの機械で動かないときは、`ProgramData\Company\logs\app.log` に起動と失敗の記録が残る（pythonw は画面に何も出さないため）。
+
+## NetVision の MCP を Company から呼んだ記録（2026-11-07）
+
+手元の NetVision の clone（backend）に依存を入れ、Company の `partners.McpClient`（標準入出力）で
+`python -m app.mcp_server` を起こし、initialize → tools/list → tools/call を通した。
+tools/list は list_devices、get_device、device_summary、list_links、list_sites の 5 つ。
+台帳が PostgreSQL に無い状態では `device_summary` が psycopg の接続失敗を isError で返し、
+`NETVISION_DATABASE_URL=sqlite:///...` で空の台帳を作ると `{"total": 0, ...}` と `{"sites": []}` が返った。
+役職の AI からは `netvision__device_summary` の名前で同じ道具が見える。
+AdaptiveAIStudio は手元に無く、登録（aas.config.json への書き込み）は偽の置き場でしか確かめていない。
