@@ -42,9 +42,53 @@ def _pictures() -> str:
     return str(home / "Pictures" / "CharacterDesigner")
 
 
+def _reg_install_dir(app: str) -> str:
+    """同じ作者のアプリは Setup.exe が HKLM\\Software\\<App>\\InstallDir に置き場を書く。そこから探す。"""
+    if sys.platform != "win32":
+        return ""
+    try:
+        import winreg  # noqa: PLC0415
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, f"Software\\{app}") as key:
+            return str(winreg.QueryValueEx(key, "InstallDir")[0])
+    except OSError:
+        return ""
+
+
+def _first_existing(cands: list[str]) -> str:
+    for c in cands:
+        if c and Path(c).exists():
+            return c
+    return ""
+
+
+def find_netvision_mcp() -> dict[str, Any] | None:
+    """NetVision の MCP の起こし方を、ユーザーに聞かずに探す。
+    配布版は NetVision-mcp.bat、開発中は backend で python -m app.mcp_server。"""
+    env = os.environ
+    pf = env.get("ProgramFiles", "C:\\Program Files")
+    drive = (env.get("SystemDrive") or "C:") + "\\"
+    roots = [env.get("NETVISION_HOME", ""), _reg_install_dir("NetVision"), str(Path(pf) / "NetVision"),
+             str(Path(drive) / "NetVision"), str(Path.home() / "NetVision"), str(Path.home() / "maguro-jp" / "netvision")]
+    for root in roots:
+        if not root:
+            continue
+        bat = Path(root) / "NetVision-mcp.bat"
+        if bat.exists():
+            return {"command": [str(bat)], "cwd": root}
+        backend = Path(root) / "backend"
+        if (backend / "app" / "mcp_server.py").exists():
+            py = _first_existing([str(backend / ".venv" / "Scripts" / "python.exe"), str(backend / ".venv" / "bin" / "python")]) or sys.executable
+            return {"command": [py, "-m", "app.mcp_server"], "cwd": str(backend)}
+    return None
+
+
+def aas_installed() -> bool:
+    """AdaptiveAIStudio が入っているか（置き場の鍵か、設定の置き場があるか）。"""
+    return bool(_reg_install_dir("AdaptiveAIStudio")) or aas_config_path().parent.exists()
+
+
 def builtin() -> list[dict[str, Any]]:
-    """公開のツールの既定。置き場が違うときは partners.json で同じ id を上書きする。"""
-    netvision_home = os.environ.get("NETVISION_HOME", "")
+    """公開のツールの既定。置き場は自動で探す。違うときだけ partners.json で同じ id を上書きする。"""
     return [
         {
             "id": "aas", "name": "AdaptiveAIStudio",
@@ -57,10 +101,7 @@ def builtin() -> list[dict[str, Any]]:
             "id": "netvision", "name": "NetVision",
             "about": "ネットワーク機器の台帳。機器・拠点・保守期限を MCP で引ける（読むだけ）",
             "http": {"base_url": "http://127.0.0.1:8000", "probe": "/api/v1/dashboard/summary"},
-            "mcp": {
-                "command": [sys.executable, "-m", "app.mcp_server"],
-                "cwd": str(Path(netvision_home) / "backend") if netvision_home else "",
-            },
+            "mcp": find_netvision_mcp() or {"command": ["python", "-m", "app.mcp_server"], "cwd": ""},
         },
         {
             "id": "characterdesigner", "name": "CharacterDesigner",
@@ -146,7 +187,7 @@ def probe(partner: dict[str, Any]) -> dict[str, Any]:
         except PartnerError as exc:
             out["mcp_error"] = str(exc)
     elif mcp and mcp.get("command") and not mcp.get("cwd"):
-        out["mcp_error"] = "MCP の起こし場所（cwd）が未設定です。partners.json か環境変数で置き場を教えてください"
+        out["mcp_error"] = "入っている場所が見つかりません（Setup.exe で入れた物、C:\\NetVision、Program Files を探しました）"
     return out
 
 
@@ -343,3 +384,11 @@ def register_with_aas(company_mcp_url: str, config_path: Path | None = None) -> 
     except OSError as exc:
         return {"error": f"{path} に書けません: {exc}"}
     return {"path": str(path), "url": company_mcp_url, "changed": before != servers["company"]}
+
+
+def auto_register_aas(company_mcp_url: str) -> dict[str, Any] | None:
+    """起動のたびに、AdaptiveAIStudio が入っていれば黙って Company を登録する。ユーザーにボタンを押させない。
+    入っていなければ何もしない（設定の置き場を勝手に作らない）。"""
+    if not aas_installed():
+        return None
+    return register_with_aas(company_mcp_url)

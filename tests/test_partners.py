@@ -160,3 +160,31 @@ class PartnersApiTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DiscoveryTest(unittest.TestCase):
+    def test_netvision_found_from_bat_or_backend_without_user_input(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "NetVision"
+            (root / "backend" / "app").mkdir(parents=True)
+            (root / "backend" / "app" / "mcp_server.py").write_text("", encoding="utf-8")
+            with mock.patch.dict(os.environ, {"NETVISION_HOME": str(root)}):
+                got = partners.find_netvision_mcp()
+            self.assertEqual(got["cwd"], str(root / "backend"))
+            self.assertEqual(got["command"][1:], ["-m", "app.mcp_server"])
+            (root / "NetVision-mcp.bat").write_text("", encoding="utf-8")
+            with mock.patch.dict(os.environ, {"NETVISION_HOME": str(root)}):
+                got = partners.find_netvision_mcp()
+            self.assertEqual(got["command"], [str(root / "NetVision-mcp.bat")])
+
+    def test_auto_register_only_when_aas_is_installed(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = Path(d) / "nope" / "aas.config.json"
+            with mock.patch.dict(os.environ, {"AAS_CONFIG": str(cfg)}):
+                self.assertIsNone(partners.auto_register_aas("http://127.0.0.1:1/mcp"))
+                self.assertFalse(cfg.exists())
+            cfg.parent.mkdir()
+            with mock.patch.dict(os.environ, {"AAS_CONFIG": str(cfg)}):
+                r = partners.auto_register_aas("http://127.0.0.1:1/mcp")
+            self.assertTrue(r["changed"])
+            self.assertIn("company", json.loads(cfg.read_text(encoding="utf-8"))["mcp"]["servers"])
