@@ -14,6 +14,7 @@ import threading
 import time
 import urllib.request
 import webbrowser
+from pathlib import Path
 
 import uvicorn
 
@@ -103,7 +104,11 @@ def main(argv: list[str] | None = None) -> int:
             print("pywebview が無いのでブラウザで開きます（pip install pywebview で窓になります）")
         else:
             webview.create_window("Company", url, width=1380, height=860, min_size=(960, 600))
-            webview.start()
+            icon = str(Path(__file__).resolve().parent / "ui" / "icon" / "app-256.png")
+            try:
+                webview.start(icon=icon)
+            except TypeError:  # icon を受けない古い pywebview
+                webview.start()
             return 0
 
     webbrowser.open(url)

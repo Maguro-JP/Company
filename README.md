@@ -103,7 +103,7 @@ Gemini には会社の操作関数（`start_cycle` / `start_role` / `get_run` / 
 AI Studio と同じ三分割。
 
 - **左**: サイクル（`build` = 決めて作る、`review` = 進捗と数字を見る）と役職。クリックで対象を選ぶ
-- **中央**: 上に役職のキャラクターが並ぶ。今動いている役職が前に出て、考えている・話している・ツールを使っている・終わった、が姿と吹き出しで分かる。その下に実行ログ。モデルの発言、ツール呼び出し、その結果が順に流れる。下の欄にオーナーの指示を書ける（任意）
+- **中央**: 上に役職のキャラクター（`ui/characters/`。Figma の画像生成で描き、白い背景を抜いて置いた）が並ぶ。今動いている役職が前に出て、考えている・話している・ツールを使っている・終わった、が姿と吹き出しで分かる。その下に実行ログ。モデルの発言、ツール呼び出し、その結果が順に流れる。下の欄にオーナーの指示を書ける（任意）
 - **右**: プロバイダ、モデル、モデルのダウンロード、コンテキスト長、GPU 層数、temperature、最大ターン数、トークン上限、通知（Slack / Discord の Webhook）。変更は即保存される
 
 指示を空のまま「実行」すると、役職定義（`agents/*.md`）に従って自分で判断して動く。
@@ -145,7 +145,9 @@ company/runner.py    サイクルの組み立て、設定の永続化、実行�
 company/notify.py    ランの終わりを Webhook（Slack / Discord）に1通知らせる
 company/server.py    HTTP API と SSE（UIが使う）
 app.py               起動。pywebview でウィンドウ、--browser でブラウザ
-ui/index.html        画面。依存なしの単一ファイル。役職のキャラクター（SVG と CSS の動き）もここ
+ui/index.html        画面。依存なしの単一ファイル。キャラクターの動き（CSS）もここ
+ui/characters/       役職のキャラクターの絵（PNG、背景は透明）。無い役職は index.html の SVG の姿に落ちる
+ui/icon/             アプリのアイコン（app.ico はショートカットと Setup.exe、app-256.png はウィンドウ、app-64.png は画面のタブ）
 packaging/company/   Setup.exe の組み方（build.sh、installer.nsi）。VERSION が版
 product/             プロダクト本体
 data/decisions/      review サイクルの記録

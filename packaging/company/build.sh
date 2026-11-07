@@ -59,7 +59,7 @@ python3 "$ROOT/packaging/company/check_deps.py" "$SP"
 
 echo "== 同梱物の欠けを見る"
 missing=""
-for f in VERSION app.py company.yaml company/server.py company/local_llm.py ui/index.html agents/ceo.md product/churn_radar \
+for f in VERSION app.py company.yaml company/server.py company/local_llm.py ui/index.html ui/icon/app.ico ui/characters/ceo.png agents/ceo.md product/churn_radar \
          python/python.exe python/pythonw.exe \
          python/Lib/site-packages/fastapi python/Lib/site-packages/uvicorn python/Lib/site-packages/webview \
          python/Lib/site-packages/pythonnet python/Lib/site-packages/clr_loader python/Lib/site-packages/proxy_tools \
@@ -71,5 +71,5 @@ du -sh "$SRC"
 
 if [ -n "${SKIP_NSIS:-}" ]; then echo "== SKIP_NSIS: Setup.exe は組まない"; exit 0; fi
 echo "== Setup.exe"
-makensis -V2 -DSRC="$SRC" -DOUT="$OUT/Company-Setup.exe" -DVERSION="$VERSION" "$ROOT/packaging/company/installer.nsi"
+makensis -V2 -DSRC="$SRC" -DICON="$SRC/ui/icon/app.ico" -DOUT="$OUT/Company-Setup.exe" -DVERSION="$VERSION" "$ROOT/packaging/company/installer.nsi"
 ls -la "$OUT/Company-Setup.exe"
