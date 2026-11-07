@@ -54,7 +54,7 @@ run.bat
 
 ### 会社の形（親会社 → 子会社 → 部門 → 部署 → 課）
 
-`org.yaml` に会社の木を書く。課にツールの席（`seats`。`company/partners.py` の id）と役職（`roles`。agents の名前）が付き、
+`org.yaml` に会社の木を書く。親会社は Company（AI の役職が経営）、子会社はオーナーの各ツール、部門はツールの機能別、その下が機能・道具・作業用エージェント。課にツールの席（`seats`。`company/partners.py` の id）、役職（`roles`。agents の名前）、相手側の担当（`agents`）が付き、
 右パネルの「会社の形」に、課ごとのつながり（緑）と予定（○）が出る。`GET /api/org` で木とつながりを、`POST /api/org` で木の置き換えを行う
 （無い席、無い役職、二重の席は保存しない）。ツールが増えたら課を 1 行足し、`partners.py` の席の `planned` を外すだけでつながる。
 部門と課の一覧は [docs/knowledge/creative-series.md](docs/knowledge/creative-series.md)。

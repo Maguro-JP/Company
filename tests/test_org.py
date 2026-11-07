@@ -22,7 +22,10 @@ class OrgTest(unittest.TestCase):
         kinds = {n.get("kind") for _, n in org.walk(tree)}
         self.assertEqual(kinds, set(org.KINDS))
         self.assertEqual(tree["kind"], "holding")
-        self.assertGreaterEqual(len(org.sections(tree)), 25)
+        self.assertEqual(tree["name"], "Company")
+        self.assertEqual({c["kind"] for c in tree["children"]}, {"company"})
+        self.assertIn("ceo", tree["roles"])
+        self.assertGreaterEqual(len(org.sections(tree)), 28)
 
     def test_every_seat_sits_in_exactly_one_section(self):
         tree = org.load()

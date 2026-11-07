@@ -245,7 +245,7 @@
     <div class="small" id="companyInfo"></div>
 
     <h3 style="margin:22px 0 6px">会社の形 <button class="btn" id="refreshOrg" title="つながりを見直す" style="padding:2px 8px">↻</button></h3>
-    <div class="small" style="margin-bottom:6px">親会社 → 子会社 → 部門 → 部署 → 課。課にツールの席と役職が付きます（org.yaml）。</div>
+    <div class="small" style="margin-bottom:6px">親会社は Company、子会社は各ツール、部門は機能別、その下が機能・道具・作業用エージェントです（org.yaml）。</div>
     <div id="org" class="small">…</div>
 
     <h3 style="margin:22px 0 6px">連携しているツール <button class="btn" id="refreshPartners" title="生きているかを見直す" style="padding:2px 8px">↻</button></h3>
@@ -522,7 +522,7 @@
     const det = document.createElement('details');
     det.open = depth < 2 || n.alive > 0;
     const state = n.total ? `　<span style="color:${n.alive ? '#3ec46d' : '#999'}">${n.alive}/${n.total - n.planned}</span>${n.planned ? `<span style="opacity:.5">　予定 ${n.planned}</span>` : ''}` : '';
-    const roles = (n.roles || []).map((r) => `<span class="pill" style="margin-left:4px">${esc(r)}</span>`).join('');
+    const roles = [...(n.roles || []), ...(n.agents || [])].map((r) => `<span class="pill" style="margin-left:4px">${esc(r)}</span>`).join('');
     const seats = (n.seat_states || []).map((s) => `<div style="margin-left:14px;opacity:.8">${s.planned ? '○' : (s.alive ? '<span style="color:#3ec46d">●</span>' : '<span style="color:#c44">●</span>')} ${esc(s.name)}${s.tools ? `　道具 ${s.tools}` : ''}</div>`).join('');
     det.innerHTML = `<summary style="cursor:pointer"><span style="opacity:.55;font-size:11px">${esc(n.label)}</span> <b>${esc(n.name)}</b>${roles}${state}${n.about ? `<div style="opacity:.6;margin-left:14px">${esc(n.about)}</div>` : ''}</summary>${seats}`;
     det.style.marginLeft = depth ? '12px' : '0';
