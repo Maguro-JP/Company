@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Company</title>
+<link rel="icon" href="/icon/app-64.png">
 <style>
   :root {
     --bg: #131314; --panel: #1e1f20; --panel-2: #28292a; --border: #3c3d3f;
@@ -41,9 +42,10 @@
   /* ---------- キャラクター ----------
      役職を人の姿で見せる。誰が今動いているか、考えているのか、道具を使っているのかが、文字を読まなくても分かる。
      動きは CSS だけで付け、JS は状態の class を付け替えるだけにする（流れる文字の描画を邪魔しない）。 */
-  .stage { display: flex; justify-content: center; align-items: flex-end; gap: 18px; padding: 14px 20px 4px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, transparent, rgba(255,255,255,.02)); min-height: 150px; }
-  .chara { position: relative; width: 96px; text-align: center; color: var(--muted); font-size: 11px; transition: transform .3s; }
-  .chara svg { width: 72px; height: 88px; overflow: visible; display: block; margin: 0 auto 2px; transform-origin: 50% 100%; animation: breathe 3.2s ease-in-out infinite; }
+  .stage { display: flex; justify-content: center; align-items: flex-end; gap: 8px; padding: 44px 16px 4px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, transparent, rgba(255,255,255,.02)); min-height: 226px; overflow: hidden; }
+  .chara { position: relative; width: 108px; text-align: center; color: var(--muted); font-size: 11px; transition: transform .3s; }
+  .chara .art { height: 150px; width: auto; max-width: 106px; object-fit: contain; display: block; margin: 0 auto 2px; transform-origin: 50% 100%; animation: breathe 3.2s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(0,0,0,.45)); }
+  .chara svg.art { width: 72px; height: 88px; overflow: visible; }
   .chara .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chara .eye { animation: blink 4.6s infinite; transform-origin: center; transform-box: fill-box; }
   .chara:nth-child(2n) .eye { animation-delay: 1.3s; } .chara:nth-child(3n) .eye { animation-delay: 2.1s; }
@@ -52,27 +54,32 @@
   .chara .bubble { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 0); min-width: 56px; max-width: 220px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 5px 9px; font-size: 11.5px; line-height: 1.35; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 2; }
   .chara .bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px; background: inherit; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); transform: translateX(-50%) rotate(45deg); }
   .chara.active { color: var(--text); transform: translateY(-6px) scale(1.08); }
+  .chara.active .art { filter: drop-shadow(0 8px 10px rgba(0,0,0,.5)) drop-shadow(0 0 14px rgba(138,180,248,.45)); }
   .chara.active .bubble { opacity: 1; }
   .chara.thinking .bubble { color: var(--muted); font-style: italic; }
-  .chara.thinking svg { animation: think 1.6s ease-in-out infinite; }
+  .chara.thinking .art { animation: think 1.6s ease-in-out infinite; }
+  .chara.talking .art { animation: speak .32s ease-in-out infinite alternate; }
   .chara.talking .mouth { animation: talk .28s ease-in-out infinite alternate; }
+  .chara.working .art { animation: work .55s ease-in-out infinite alternate; }
   .chara.working .tool { opacity: 1; animation: swing .5s ease-in-out infinite alternate; }
-  .chara.working svg { animation: none; }
-  .chara.done svg { animation: hop .6s ease-out 2; }
-  .chara.error svg { animation: shake .4s ease-in-out 3; }
+  .chara.done .art { animation: hop .6s ease-out 2; }
+  .chara.error .art { animation: shake .4s ease-in-out 3; }
   .chara.error .bubble { border-color: var(--err); color: var(--err); }
   .chara.stopped { opacity: .55; }
-  .nav .ava { width: 22px; height: 26px; flex: none; }
-  .nav .ava svg { width: 22px; height: 26px; overflow: visible; }
-  .nav button.running .ava svg { animation: hop .6s ease-in-out infinite; }
+  .nav .ava { width: 26px; height: 30px; flex: none; display: flex; align-items: flex-end; justify-content: center; }
+  .nav .ava .art { height: 30px; width: auto; max-width: 26px; object-fit: contain; }
+  .nav .ava svg.art { width: 22px; height: 26px; overflow: visible; }
+  .nav button.running .ava .art { animation: hop .6s ease-in-out infinite; }
   @keyframes breathe { 50% { transform: scaleY(1.025) translateY(-1px); } }
   @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
   @keyframes talk { to { transform: scaleY(2.4); } }
   @keyframes think { 50% { transform: rotate(-4deg) translateY(-2px); } }
+  @keyframes speak { from { transform: translateY(0) scaleY(1); } to { transform: translateY(-3px) scaleY(1.02); } }
+  @keyframes work { from { transform: rotate(-3deg) translateY(0); } to { transform: rotate(3deg) translateY(-2px); } }
   @keyframes swing { from { transform: rotate(-18deg); } to { transform: rotate(22deg); } }
   @keyframes hop { 30% { transform: translateY(-14px) scaleX(.96); } 60% { transform: translateY(0); } }
   @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
-  @media (prefers-reduced-motion: reduce) { .chara svg, .chara .eye, .chara .mouth, .chara .tool, .nav .ava svg { animation: none !important; } }
+  @media (prefers-reduced-motion: reduce) { .chara .art, .chara .eye, .chara .mouth, .chara .tool, .nav .ava .art { animation: none !important; } }
 
   .stream { padding: 22px 28px; overflow: auto; }
   .empty { color: var(--muted); max-width: 560px; margin: 60px auto; text-align: center; }
@@ -400,7 +407,7 @@
     $('cadenceNav').innerHTML = Object.entries(state.cadences).map(([name, roles]) =>
       `<button data-kind="cycle" data-target="${esc(name)}" class="${isActive('cycle', name)}">${esc(name)}<span class="sub">${roles.join(' → ')}</span></button>`).join('');
     $('roleNav').innerHTML = state.roles.map((r) =>
-      `<button data-kind="role" data-target="${esc(r.role)}" class="${isActive('role', r.role)}"><span class="ava">${avatarSvg(r.role)}</span>${esc(r.title)}<span class="sub">${r.writes ? '実装' : '確認'}</span></button>`).join('');
+      `<button data-kind="role" data-target="${esc(r.role)}" class="${isActive('role', r.role)}"><span class="ava">${avatar(r.role)}</span>${esc(r.title)}<span class="sub">${r.writes ? '実装' : '確認'}</span></button>`).join('');
     $('runNav').innerHTML = state.runs.slice(0, 20).map((r) =>
       `<button data-run="${r.id}" class="${state.current === r.id ? 'active' : ''}"><span class="dot ${r.status}"></span>${esc(r.target)}<span class="sub">${r.started_at.slice(11, 16)}</span></button>`).join('') || '<div class="small" style="padding:0 10px">まだありません</div>';
   };
@@ -438,12 +445,12 @@
     laptop: (c) => `<g class="tool"><rect x="44" y="48" width="18" height="12" rx="1.5" fill="${c}"/><rect x="42" y="60" width="22" height="3" rx="1" fill="${c}"/></g>`,
     paper: (c) => `<g class="tool"><rect x="46" y="48" width="14" height="17" rx="1.5" fill="#f5f5f5"/><g stroke="${c}" stroke-width="1.5"><path d="M49 53 h8 M49 57 h8 M49 61 h5"/></g></g>`,
   };
-  const avatarSvg = (role) => {
+  window.avatarSvg = (role) => {
     const L = LOOKS[role] || DEFAULT_LOOK;
     const item = ITEMS[L.item] ? ITEMS[L.item](L.accent) : '';
     const tool = role === 'builder' ? TOOLS.wrench(L.accent) : role === 'cto' ? TOOLS.laptop(L.accent)
       : ['ceo', 'cfo', 'ops'].includes(role) && !['calculator'].includes(L.item) ? TOOLS.paper(L.accent) : '';
-    return `<svg viewBox="0 0 72 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    return `<svg class="art" viewBox="0 0 72 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <ellipse cx="36" cy="86" rx="22" ry="3" fill="rgba(0,0,0,.35)"/>
       <path d="M18 88 v-30 a18 14 0 0 1 36 0 v30 z" fill="${L.suit}"/>
       <rect x="31" y="40" width="10" height="8" fill="${L.skin}"/>
@@ -454,11 +461,13 @@
       ${item}${tool}
     </svg>`;
   };
+  // 絵は ui/characters/<役職>.png。無い役職は SVG の姿に落とす（agents/ に役職を足しても画面が壊れない）
+  const avatar = (role) => `<img class="art" src="/characters/${encodeURIComponent(role)}.png" alt="" draggable="false" onerror="this.outerHTML = avatarSvg(this.dataset.role)" data-role="${esc(role)}">`;
   const stageEl = $('stage');
   const chara = {}; // role -> element
   const renderStage = () => {
     stageEl.innerHTML = state.roles.map((r) =>
-      `<div class="chara" data-role="${esc(r.role)}" title="${esc(r.title)}"><div class="bubble"></div>${avatarSvg(r.role)}<div class="name">${esc(r.title)}</div></div>`).join('');
+      `<div class="chara" data-role="${esc(r.role)}" title="${esc(r.title)}"><div class="bubble"></div>${avatar(r.role)}<div class="name">${esc(r.title)}</div></div>`).join('');
     stageEl.querySelectorAll('.chara').forEach((el) => { chara[el.dataset.role] = el; });
   };
   const STATES = ['active', 'thinking', 'talking', 'working', 'done', 'error', 'stopped'];

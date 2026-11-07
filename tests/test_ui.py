@@ -21,6 +21,16 @@ class CharacterTest(unittest.TestCase):
         for path in AGENTS_DIR.glob("*.md"):
             self.assertRegex(looks, rf"\n\s*{path.stem}:\s*\{{", f"{path.stem} のキャラクターが LOOKS に無い")
 
+    def test_every_role_has_a_picture(self):
+        for path in AGENTS_DIR.glob("*.md"):
+            pic = ROOT / "ui" / "characters" / f"{path.stem}.png"
+            self.assertTrue(pic.exists(), f"{pic} が無い")
+            self.assertEqual(pic.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
+
+    def test_icon_exists(self):
+        self.assertTrue((ROOT / "ui" / "icon" / "app.ico").exists())
+        self.assertTrue((ROOT / "ui" / "icon" / "app-64.png").exists())
+
     def test_stage_and_states_exist(self):
         html = UI.read_text(encoding="utf-8")
         self.assertIn('id="stage"', html)

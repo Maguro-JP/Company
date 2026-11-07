@@ -21,6 +21,10 @@ InstallDirRegKey HKCU "Software\${APP}" "InstallDir"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
 
+!define MUI_ICON "${ICON}"
+!define MUI_UNICON "${ICON}"
+!define LNK_ICON "$INSTDIR\ui\icon\app.ico"
+
 !define MUI_FINISHPAGE_RUN "$INSTDIR\python\pythonw.exe"
 !define MUI_FINISHPAGE_RUN_PARAMETERS "app.py"
 !define MUI_FINISHPAGE_RUN_TEXT "Company を起動する"
@@ -42,14 +46,15 @@ Section "Install"
 
   ; ショートカット。作業ディレクトリをプログラムの場所にする（app.py は自分の場所を基準に data\ を書く）
   SetOutPath "$INSTDIR"
-  CreateShortcut "$DESKTOP\${APP}.lnk" "$INSTDIR\python\pythonw.exe" "app.py" "$INSTDIR\python\pythonw.exe" 0
+  CreateShortcut "$DESKTOP\${APP}.lnk" "$INSTDIR\python\pythonw.exe" "app.py" "${LNK_ICON}" 0
   CreateDirectory "$SMPROGRAMS\${APP}"
-  CreateShortcut "$SMPROGRAMS\${APP}\${APP}.lnk" "$INSTDIR\python\pythonw.exe" "app.py" "$INSTDIR\python\pythonw.exe" 0
+  CreateShortcut "$SMPROGRAMS\${APP}\${APP}.lnk" "$INSTDIR\python\pythonw.exe" "app.py" "${LNK_ICON}" 0
   CreateShortcut "$SMPROGRAMS\${APP}\${APP} をアンインストール.lnk" "$INSTDIR\Uninstall.exe"
 
   WriteRegStr HKCU "Software\${APP}" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "${UNINST}" "DisplayName" "${APP}"
   WriteRegStr HKCU "${UNINST}" "DisplayVersion" "${VERSION}"
+  WriteRegStr HKCU "${UNINST}" "DisplayIcon" "${LNK_ICON}"
   WriteRegStr HKCU "${UNINST}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
   WriteRegStr HKCU "${UNINST}" "InstallLocation" "$INSTDIR"
   WriteRegDWORD HKCU "${UNINST}" "NoModify" 1

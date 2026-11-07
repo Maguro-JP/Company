@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import controls, gemini, local_llm, mcp_http, runner
@@ -21,6 +22,9 @@ UI_DIR = ROOT / "ui"
 
 app = FastAPI(title="Company", docs_url=None, redoc_url=None)
 app.include_router(mcp_http.router)
+# キャラクターの絵とアイコン。画面は依存なしの 1 ファイルだが、絵だけは別に置く（HTML に埋めると 1 MB を超える）
+app.mount("/characters", StaticFiles(directory=UI_DIR / "characters"), name="characters")
+app.mount("/icon", StaticFiles(directory=UI_DIR / "icon"), name="icon")
 
 
 @app.get("/")
