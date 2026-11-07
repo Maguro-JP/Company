@@ -52,6 +52,23 @@ run.bat
 `data/models/` に自分で置いた `.gguf` も一覧に出る。
 ダウンロードは途中で切れても、もう一度「取得」を押すと続きから再開する。
 
+### 同じ作者のツールと連携する
+
+右パネルの「連携しているツール」に、同じ作者のツールが並ぶ（`company/partners.py`）。
+緑はつながっていて、MCP の口を持つ相手の道具は役職の AI がそのまま使える（名前は `<相手>__<道具>`。例: `netvision__list_devices`）。
+相手の中身には触らず、相手が公開している口だけを使う。境界で責任を分け、台帳は NetVision、絵は CharacterDesigner、
+画面での AI 作業は AdaptiveAIStudio、スキルは Ciel に任せる。
+
+| 相手 | 口 | Company からできること |
+|---|---|---|
+| AdaptiveAIStudio | HTTP（`:4174`）、MCP の登録先 | 「AdaptiveAIStudio に Company を登録」で向こうの `aas.config.json` に `/mcp` を書き、向こうから会社を動かす。プロバイダに選べば、役職の仕事を向こうに頼む |
+| NetVision | HTTP（`:8000`）、MCP（`python -m app.mcp_server`） | 機器・拠点・保守期限を役職の AI が引く。置き場は環境変数 `NETVISION_HOME` |
+| CharacterDesigner | ピクチャ\CharacterDesigner | 描いた絵の数を見る |
+| Ciel | `.claude/skills` | 入っているスキルの数を見る |
+
+置き場が違うとき、非公開のツールを足すときは、作業場の `data/partners.json` に `{"id", "name", "about", "http", "mcp", "files"}` の形で書く
+（`POST /api/partners` でも書ける）。public のリポジトリなので、非公開のツールの名前はコードに書かない。
+
 ### AdaptiveAIStudio と連携する
 
 [AdaptiveAIStudio](https://github.com/Maguro-JP/AdaptiveAIStudio) と、どちらからでも動かせる。
@@ -162,6 +179,7 @@ ui/icon/             アプリのアイコン（app.ico はショートカット
 company/paths.py     置き場（プログラム・作業場・模型）を 1 か所で決める
 company/migrate.py   配布版の作業場を整える。最初の起動と更新、前の版からの移行
 company/updater.py   アプリ本体の更新。releases/latest と VERSION を比べ、Setup.exe を取って開く
+company/partners.py  同じ作者のツールとの連携。疎通、MCP の呼び手、役職の道具への橋、AdaptiveAIStudio への登録
 docs/help/install.md 入れる・置き場・更新・前の版から・消す
 docs/knowledge/learning/user-tools.md  オーナーが作った道具の表（公開分。何か・起こし方・口・置き場）。参考にするとき・呼ぶときはここから
 packaging/company/   Setup.exe の組み方（build.sh、installer.nsi）。VERSION が版

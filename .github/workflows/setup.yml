@@ -62,12 +62,14 @@ jobs:
           if (-not (Test-Path "$env:SystemDrive\LLM\gguf")) { throw "模型の置き場が無い" }
       - name: 同梱の Python で会社のテストを流す
         shell: pwsh
+        timeout-minutes: 6
         run: |
           $py = "$env:ProgramFiles\Company\python\python.exe"
           & $py -c "import webview, fastapi, uvicorn, yaml, llama_cpp, anthropic; print('import ok')"
           if ($LASTEXITCODE -ne 0) { throw "import が落ちた" }
           $env:PYTHONUTF8 = "1"
-          & $py -m unittest discover -s tests -t .
+          # -v で、固まったときに最後に始まったテストが分かる（Windows で 10 分進まなかったことがある）
+          & $py -X faulthandler -m unittest discover -v -s tests -t . 2>&1 | ForEach-Object { $_ }
           if ($LASTEXITCODE -ne 0) { throw "テストが落ちた" }
       - name: アプリのウィンドウが開く
         shell: pwsh
@@ -99,7 +101,54 @@ jobs:
           $g = [System.Drawing.Graphics]::FromImage($bmp)
           $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
           $bmp.Save("$env:GITHUB_WORKSPACE\window.png")
+          # ここから先が「本当に動くか」。入って開くだけでは分からない（ユーザーの機械では開いても動かなかった）
+          $json = @{ "Content-Type" = "application/json" }
+          Invoke-RestMethod -Method Post "$url/api/settings" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-0.5b","max_turns":4,"context":4096,"gpu_layers":0}' | Out-Null
+          Invoke-RestMethod -Method Post "$url/api/download" -Headers $json -Body '{"model_id":"qwen2.5-0.5b"}' | Out-Null
+          $got = $false
+          foreach ($i in 1..180) {
+            Start-Sleep -Seconds 5
+            $models = Invoke-RestMethod "$url/api/models?provider=builtin"
+            $m = $models.catalog | Where-Object { $_.id -eq "qwen2.5-0.5b" }
+            if ($m -and $m.downloaded) { $got = $true; break }
+          }
+          if (-not $got) { throw "模型を取れない（C:\LLM\gguf に置けていない）" }
+          "model: " + (Get-ChildItem "C:\LLM\gguf" | ForEach-Object { $_.Name + " " + $_.Length }) -join ", "
+          $c = Invoke-RestMethod -Method Post "$url/api/check" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-0.5b"}'
+          "check: " + ($c | ConvertTo-Json -Compress)
+          if ($c.error) { throw "内蔵の模型が答えない: $($c.error)" }
+          $run = Invoke-RestMethod -Method Post "$url/api/runs" -Headers $json -Body '{"kind":"role","target":"ceo","instruction":"会社の状態を 1 行で言うだけでよい。ファイルは書かない。"}'
+          $done = $false
+          foreach ($i in 1..120) {
+            Start-Sleep -Seconds 5
+            $r = Invoke-RestMethod "$url/api/runs/$($run.id)"
+            if ($r.status -ne "running") { $done = $true; break }
+          }
+          "run: " + $r.status + " events=" + $r.events.Count; $r.events | Where-Object { $_.type -in @("error","role_end","text") } | ForEach-Object { ($_ | ConvertTo-Json -Compress) }
+          if (-not $done) { throw "1 役職の実走が 10 分で終わらない" }
+          if ($r.status -eq "error") { throw "実走が落ちた" }
+          $csv = "$env:ProgramData\Company\data\runs.csv"
+          if (-not (Test-Path $csv)) { throw "data\runs.csv が無い（実走の記録が残っていない）" }
+          Get-Content $csv
           Stop-Process -Id $p.Id -Force
+          Start-Sleep -Seconds 3
+          # ショートカットと同じ起こし方（pythonw -E -s app.py、作業ディレクトリは Program Files）。ユーザーの機械では「起動すらしない」
+          $q = Start-Process -FilePath "$dir\python\pythonw.exe" -ArgumentList "-E","-s","app.py" -WorkingDirectory $dir -PassThru
+          $win2 = $null
+          foreach ($i in 1..60) {
+            Start-Sleep -Seconds 2
+            if ($q.HasExited) { break }
+            $win2 = Get-Process | Where-Object { $_.MainWindowTitle -eq "Company" }
+            if ($win2) { break }
+          }
+          $applog = Get-Content "$env:ProgramData\Company\logs\app.log" -Raw -ErrorAction SilentlyContinue
+          $applog
+          # 失敗のメッセージボックスも題が Company なので、ウィンドウの題だけでは見分けられない。記録の「起動 http」で判定する
+          if ((-not $win2) -or (-not $applog) -or ($applog -notmatch "起動 http://127\.0\.0\.1:\d+") -or ($applog -match "起動に失敗")) {
+            throw "ショートカットの起こし方（pythonw -E -s）で Company が立たない（exited=$($q.HasExited) code=$($q.ExitCode)）"
+          }
+          "shortcut-window: " + $win2.ProcessName + " / " + $win2.MainWindowTitle
+          Stop-Process -Id $q.Id -Force
       - uses: actions/upload-artifact@v4
         if: always()
         with:

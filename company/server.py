@@ -9,12 +9,12 @@ import json
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import controls, gemini, local_llm, mcp_http, runner, updater
+from . import controls, gemini, local_llm, mcp_http, partners, runner, updater
 from . import paths
 from .config import ROOT, load_config
 from .providers import ProviderError, answer_check, make_provider, provider_catalog
@@ -236,6 +236,62 @@ def update_apply() -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 # AI Studio / Gemini 側から会社を操作するための入口
 # --------------------------------------------------------------------------- #
+
+
+# ---------- 同じ作者のツールとの連携 ----------
+
+@app.get("/api/partners")
+def partners_list() -> dict[str, Any]:
+    """相手ごとに生きているかを短く見る。落ちている相手は理由つきで出す。"""
+    return {"partners": [partners.probe(p) for p in partners.load()],
+            "file": str(partners.PARTNERS_FILE)}
+
+
+@app.get("/api/partners/{partner_id}/tools")
+def partner_tools(partner_id: str) -> dict[str, Any]:
+    p = partners.get(partner_id)
+    if p is None:
+        raise HTTPException(404, f"相手がありません: {partner_id}")
+    if not p.get("mcp"):
+        return {"tools": [], "note": "この相手は MCP の口を持ちません"}
+    try:
+        return {"tools": partners.list_tools(p)}
+    except partners.PartnerError as exc:
+        return {"tools": [], "error": str(exc)}
+
+
+class PartnerCall(BaseModel):
+    tool: str
+    args: dict[str, Any] = {}
+
+
+@app.post("/api/partners/{partner_id}/call")
+def partner_call(partner_id: str, req: PartnerCall) -> dict[str, Any]:
+    p = partners.get(partner_id)
+    if p is None or not p.get("mcp"):
+        raise HTTPException(404, f"MCP の口を持つ相手がありません: {partner_id}")
+    try:
+        return partners.call_tool(p, req.tool, req.args)
+    except partners.PartnerError as exc:
+        return {"error": str(exc)}
+
+
+@app.post("/api/partners/aas/register")
+def partner_aas_register(request: Request) -> dict[str, Any]:
+    """AdaptiveAIStudio の設定に、この Company の /mcp を書く。向こうから会社を動かせるようにする。"""
+    base = str(request.base_url).rstrip("/")
+    return partners.register_with_aas(f"{base}/mcp")
+
+
+class PartnersPatch(BaseModel):
+    entries: list[dict[str, Any]]
+
+
+@app.post("/api/partners")
+def partners_save(patch: PartnersPatch) -> dict[str, Any]:
+    """partners.json を丸ごと置き換える（非公開のツールや置き場の違いはここに書く）。"""
+    partners.save_extra(patch.entries)
+    return {"file": str(partners.PARTNERS_FILE), "count": len(patch.entries)}
 
 
 @app.get("/api/gemini/functions")

@@ -16,8 +16,6 @@ import urllib.request
 import webbrowser
 from pathlib import Path
 
-import uvicorn
-
 # Windows のコンソールは cp1252 のことがあり、日本語を print すると UnicodeEncodeError で起動ごと落ちる
 # （Actions の Windows ランナーで実際に落ちた）。pythonw では stdout が無いので、その場合は触らない
 for _stream in (sys.stdout, sys.stderr):
@@ -38,13 +36,16 @@ def _free_port(preferred: int) -> int:
             return s.getsockname()[1]
 
 
-def _wait_ready(url: str, timeout: float = 15) -> bool:
+def _wait_ready(url: str, timeout: float = 15, failed=None) -> bool:
+    """応答するまで待つ。failed() が真になったら（サーバーのスレッドが死んだら）待たずに戻る。"""
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
             urllib.request.urlopen(url, timeout=1)
             return True
         except Exception:
+            if failed and failed():
+                return False
             time.sleep(0.2)
     return False
 
@@ -79,16 +80,51 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-open", action="store_true", help="サーバーだけ起動する")
     args = parser.parse_args(argv)
 
+    # pythonw（ショートカット）では stdout と stderr が None。uvicorn の記録の設定が isatty を呼んで
+    # 「Unable to configure formatter 'default'」で落ち、サーバーが立たずに何も開かなかった（Windows ランナーで再現）。
+    # 画面が無いときは、出力を logs\\app.log に向ける
+    if sys.stdout is None or sys.stderr is None:
+        try:
+            log = _log_path()
+            log.parent.mkdir(parents=True, exist_ok=True)
+            fh = log.open("a", encoding="utf-8", buffering=1)
+            if sys.stdout is None:
+                sys.stdout = fh
+            if sys.stderr is None:
+                sys.stderr = fh
+        except OSError:
+            pass
+
     _prepare_workspace()
     port = _free_port(args.port)
     url = f"http://127.0.0.1:{port}"
 
-    server = uvicorn.Server(uvicorn.Config("company.server:app", host="127.0.0.1", port=port, log_level="warning"))
-    threading.Thread(target=server.run, daemon=True).start()
-    if not _wait_ready(f"{url}/api/state"):
-        print("サーバーが起動しませんでした", file=sys.stderr)
-        return 1
+    import uvicorn  # noqa: PLC0415  読めないときの理由を _report_crash で見せるため、ここで読む
+
+    # サーバーが落ちた理由を拾う。スレッドの中の例外は黙って消えるので、箱に入れて主から見る
+    failure: dict[str, BaseException] = {}
+
+    def serve() -> None:
+        try:
+            uvicorn.Server(uvicorn.Config("company.server:app", host="127.0.0.1", port=port, log_level="warning", log_config=None)).run()
+        except BaseException as exc:  # noqa: BLE001
+            failure["exc"] = exc
+
+    thread = threading.Thread(target=serve, daemon=True)
+    thread.start()
+    # 最初の起動は作業場の写しと部品の読み込みで時間がかかる（ウイルス対策が 1 ファイルずつ見る機械では 15 秒を超えた）
+    if not _wait_ready(f"{url}/api/state", timeout=120, failed=lambda: not thread.is_alive()):
+        if "exc" in failure:
+            raise RuntimeError(f"サーバーが起動できませんでした: {failure['exc']!r}") from failure["exc"]
+        raise RuntimeError("サーバーが 120 秒たっても応答しません（ウイルス対策か、ポートの制限の可能性）")
     print(f"起動: {url}")
+    try:
+        log = _log_path()
+        log.parent.mkdir(parents=True, exist_ok=True)
+        with log.open("a", encoding="utf-8") as fh:
+            fh.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 起動 {url} python={sys.version.split()[0]} 作業場={_log_path().parent.parent}\n")
+    except OSError:
+        pass
 
     if args.no_open:
         try:
@@ -111,6 +147,8 @@ def main(argv: list[str] | None = None) -> int:
                 webview.start(icon=icon)
             except TypeError:  # icon を受けない古い pywebview
                 webview.start()
+            except Exception as exc:  # noqa: BLE001  WebView2 が無い、GUI の部品が読めない等
+                raise RuntimeError(f"アプリのウィンドウを開けませんでした（Edge WebView2 が入っているか確かめてください）: {exc!r}") from exc
             return 0
 
     webbrowser.open(url)
@@ -122,5 +160,50 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
 
+def _log_path() -> Path:
+    """起動の記録。pythonw（ショートカット）では画面に何も出ないので、ここに残す。
+    作業場（配布版は ProgramData\\Company）の logs\\app.log。作業場が決まらないときはこの横。"""
+    try:
+        from company import paths  # noqa: PLC0415
+        root = paths.workspace_root()
+    except Exception:  # noqa: BLE001
+        root = Path(__file__).resolve().parent
+    return root / "logs" / "app.log"
+
+
+def _report_crash(exc: BaseException, dialog: bool = True) -> None:
+    """落ちた理由を logs\\app.log に書き、Windows ではメッセージボックスでも見せる。
+    黙って消えるのが「そもそも動かない」の一番の原因になるため。"""
+    import traceback  # noqa: PLC0415
+    from datetime import datetime  # noqa: PLC0415
+
+    text = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    path = _log_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] 起動に失敗\n{text}")
+    except OSError:
+        pass
+    if sys.stderr is not None:
+        print(text, file=sys.stderr)
+    # メッセージボックスは人が閉じるまで戻らない。テストでは出さない（Windows ランナーで 6 分固まった）
+    if dialog and sys.platform == "win32":
+        try:
+            import ctypes  # noqa: PLC0415
+            last = text.strip().splitlines()[-1]
+            ctypes.windll.user32.MessageBoxW(
+                None, f"Company を起動できませんでした。\n\n{last}\n\n詳しい記録: {path}", "Company", 0x10)
+        except Exception:  # noqa: BLE001
+            pass
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        code = main()
+    except SystemExit:
+        raise
+    except BaseException as exc:  # noqa: BLE001
+        _report_crash(exc)
+        raise SystemExit(1) from exc
+    raise SystemExit(code)
