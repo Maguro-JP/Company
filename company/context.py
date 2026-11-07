@@ -58,6 +58,27 @@ def _runs_block() -> str:
     return "\n".join(lines)
 
 
+def _group_block() -> str:
+    """親会社の直下（子会社と業種グループ）を 1 行ずつ。CEO が「どの子会社に何を頼むか」を決める材料。"""
+    from . import org, repos  # noqa: PLC0415
+    tree = org.load()
+    lines = []
+    for child in tree.get("children") or []:
+        if not isinstance(child, dict):
+            continue
+        if child.get("kind") == "division" and child.get("generated"):
+            names = [c.get("name", "") for c in child.get("children") or []]
+            lines.append(f"- {child['name']}: {', '.join(names[:12])}{'…' if len(names) > 12 else ''}")
+        else:
+            seats = sum(len(n.get("seats") or []) for _, n in org.walk(child))
+            lines.append(f"- {child.get('name', '')}（席 {seats}）: {child.get('about', '')}")
+    cache = repos.load_cache()
+    old = repos.stale(cache.get("repos", []))
+    if old:
+        lines.append(f"- 90 日以上 push の無いリポジトリ: {', '.join(old[:10])}{'…' if len(old) > 10 else ''}")
+    return "\n".join(lines) or "（子会社なし）"
+
+
 def build(config: Config, cadence: str) -> str:
     company = config.company
     autonomy = config.autonomy
@@ -100,6 +121,9 @@ def build(config: Config, cadence: str) -> str:
         "```csv",
         _runs_block(),
         "```",
+        "",
+        "## グループの子会社（会社の形。org.yaml とリポジトリの取り込み）",
+        _group_block(),
         "",
         "## 直近の意思決定記録",
         _decisions_block(),

@@ -247,6 +247,10 @@
     <h3 style="margin:22px 0 6px">会社の形 <button class="btn" id="refreshOrg" title="つながりを見直す" style="padding:2px 8px">↻</button></h3>
     <div class="small" style="margin-bottom:6px">親会社は Company、子会社は各ツール、部門は機能別、その下が機能・道具・作業用エージェントです（org.yaml）。</div>
     <div id="org" class="small">…</div>
+    <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
+      <button class="btn" id="syncRepos" title="GitHub のリポジトリを 1 つ 1 社として業種ごとに取り込む">リポジトリを子会社として取り込む</button>
+      <span class="small" id="syncNote"></span>
+    </div>
 
     <h3 style="margin:22px 0 6px">連携しているツール <button class="btn" id="refreshPartners" title="生きているかを見直す" style="padding:2px 8px">↻</button></h3>
     <div class="small" style="margin-bottom:6px">同じ作者のツール。入っていれば自動で見つけてつなぎます。緑はつながっていて、役職の AI がその道具を使えます。</div>
@@ -524,7 +528,8 @@
     const state = n.total ? `　<span style="color:${n.alive ? '#3ec46d' : '#999'}">${n.alive}/${n.total - n.planned}</span>${n.planned ? `<span style="opacity:.5">　予定 ${n.planned}</span>` : ''}` : '';
     const roles = [...(n.roles || []), ...(n.agents || [])].map((r) => `<span class="pill" style="margin-left:4px">${esc(r)}</span>`).join('');
     const seats = (n.seat_states || []).map((s) => `<div style="margin-left:14px;opacity:.8">${s.planned ? '○' : (s.alive ? '<span style="color:#3ec46d">●</span>' : '<span style="color:#c44">●</span>')} ${esc(s.name)}${s.tools ? `　道具 ${s.tools}` : ''}</div>`).join('');
-    det.innerHTML = `<summary style="cursor:pointer"><span style="opacity:.55;font-size:11px">${esc(n.label)}</span> <b>${esc(n.name)}</b>${roles}${state}${n.about ? `<div style="opacity:.6;margin-left:14px">${esc(n.about)}</div>` : ''}</summary>${seats}`;
+    const repo = n.repo ? `<div style="opacity:.5;margin-left:14px">${esc(n.repo)}${n.private ? '（非公開）' : ''}${n.pushed_at ? `　最終 push ${esc(String(n.pushed_at).slice(0, 10))}` : ''}</div>` : '';
+    det.innerHTML = `<summary style="cursor:pointer"><span style="opacity:.55;font-size:11px">${esc(n.label)}</span> <b>${esc(n.name)}</b>${roles}${state}${n.about ? `<div style="opacity:.6;margin-left:14px">${esc(n.about)}</div>` : ''}${repo}</summary>${seats}`;
     det.style.marginLeft = depth ? '12px' : '0';
     for (const c of n.children || []) det.appendChild(orgNode(c, depth + 1));
     return det;
@@ -538,6 +543,14 @@
     } catch (e) { $('org').textContent = String(e.message || e); }
   };
   $('refreshOrg').addEventListener('click', loadOrg);
+  $('syncRepos').addEventListener('click', async () => {
+    const b = $('syncRepos'); b.disabled = true; $('syncNote').textContent = '取っています…';
+    try {
+      const r = await api('/api/repos/sync', { method: 'POST', body: JSON.stringify({}) });
+      $('syncNote').textContent = r.error ? r.error : `${r.repos} 件のリポジトリから ${r.subsidiaries} 社を取り込みました${r.private_included ? '' : '（公開のものだけ。非公開も入れるには環境変数 GITHUB_TOKEN）'}`;
+      await loadOrg();
+    } catch (e) { $('syncNote').textContent = String(e.message || e); } finally { b.disabled = false; }
+  });
   loadOrg();
 
   // ---------- 連携しているツール ----------

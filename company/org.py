@@ -23,11 +23,26 @@ KINDS = ("holding", "company", "division", "department", "section")
 KIND_LABEL = {"holding": "親会社", "company": "子会社", "division": "部門", "department": "部署", "section": "課"}
 
 
-def load(path: Path = ORG_PATH) -> dict[str, Any]:
+def load(path: Path = ORG_PATH, with_generated: bool = True) -> dict[str, Any]:
+    """手書きの org.yaml に、リポジトリから生成した子会社（data/org.generated.yaml）を足して返す。
+    生成分は親会社の直下に業種のグループとして付く。手書きの方が先。"""
     if not path.exists():
-        return {"name": "Company", "kind": "company", "children": []}
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    return data if isinstance(data, dict) else {"name": "Company", "kind": "company", "children": []}
+        data: dict[str, Any] = {"name": "Company", "kind": "holding", "children": []}
+    else:
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        data = loaded if isinstance(loaded, dict) else {"name": "Company", "kind": "holding", "children": []}
+    if with_generated:
+        from . import repos  # noqa: PLC0415  循環を避ける
+        generated = repos.load_generated()
+        if generated:
+            data = {**data, "children": [*(data.get("children") or []), *generated]}
+    return data
+
+
+def manual_names(path: Path = ORG_PATH) -> set[str]:
+    """手書きの子会社の名前。生成分と二重にしないため。"""
+    tree = load(path, with_generated=False)
+    return {str(c.get("name", "")) for c in tree.get("children") or [] if isinstance(c, dict)}
 
 
 def save(tree: dict[str, Any], path: Path = ORG_PATH) -> None:
@@ -57,7 +72,8 @@ def seat_index(tree: dict[str, Any]) -> dict[str, tuple[str, ...]]:
 
 
 def validate(tree: dict[str, Any], known_seats: set[str], known_roles: set[str]) -> list[str]:
-    """木の誤り。kind が 5 段のどれか、席と役職が実在するか、同じ席が 2 つの課に無いか。"""
+    """木の誤り。kind が 5 段のどれか、席と役職が実在するか、同じ席が 2 つの課に無いか。
+    生成した子会社は repo を持つので、席が無くてもよい。"""
     errors: list[str] = []
     seen: dict[str, tuple[str, ...]] = {}
     for trail, node in walk(tree):

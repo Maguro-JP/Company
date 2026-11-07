@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import controls, gemini, local_llm, mcp_http, org, partners, runner, updater
+from . import controls, gemini, local_llm, mcp_http, org, partners, repos, runner, updater
 from . import paths
 from .config import ROOT, load_config
 from .providers import ProviderError, answer_check, make_provider, provider_catalog
@@ -255,6 +255,30 @@ def org_tree() -> dict[str, Any]:
     known_roles = {r["role"] for r in runner.list_roles()}
     return {"tree": org.annotate(tree, probes), "file": str(org.ORG_PATH),
             "errors": org.validate(tree, set(probes), known_roles)}
+
+
+@app.get("/api/repos")
+def repos_list() -> dict[str, Any]:
+    cache = repos.load_cache()
+    return {**cache, "stale": repos.stale(cache.get("repos", [])), "owner": repos.owner_from_env(),
+            "token": bool(repos.token_from_env())}
+
+
+class ReposSync(BaseModel):
+    owner: str = ""
+    token: str = ""
+
+
+@app.post("/api/repos/sync")
+def repos_sync(req: ReposSync) -> dict[str, Any]:
+    """GitHub からリポジトリを取り、業種ごとの子会社として会社の形に足す。
+    トークンは環境変数（GITHUB_TOKEN）か、この呼び出しの中でだけ使い、保存しない。"""
+    owner = req.owner or repos.owner_from_env()
+    token = req.token or repos.token_from_env()
+    try:
+        return repos.sync(owner, token, org.manual_names())
+    except RuntimeError as exc:
+        return {"error": str(exc)}
 
 
 class OrgPatch(BaseModel):
