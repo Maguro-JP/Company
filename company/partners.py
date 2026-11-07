@@ -75,8 +75,10 @@ def builtin() -> list[dict[str, Any]]:
     ]
 
 
-def load(path: Path = PARTNERS_FILE) -> list[dict[str, Any]]:
-    """既定に partners.json を重ねる。同じ id は置き換え、新しい id は足す。"""
+def load(path: Path | None = None) -> list[dict[str, Any]]:
+    """既定に partners.json を重ねる。同じ id は置き換え、新しい id は足す。
+    置き場は呼ばれたときに見る（テストで差し替えるため。既定引数に書くと import の時に固定される）。"""
+    path = path or PARTNERS_FILE
     out = {p["id"]: p for p in builtin()}
     if path.exists():
         try:
@@ -89,7 +91,8 @@ def load(path: Path = PARTNERS_FILE) -> list[dict[str, Any]]:
     return list(out.values())
 
 
-def save_extra(entries: list[dict[str, Any]], path: Path = PARTNERS_FILE) -> None:
+def save_extra(entries: list[dict[str, Any]], path: Path | None = None) -> None:
+    path = path or PARTNERS_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8")
 

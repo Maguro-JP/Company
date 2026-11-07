@@ -89,6 +89,13 @@ def main(argv: list[str] | None = None) -> int:
         print("サーバーが起動しませんでした", file=sys.stderr)
         return 1
     print(f"起動: {url}")
+    try:
+        log = _log_path()
+        log.parent.mkdir(parents=True, exist_ok=True)
+        with log.open("a", encoding="utf-8") as fh:
+            fh.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 起動 {url} python={sys.version.split()[0]} 作業場={_log_path().parent.parent}\n")
+    except OSError:
+        pass
 
     if args.no_open:
         try:
@@ -122,5 +129,49 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
 
+def _log_path() -> Path:
+    """起動の記録。pythonw（ショートカット）では画面に何も出ないので、ここに残す。
+    作業場（配布版は ProgramData\\Company）の logs\\app.log。作業場が決まらないときはこの横。"""
+    try:
+        from company import paths  # noqa: PLC0415
+        root = paths.workspace_root()
+    except Exception:  # noqa: BLE001
+        root = Path(__file__).resolve().parent
+    return root / "logs" / "app.log"
+
+
+def _report_crash(exc: BaseException) -> None:
+    """落ちた理由を logs\\app.log に書き、Windows ではメッセージボックスでも見せる。
+    黙って消えるのが「そもそも動かない」の一番の原因になるため。"""
+    import traceback  # noqa: PLC0415
+    from datetime import datetime  # noqa: PLC0415
+
+    text = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    path = _log_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(f"\n[{datetime.now():%Y-%m-%d %H:%M:%S}] 起動に失敗\n{text}")
+    except OSError:
+        pass
+    if sys.stderr is not None:
+        print(text, file=sys.stderr)
+    if sys.platform == "win32":
+        try:
+            import ctypes  # noqa: PLC0415
+            last = text.strip().splitlines()[-1]
+            ctypes.windll.user32.MessageBoxW(
+                None, f"Company を起動できませんでした。\n\n{last}\n\n詳しい記録: {path}", "Company", 0x10)
+        except Exception:  # noqa: BLE001
+            pass
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        code = main()
+    except SystemExit:
+        raise
+    except BaseException as exc:  # noqa: BLE001
+        _report_crash(exc)
+        raise SystemExit(1) from exc
+    raise SystemExit(code)

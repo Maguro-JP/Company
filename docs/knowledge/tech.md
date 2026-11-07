@@ -22,3 +22,13 @@
 - MCP クライアントは本体（Session）が立つときに起動する。モデルが無いと本体が立たないので繋がらない
 - 外のツールの呼び出しは「命令」扱いで、`approval: autoEdit`（既定）では承認待ちになる（`/api/approve`）
 - AAS の本体へは `/api/send` で送り、`/api/events` の `session` 出来事の `text.delta` を集め、`busy: false` で終わる
+
+
+## 実モデルでの初回実走（2026-11-07、Actions の Windows ランナー）
+
+配布版（Setup.exe）を黙って入れ、アプリを起動し、内蔵の模型 qwen2.5-0.5b（491,400,032 バイト）を取り、
+「1+1=」に 0.8 秒で「2」と答え、CEO を 1 周（2 ターン、道具 1 回、入力 2,688 トークン、出力 43 トークン）回して
+`ProgramData\Company\data\runs.csv` に 1 行残った。入れて開くだけでは「動く」とは言えないので、この実走を
+setup.yml の Windows のジョブに入れ、main への push のたびに見る。
+
+ユーザーの機械で動かないときは、`ProgramData\Company\logs\app.log` に起動と失敗の記録が残る（pythonw は画面に何も出さないため）。
