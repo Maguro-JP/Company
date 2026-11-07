@@ -516,16 +516,23 @@
   // ---------- 連携しているツール ----------
   const renderPartners = (r) => {
     const box = $('partners'); box.innerHTML = '';
-    for (const p of r.partners) {
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;flex-direction:column;gap:2px;padding:6px 0;border-top:1px solid var(--border)';
-      const dot = p.planned ? '<span style="color:#999">○</span>' : (p.alive ? '<span style="color:#3ec46d">●</span>' : '<span style="color:#c44">●</span>');
-      const tools = p.tools ? `　道具 ${p.tools}` : (p.files !== undefined ? `　${p.files} 件` : '');
-      let extra = '';
-      if (p.give === 'register_mcp') extra = `<button class="btn" data-register="${esc(p.id)}" style="padding:2px 8px;margin-top:4px" ${p.alive ? '' : 'disabled'} title="起動のたびに自動で登録しています。向こうの設定を消したときだけ押す">登録し直す</button>`;
-      const err = p.mcp_error ? `<div class="note err">${esc(p.mcp_error)}</div>` : '';
-      row.innerHTML = `<div>${dot} <b>${esc(p.name)}</b>${tools}</div><div style="opacity:.75">${esc(p.about)}</div><div style="opacity:.6;word-break:break-all">${esc(p.detail)}</div>${err}${extra}`;
-      box.appendChild(row);
+    const order = ['経営', '開発', 'ビジュアル', '映像', '音響', 'ボイス', '情報システム', ''];
+    const groups = new Map();
+    for (const p of r.partners) { const k = p.dept || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
+    for (const dept of [...order, ...[...groups.keys()].filter((k) => !order.includes(k))]) {
+      const list = groups.get(dept); if (!list) continue;
+      const live = list.filter((p) => !p.planned), planned = list.filter((p) => p.planned);
+      const h = document.createElement('div');
+      h.style.cssText = 'margin-top:10px;font-weight:600;opacity:.8';
+      h.textContent = `${dept || 'その他'}部門　${live.length ? `${live.filter((p) => p.alive).length}/${live.length} 接続` : ''}${planned.length ? `　予定 ${planned.length}` : ''}`;
+      box.appendChild(h);
+      for (const p of live) box.appendChild(partnerRow(p));
+      if (planned.length) {
+        const det = document.createElement('details');
+        det.innerHTML = `<summary style="cursor:pointer;opacity:.6">これから作る部署（${planned.length}）</summary>`;
+        for (const p of planned) det.appendChild(partnerRow(p));
+        box.appendChild(det);
+      }
     }
     box.querySelectorAll('[data-register]').forEach((b) => b.addEventListener('click', async () => {
       b.disabled = true; b.textContent = '書いています…';
@@ -534,6 +541,19 @@
         b.textContent = a.error ? a.error : `書きました: ${a.path}。AdaptiveAIStudio を立ち上げ直すと繋がります`;
       } catch (e) { b.textContent = String(e.message || e); }
     }));
+  };
+  const partnerRow = (p) => {
+    {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;flex-direction:column;gap:2px;padding:6px 0;border-top:1px solid var(--border)';
+      const dot = p.planned ? '<span style="color:#999">○</span>' : (p.alive ? '<span style="color:#3ec46d">●</span>' : '<span style="color:#c44">●</span>');
+      const tools = p.tools ? `　道具 ${p.tools}` : (p.files !== undefined ? `　${p.files} 件` : '');
+      let extra = '';
+      if (p.give === 'register_mcp') extra = `<button class="btn" data-register="${esc(p.id)}" style="padding:2px 8px;margin-top:4px" ${p.alive ? '' : 'disabled'} title="起動のたびに自動で登録しています。向こうの設定を消したときだけ押す">登録し直す</button>`;
+      const err = p.mcp_error ? `<div class="note err">${esc(p.mcp_error)}</div>` : '';
+      row.innerHTML = `<div>${dot} <b>${esc(p.name)}</b>${tools}</div><div style="opacity:.75">${esc(p.about)}</div><div style="opacity:.6;word-break:break-all">${esc(p.detail)}</div>${err}${extra}`;
+      return row;
+    }
   };
   const loadPartners = async () => { try { renderPartners(await api('/api/partners')); } catch (e) { $('partners').textContent = String(e.message || e); } };
   $('refreshPartners').addEventListener('click', loadPartners);

@@ -153,7 +153,10 @@ class PartnersApiTest(unittest.TestCase):
                 self.assertEqual(ids[:3], ["aas", "netvision", "characterdesigner"])
                 self.assertIn("ciel", ids)
                 planned = [p for p in r["partners"] if p["planned"]]
-                self.assertEqual([p["id"] for p in planned], ["video", "music", "voice"])
+                self.assertIn("video_gen", [p["id"] for p in planned])
+                self.assertIn("tts", [p["id"] for p in planned])
+                self.assertEqual(len(planned), len(partners.PLANNED_SEATS))
+                self.assertTrue(all(p["dept"] for p in r["partners"] if p["id"] != "ciel" or True))
                 self.assertTrue(all(not p["alive"] for p in planned))
                 reg = client.post("/api/partners/aas/register").json()
                 self.assertEqual(reg["url"], "http://testserver/mcp")

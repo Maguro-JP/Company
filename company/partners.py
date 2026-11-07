@@ -87,33 +87,62 @@ def aas_installed() -> bool:
     return bool(_reg_install_dir("AdaptiveAIStudio")) or aas_config_path().parent.exists()
 
 
+# 部門 → 部署の席。役職の AI からは <id>__<道具> で見える。部署が増えたらここに 1 行足す
+PLANNED_SEATS: tuple[tuple[str, str, str, str], ...] = (
+    # (id, 部門, 部署, 仕事の単位)
+    ("character_design", "ビジュアル", "キャラクターデザイン", "設定画、色指定、三面図"),
+    ("illustration", "ビジュアル", "作画", "チャットで頼んで描く、描き直し"),
+    ("art_check", "ビジュアル", "検品（絵）", "崩れを数字で見る、通す・戻す"),
+    ("sprite", "ビジュアル", "スプライト・アニメ", "ドット絵、歩き・待機のコマ"),
+    ("background_art", "ビジュアル", "背景・美術", "背景、小物、舞台"),
+    ("ui_art", "ビジュアル", "UI・アイコン", "アプリの画面の絵、アイコン"),
+    ("storyboard", "映像", "企画・絵コンテ", "台本から絵コンテ"),
+    ("video_gen", "映像", "動画生成", "絵と文から動画"),
+    ("video_edit", "映像", "編集", "切る、つなぐ、テロップ"),
+    ("subtitle", "映像", "字幕・翻訳", "字幕、多言語"),
+    ("video_publish", "映像", "書き出し・配信", "形式、サイズ、配信先"),
+    ("compose", "音響", "作曲", "曲の生成、BGM"),
+    ("sfx", "音響", "効果音", "SE の生成、当て込み"),
+    ("ambient", "音響", "環境音・集中音", "眠りと集中の音"),
+    ("mix", "音響", "ミックス・マスタリング", "音量、整音、書き出し"),
+    ("tts", "ボイス", "合成音声", "文を声にする"),
+    ("voice_cast", "ボイス", "声のキャスト", "キャラクターごとの声の管理"),
+    ("dubbing", "ボイス", "吹き替え・字幕合わせ", "動画に声を当てる"),
+    ("transcribe", "ボイス", "文字起こし", "音声を文に"),
+    ("inventory", "情報システム", "備品", "棚卸、周期"),
+)
+
+
+def _planned_seats() -> list[dict[str, Any]]:
+    return [{"id": i, "name": f"{dept}（{div}）", "about": job, "dept": div, "planned": True}
+            for i, div, dept, job in PLANNED_SEATS]
+
+
 def builtin() -> list[dict[str, Any]]:
     """公開のツールの既定。置き場は自動で探す。違うときだけ partners.json で同じ id を上書きする。"""
     return [
         {
-            "id": "aas", "name": "AdaptiveAIStudio",
+            "id": "aas", "name": "AdaptiveAIStudio", "dept": "開発",
             "about": "画面で AI に作業を頼む土台。Company を MCP として登録すると、向こうから会社を動かせる",
             "http": {"base_url": "http://127.0.0.1:4174", "probe": "/api/state"},
             "mcp": None,
             "give": "register_mcp",
         },
         {
-            "id": "netvision", "name": "NetVision",
+            "id": "netvision", "name": "NetVision", "dept": "情報システム",
             "about": "ネットワーク機器の台帳。機器・拠点・保守期限を MCP で引ける（読むだけ）",
             "http": {"base_url": "http://127.0.0.1:8000", "probe": "/api/v1/dashboard/summary"},
             "mcp": find_netvision_mcp() or {"command": ["python", "-m", "app.mcp_server"], "cwd": ""},
         },
         {
-            "id": "characterdesigner", "name": "CharacterDesigner",
+            "id": "characterdesigner", "name": "CharacterDesigner", "dept": "ビジュアル",
             "about": "チャットで頼むと AI が絵を描く。描いた絵はピクチャの CharacterDesigner に出る",
             "files": {"dir": _pictures(), "glob": "*.png"},
         },
-        # これから作るクリエイティブのツール（docs/knowledge/creative-series.md）。席だけ用意し、相手ができたら口を足す
-        {"id": "video", "name": "映像（予定）", "about": "映像を作るツール。できたら MCP でつなぐ", "planned": True},
-        {"id": "music", "name": "音楽（予定）", "about": "音楽を作るツール。できたら MCP でつなぐ", "planned": True},
-        {"id": "voice", "name": "ボイス（予定）", "about": "声を作るツール。役職のキャラクターの声に使う", "planned": True},
+        # 部署の単位の席（docs/knowledge/creative-series.md）。相手ができたら planned を外し、検出と口を足す
+        *_planned_seats(),
         {
-            "id": "ciel", "name": "Ciel",
+            "id": "ciel", "name": "Ciel", "dept": "開発",
             "about": "Claude Code のスキルを作り・配る。入っているスキルは .claude/skills",
             "files": {"dir": str(ROOT / ".claude" / "skills"), "glob": "*/SKILL.md"},
         },
@@ -158,7 +187,8 @@ def probe(partner: dict[str, Any]) -> dict[str, Any]:
     """生きているかを 1 回だけ見る。待つのは短く（画面の一覧で全部を見るため）。"""
     out: dict[str, Any] = {"id": partner["id"], "name": partner.get("name", partner["id"]),
                            "about": partner.get("about", ""), "alive": False, "detail": "", "tools": 0,
-                           "give": partner.get("give", ""), "planned": bool(partner.get("planned"))}
+                           "give": partner.get("give", ""), "planned": bool(partner.get("planned")),
+                           "dept": partner.get("dept", "")}
     if out["planned"]:
         out["detail"] = "まだ無い（予定）"
         return out
