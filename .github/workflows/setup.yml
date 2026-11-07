@@ -62,12 +62,14 @@ jobs:
           if (-not (Test-Path "$env:SystemDrive\LLM\gguf")) { throw "模型の置き場が無い" }
       - name: 同梱の Python で会社のテストを流す
         shell: pwsh
+        timeout-minutes: 6
         run: |
           $py = "$env:ProgramFiles\Company\python\python.exe"
           & $py -c "import webview, fastapi, uvicorn, yaml, llama_cpp, anthropic; print('import ok')"
           if ($LASTEXITCODE -ne 0) { throw "import が落ちた" }
           $env:PYTHONUTF8 = "1"
-          & $py -m unittest discover -s tests -t .
+          # -v で、固まったときに最後に始まったテストが分かる（Windows で 10 分進まなかったことがある）
+          & $py -X faulthandler -m unittest discover -v -s tests -t . 2>&1 | ForEach-Object { $_ }
           if ($LASTEXITCODE -ne 0) { throw "テストが落ちた" }
       - name: アプリのウィンドウが開く
         shell: pwsh
