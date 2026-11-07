@@ -129,4 +129,4 @@ jobs:
           tag="v$(cat VERSION)"
           gh release view "$tag" >/dev/null 2>&1 && { echo "$tag は公開済み"; exit 0; }
           gh release create "$tag" dist/Company-Setup.exe --target "$GITHUB_SHA" --title "Company $tag" \
-            --notes "Company-Setup.exe を実行すると、管理者権限なしで入ります。初回は右パネルからモデルを取得してください。"
+            --notes "Company-Setup.exe を実行して入れます（管理者の権限を求められます）。プログラムは Program Files、作業場は ProgramData\\Company、模型は C:\\LLM\\gguf に置かれます。初回は右パネルからモデルを取得してください。更新は右パネルの「更新を確かめる」から。"
