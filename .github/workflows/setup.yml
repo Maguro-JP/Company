@@ -1,0 +1,115 @@
+# Company の Setup.exe を組む。main では Release に置き、手で起こしたときは artifact に置く。
+# 組むのは Linux の上（NSIS）。組んだ物は Windows のランナーに入れて、起動と画面まで見る。
+# 作業ブランチ（claude/*）の push では回さない（手元で確かめ、CI は手元に無い Windows の確認だけに使う）。
+name: setup
+on:
+  push:
+    branches: [main]
+    paths:
+      - "company/**"
+      - "ui/**"
+      - "agents/**"
+      - "product/**"
+      - "app.py"
+      - "company.yaml"
+      - "VERSION"
+      - "packaging/company/**"
+      - ".github/workflows/setup.yml"
+  workflow_dispatch: {}
+permissions:
+  contents: write            # Release に置くため
+concurrency:
+  group: setup-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: NSIS
+        run: sudo apt-get update -q && sudo apt-get install -y -q nsis
+      - name: Setup.exe を組む
+        run: sh packaging/company/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Company-Setup
+          path: dist/Company-Setup.exe
+          retention-days: 7
+
+  windows:
+    # 手元に無い Windows の確認。黙って入れ、同梱の Python でテストを流し、アプリのウィンドウが開くかを見る
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Company-Setup
+          path: dist
+      - name: 黙って入れる
+        shell: pwsh
+        run: |
+          Start-Process -FilePath "dist\Company-Setup.exe" -ArgumentList "/S" -Wait
+          $dir = "$env:LOCALAPPDATA\Programs\Company"
+          if (-not (Test-Path "$dir\python\python.exe")) { throw "入っていない: $dir" }
+          Get-ChildItem $dir | Select-Object Name | Format-Table -HideTableHeaders
+      - name: 同梱の Python で会社のテストを流す
+        shell: pwsh
+        run: |
+          $py = "$env:LOCALAPPDATA\Programs\Company\python\python.exe"
+          & $py -c "import webview, fastapi, uvicorn, yaml, llama_cpp; print('import ok', webview.__version__)"
+          & $py -m unittest discover -s tests -t .
+          if ($LASTEXITCODE -ne 0) { throw "テストが落ちた" }
+      - name: アプリのウィンドウが開く
+        shell: pwsh
+        run: |
+          $dir = "$env:LOCALAPPDATA\Programs\Company"
+          $p = Start-Process -FilePath "$dir\python\pythonw.exe" -ArgumentList "app.py","--port","8765" -WorkingDirectory $dir -PassThru
+          $ok = $false
+          foreach ($i in 1..60) {
+            Start-Sleep -Seconds 1
+            try { $r = Invoke-RestMethod "http://127.0.0.1:8765/api/state"; $ok = $true; break } catch {}
+          }
+          if (-not $ok) { throw "サーバーが起動しない" }
+          "roles: " + ($r.roles | ForEach-Object { $_.role }) -join ","
+          Start-Sleep -Seconds 8
+          $win = Get-Process | Where-Object { $_.MainWindowTitle -eq "Company" }
+          if (-not $win) { Get-Process | Where-Object { $_.MainWindowTitle } | Select-Object ProcessName, MainWindowTitle; throw "Company のウィンドウが無い" }
+          "window: " + $win.ProcessName + " / " + $win.MainWindowTitle
+          Add-Type -AssemblyName System.Windows.Forms
+          Add-Type -AssemblyName System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save("$env:GITHUB_WORKSPACE\window.png")
+          Stop-Process -Id $p.Id -Force
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-screenshot
+          path: window.png
+          if-no-files-found: ignore
+
+  release:
+    # Windows で開くのを見てから公開する
+    needs: windows
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Company-Setup
+          path: dist
+      - name: 公開する版として置く
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(cat VERSION)"
+          gh release view "$tag" >/dev/null 2>&1 && { echo "$tag は公開済み"; exit 0; }
+          gh release create "$tag" dist/Company-Setup.exe --target "$GITHUB_SHA" --title "Company $tag" \
+            --notes "Company-Setup.exe を実行すると、管理者権限なしで入ります。初回は右パネルからモデルを取得してください。"

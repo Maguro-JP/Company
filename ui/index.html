@@ -37,7 +37,43 @@
   .dot.done { background: var(--ok); } .dot.error { background: var(--err); } .dot.stopped { background: var(--warn); }
   @keyframes pulse { 50% { opacity: .35; } }
 
-  section.center { display: grid; grid-template-rows: 1fr auto; }
+  section.center { display: grid; grid-template-rows: auto 1fr auto; }
+  /* ---------- キャラクター ----------
+     役職を人の姿で見せる。誰が今動いているか、考えているのか、道具を使っているのかが、文字を読まなくても分かる。
+     動きは CSS だけで付け、JS は状態の class を付け替えるだけにする（流れる文字の描画を邪魔しない）。 */
+  .stage { display: flex; justify-content: center; align-items: flex-end; gap: 18px; padding: 14px 20px 4px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, transparent, rgba(255,255,255,.02)); min-height: 150px; }
+  .chara { position: relative; width: 96px; text-align: center; color: var(--muted); font-size: 11px; transition: transform .3s; }
+  .chara svg { width: 72px; height: 88px; overflow: visible; display: block; margin: 0 auto 2px; transform-origin: 50% 100%; animation: breathe 3.2s ease-in-out infinite; }
+  .chara .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chara .eye { animation: blink 4.6s infinite; transform-origin: center; transform-box: fill-box; }
+  .chara:nth-child(2n) .eye { animation-delay: 1.3s; } .chara:nth-child(3n) .eye { animation-delay: 2.1s; }
+  .chara .mouth { transform-origin: center; transform-box: fill-box; }
+  .chara .tool { opacity: 0; transform-origin: 20% 80%; transform-box: fill-box; }
+  .chara .bubble { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 0); min-width: 56px; max-width: 220px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 5px 9px; font-size: 11.5px; line-height: 1.35; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 2; }
+  .chara .bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px; background: inherit; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); transform: translateX(-50%) rotate(45deg); }
+  .chara.active { color: var(--text); transform: translateY(-6px) scale(1.08); }
+  .chara.active .bubble { opacity: 1; }
+  .chara.thinking .bubble { color: var(--muted); font-style: italic; }
+  .chara.thinking svg { animation: think 1.6s ease-in-out infinite; }
+  .chara.talking .mouth { animation: talk .28s ease-in-out infinite alternate; }
+  .chara.working .tool { opacity: 1; animation: swing .5s ease-in-out infinite alternate; }
+  .chara.working svg { animation: none; }
+  .chara.done svg { animation: hop .6s ease-out 2; }
+  .chara.error svg { animation: shake .4s ease-in-out 3; }
+  .chara.error .bubble { border-color: var(--err); color: var(--err); }
+  .chara.stopped { opacity: .55; }
+  .nav .ava { width: 22px; height: 26px; flex: none; }
+  .nav .ava svg { width: 22px; height: 26px; overflow: visible; }
+  .nav button.running .ava svg { animation: hop .6s ease-in-out infinite; }
+  @keyframes breathe { 50% { transform: scaleY(1.025) translateY(-1px); } }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+  @keyframes talk { to { transform: scaleY(2.4); } }
+  @keyframes think { 50% { transform: rotate(-4deg) translateY(-2px); } }
+  @keyframes swing { from { transform: rotate(-18deg); } to { transform: rotate(22deg); } }
+  @keyframes hop { 30% { transform: translateY(-14px) scaleX(.96); } 60% { transform: translateY(0); } }
+  @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+  @media (prefers-reduced-motion: reduce) { .chara svg, .chara .eye, .chara .mouth, .chara .tool, .nav .ava svg { animation: none !important; } }
+
   .stream { padding: 22px 28px; overflow: auto; }
   .empty { color: var(--muted); max-width: 560px; margin: 60px auto; text-align: center; }
   .empty h2 { font-weight: 500; color: var(--text); margin-bottom: 6px; }
@@ -115,6 +151,7 @@
   </aside>
 
   <section class="center">
+    <div class="stage" id="stage" aria-label="役職のキャラクター"></div>
     <div class="stream" id="stream">
       <div class="empty">
         <h2>AIが経営する会社</h2>
@@ -363,7 +400,7 @@
     $('cadenceNav').innerHTML = Object.entries(state.cadences).map(([name, roles]) =>
       `<button data-kind="cycle" data-target="${esc(name)}" class="${isActive('cycle', name)}">${esc(name)}<span class="sub">${roles.join(' → ')}</span></button>`).join('');
     $('roleNav').innerHTML = state.roles.map((r) =>
-      `<button data-kind="role" data-target="${esc(r.role)}" class="${isActive('role', r.role)}">${esc(r.title)}<span class="sub">${r.writes ? '実装' : '確認'}</span></button>`).join('');
+      `<button data-kind="role" data-target="${esc(r.role)}" class="${isActive('role', r.role)}"><span class="ava">${avatarSvg(r.role)}</span>${esc(r.title)}<span class="sub">${r.writes ? '実装' : '確認'}</span></button>`).join('');
     $('runNav').innerHTML = state.runs.slice(0, 20).map((r) =>
       `<button data-run="${r.id}" class="${state.current === r.id ? 'active' : ''}"><span class="dot ${r.status}"></span>${esc(r.target)}<span class="sub">${r.started_at.slice(11, 16)}</span></button>`).join('') || '<div class="small" style="padding:0 10px">まだありません</div>';
   };
@@ -375,6 +412,86 @@
     $('targetHint').textContent = `対象: ${b.dataset.kind === 'cycle' ? 'サイクル' : '役職'} / ${b.dataset.target}`;
     renderNav();
   });
+
+
+  // ---------- キャラクター ----------
+  // 見た目は役職の id で決める。agents/*.md に無い役職が増えても、既定の姿で出す。
+  const LOOKS = {
+    ceo:     { skin: '#f1c9a5', hair: '#3b2a1f', suit: '#2b3a67', accent: '#d94b4b', item: 'tie' },
+    builder: { skin: '#e9b98c', hair: '#5a3b2e', suit: '#4a4a4a', accent: '#f0a830', item: 'helmet' },
+    cto:     { skin: '#f3d2b3', hair: '#1f1f1f', suit: '#37474f', accent: '#8ab4f8', item: 'glasses' },
+    cmo:     { skin: '#f1c9a5', hair: '#8e3b46', suit: '#6a3d9a', accent: '#f28b82', item: 'megaphone' },
+    cfo:     { skin: '#e9b98c', hair: '#6e6e6e', suit: '#1f5f3b', accent: '#81c995', item: 'calculator' },
+    ops:     { skin: '#f3d2b3', hair: '#2f4858', suit: '#455a64', accent: '#fdd663', item: 'headset' },
+  };
+  const DEFAULT_LOOK = { skin: '#f1c9a5', hair: '#444', suit: '#555', accent: '#8ab4f8', item: '' };
+  const ITEMS = {
+    tie: (c) => `<path d="M36 46 l4 4 l-4 18 l-4 -18 z" fill="${c}"/>`,
+    helmet: (c) => `<path d="M18 22 a18 16 0 0 1 36 0 v4 h-36 z" fill="${c}"/><rect x="14" y="25" width="44" height="4" rx="2" fill="${c}"/>`,
+    glasses: (c) => `<g fill="none" stroke="${c}" stroke-width="1.6"><circle cx="29" cy="24" r="5.5"/><circle cx="43" cy="24" r="5.5"/><path d="M34.5 24 h3"/></g>`,
+    megaphone: (c) => `<g class="tool"><path d="M50 50 l16 -8 v22 l-16 -8 z" fill="${c}"/><rect x="44" y="52" width="7" height="10" rx="2" fill="${c}"/></g>`,
+    calculator: (c) => `<g class="tool"><rect x="48" y="48" width="14" height="18" rx="2" fill="${c}"/><rect x="50" y="50" width="10" height="4" fill="#1b1b1b"/><g fill="#1b1b1b"><rect x="50" y="56" width="3" height="3"/><rect x="55" y="56" width="3" height="3"/><rect x="50" y="61" width="3" height="3"/><rect x="55" y="61" width="3" height="3"/></g></g>`,
+    headset: (c) => `<g fill="none" stroke="${c}" stroke-width="2.2"><path d="M22 26 a14 14 0 0 1 28 0"/><path d="M22 28 v6 M50 28 v6 M48 36 q0 6 -8 6"/></g>`,
+  };
+  const TOOLS = {
+    wrench: (c) => `<g class="tool"><path d="M48 50 l12 12" stroke="${c}" stroke-width="4" stroke-linecap="round"/><circle cx="47" cy="49" r="5" fill="none" stroke="${c}" stroke-width="3"/></g>`,
+    laptop: (c) => `<g class="tool"><rect x="44" y="48" width="18" height="12" rx="1.5" fill="${c}"/><rect x="42" y="60" width="22" height="3" rx="1" fill="${c}"/></g>`,
+    paper: (c) => `<g class="tool"><rect x="46" y="48" width="14" height="17" rx="1.5" fill="#f5f5f5"/><g stroke="${c}" stroke-width="1.5"><path d="M49 53 h8 M49 57 h8 M49 61 h5"/></g></g>`,
+  };
+  const avatarSvg = (role) => {
+    const L = LOOKS[role] || DEFAULT_LOOK;
+    const item = ITEMS[L.item] ? ITEMS[L.item](L.accent) : '';
+    const tool = role === 'builder' ? TOOLS.wrench(L.accent) : role === 'cto' ? TOOLS.laptop(L.accent)
+      : ['ceo', 'cfo', 'ops'].includes(role) && !['calculator'].includes(L.item) ? TOOLS.paper(L.accent) : '';
+    return `<svg viewBox="0 0 72 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <ellipse cx="36" cy="86" rx="22" ry="3" fill="rgba(0,0,0,.35)"/>
+      <path d="M18 88 v-30 a18 14 0 0 1 36 0 v30 z" fill="${L.suit}"/>
+      <rect x="31" y="40" width="10" height="8" fill="${L.skin}"/>
+      <circle cx="36" cy="26" r="17" fill="${L.skin}"/>
+      <path d="M19 24 a17 17 0 0 1 34 0 q-8 -6 -17 -5 q-9 -1 -17 5 z" fill="${L.hair}"/>
+      <circle class="eye" cx="30" cy="27" r="2" fill="#1b1b1b"/><circle class="eye" cx="42" cy="27" r="2" fill="#1b1b1b"/>
+      <rect class="mouth" x="33" y="34" width="6" height="1.6" rx=".8" fill="#8c4a3a"/>
+      ${item}${tool}
+    </svg>`;
+  };
+  const stageEl = $('stage');
+  const chara = {}; // role -> element
+  const renderStage = () => {
+    stageEl.innerHTML = state.roles.map((r) =>
+      `<div class="chara" data-role="${esc(r.role)}" title="${esc(r.title)}"><div class="bubble"></div>${avatarSvg(r.role)}<div class="name">${esc(r.title)}</div></div>`).join('');
+    stageEl.querySelectorAll('.chara').forEach((el) => { chara[el.dataset.role] = el; });
+  };
+  const STATES = ['active', 'thinking', 'talking', 'working', 'done', 'error', 'stopped'];
+  let talkTimer = null;
+  const setChara = (role, cls, text) => {
+    const el = chara[role]; if (!el) return;
+    if (cls === 'done' || cls === 'error' || cls === 'stopped' || cls === 'idle') {
+      // 終わった役職は前に出たままにしない
+      el.classList.remove(...STATES);
+      if (cls !== 'idle') el.classList.add(cls);
+      if (cls !== 'idle') el.classList.add('active');
+      if (cls === 'done' || cls === 'stopped') setTimeout(() => el.classList.remove('active', 'done', 'stopped'), 2600);
+    } else {
+      Object.values(chara).forEach((o) => { if (o !== el) o.classList.remove('active', 'thinking', 'talking', 'working'); });
+      el.classList.remove('thinking', 'talking', 'working', 'done', 'error', 'stopped');
+      el.classList.add('active', cls);
+    }
+    if (text !== undefined) el.querySelector('.bubble').textContent = text;
+    if (cls === 'talking') { clearTimeout(talkTimer); talkTimer = setTimeout(() => el.classList.remove('talking'), 1800); }
+  };
+  const short = (t, n = 48) => { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n) + '…' : s; };
+  const resetStage = () => Object.keys(chara).forEach((r) => setChara(r, 'idle', ''));
+  const stageEvent = (ev) => {
+    switch (ev.type) {
+      case 'role_start': setChara(ev.role, 'thinking', '考えています…'); break;
+      case 'delta': setChara(ev.role, 'talking', short(ev.text ? (chara[ev.role]?.querySelector('.bubble').textContent.replace(/…$/, '') + ev.text) : '')); break;
+      case 'text': setChara(ev.role, 'talking', short(ev.text)); break;
+      case 'tool_call': setChara(ev.role, 'working', `${ev.name} を実行中…`); break;
+      case 'tool_result': setChara(ev.role, 'thinking', `${ev.name} の結果を読んでいます…`); break;
+      case 'role_end': setChara(ev.role, ev.reason === 'stopped' ? 'stopped' : 'done', ev.reason === 'stopped' ? '止まりました' : `終わりました（${ev.turns} ターン）`); break;
+      case 'error': if (ev.role) setChara(ev.role, 'error', short(ev.text, 60)); break;
+    }
+  };
 
   // ---------- Stream ----------
   const stream = $('stream');
@@ -389,6 +506,7 @@
   let live = null; // 生成中の枠。確定の出来事が来たら消す
   const dropLive = () => { if (live) { live.remove(); live = null; } };
   const render = (ev) => {
+    stageEvent(ev);
     const who = `<b>${esc(roleTitle(ev.role))}</b> <span>${esc(ev.at || '')}</span>`;
     if (ev.type === 'delta') {
       if (!live) {
@@ -416,7 +534,7 @@
 
   const openRun = async (id) => {
     if (state.es) { state.es.close(); state.es = null; }
-    state.current = id; stream.innerHTML = ''; renderNav();
+    state.current = id; stream.innerHTML = ''; renderNav(); resetStage();
     const run = await api(`/api/runs/${id}`);
     run.events.forEach(render);
     setRunning(run.status === 'running');
@@ -450,6 +568,7 @@
   const refreshState = async () => {
     const s = await api('/api/state');
     Object.assign(state, { cadences: s.cadences, roles: s.roles, runs: s.runs, settings: s.settings });
+    if (Object.keys(chara).join() !== state.roles.map((r) => r.role).join()) renderStage();
     $('companyName').textContent = s.company.name || '';
     $('companyInfo').innerHTML = `<div>${esc(s.company.mission || '')}</div><div style="margin-top:6px">顧客: ${esc(s.company.customer || '')}</div><div>ステージ: ${esc(s.company.stage || '')}</div>`;
     renderNav();

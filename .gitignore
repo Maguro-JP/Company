@@ -6,3 +6,4 @@ venv/
 data/settings.json
 data/models/
 data/runs.csv
+dist/
