@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from . import controls, gemini, local_llm, mcp_http, runner
 from .config import ROOT, load_config
-from .providers import ProviderError, make_provider
+from .providers import ProviderError, answer_check, make_provider, provider_catalog
 
 UI_DIR = ROOT / "ui"
 
@@ -49,6 +49,7 @@ class SettingsPatch(BaseModel):
     temperature: float | None = None
     max_turns: int | None = None
     max_tokens_per_run: int | None = None
+    roles: dict[str, dict[str, Any]] | None = None
     webhook_url: str | None = None
     notify_on: str | None = None
     context: int | None = None
@@ -58,6 +59,11 @@ class SettingsPatch(BaseModel):
 @app.post("/api/settings")
 def update_settings(patch: SettingsPatch) -> dict[str, Any]:
     return runner.save_settings(patch.model_dump(exclude_none=True))
+
+
+@app.get("/api/providers")
+def providers() -> dict[str, Any]:
+    return {"providers": provider_catalog()}
 
 
 @app.get("/api/models")
@@ -71,6 +77,28 @@ def models(provider: str, base_url: str = "", api_key: str = "") -> dict[str, An
         return {"models": p.list_models()}
     except ProviderError as exc:
         return {"models": [], "error": str(exc)}
+
+
+class CheckRequest(BaseModel):
+    provider: str
+    model: str
+    base_url: str = ""
+    api_key: str = ""
+    context: int | None = None
+    gpu_layers: int | None = None
+    role: str | None = None   # 役職の上書きで確かめるとき
+
+
+@app.post("/api/check")
+def check(req: CheckRequest) -> dict[str, Any]:
+    """選んだ AI に 1 問送って、本当に答えるかを見る。設定の正しさはこれでしか分からない。"""
+    settings = {**runner.load_settings(), **req.model_dump(exclude_none=True)}
+    if req.role:
+        settings = runner.settings_for_role(settings, req.role)
+    try:
+        return answer_check(settings)
+    except ProviderError as exc:
+        return {"error": str(exc), "kind": exc.kind}
 
 
 class DownloadRequest(BaseModel):

@@ -13,7 +13,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
-from .providers import ProviderError, ToolCall, ToolSpec, Turn
+from .providers import ProviderError, ToolCall, ToolSpec, Turn, explain_network_error, http_error
 
 BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
@@ -35,9 +35,9 @@ def _request(method: str, path: str, api_key: str, payload: dict | None = None,
             msg = body[:400]
         if exc.code in (400, 401, 403) and "API key" in msg:
             raise ProviderError("AI Studio の API キーが無効です。https://aistudio.google.com/apikey で発行したキーを右パネルに入れてください。") from exc
-        raise ProviderError(f"Gemini API エラー (HTTP {exc.code}): {msg}") from exc
+        raise http_error(url, exc.code, msg) from exc
     except urllib.error.URLError as exc:
-        raise ProviderError(f"Gemini API に接続できません: {exc.reason}") from exc
+        raise ProviderError(f"Gemini API に接続できません: {explain_network_error(exc.reason)}", "unavailable") from exc
 
 
 def _schema(parameters: dict[str, Any]) -> dict[str, Any]:

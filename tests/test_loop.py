@@ -178,7 +178,7 @@ class LocalLLMLoopTest(unittest.TestCase):
         provider = OpenAICompatibleProvider("http://127.0.0.1:9/v1", "x")
         with self.assertRaises(ProviderError) as ctx:
             provider.list_models()
-        self.assertIn("起動しているか", str(ctx.exception))
+        self.assertIn("起動していないか", str(ctx.exception))
 
     def test_list_models(self):
         llm = FakeLLM([])
