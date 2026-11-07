@@ -171,7 +171,7 @@ def _log_path() -> Path:
     return root / "logs" / "app.log"
 
 
-def _report_crash(exc: BaseException) -> None:
+def _report_crash(exc: BaseException, dialog: bool = True) -> None:
     """落ちた理由を logs\\app.log に書き、Windows ではメッセージボックスでも見せる。
     黙って消えるのが「そもそも動かない」の一番の原因になるため。"""
     import traceback  # noqa: PLC0415
@@ -187,7 +187,8 @@ def _report_crash(exc: BaseException) -> None:
         pass
     if sys.stderr is not None:
         print(text, file=sys.stderr)
-    if sys.platform == "win32":
+    # メッセージボックスは人が閉じるまで戻らない。テストでは出さない（Windows ランナーで 6 分固まった）
+    if dialog and sys.platform == "win32":
         try:
             import ctypes  # noqa: PLC0415
             last = text.strip().splitlines()[-1]

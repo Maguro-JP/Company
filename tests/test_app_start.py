@@ -29,7 +29,7 @@ class NoConsoleTest(unittest.TestCase):
     def test_crash_is_written_to_log(self):
         with tempfile.TemporaryDirectory() as d:
             with mock.patch.dict("os.environ", {"COMPANY_HOME": d}):
-                app._report_crash(RuntimeError("試しの失敗"))
+                app._report_crash(RuntimeError("試しの失敗"), dialog=False)
                 text = (Path(d) / "logs" / "app.log").read_text(encoding="utf-8")
         self.assertIn("起動に失敗", text)
         self.assertIn("試しの失敗", text)
