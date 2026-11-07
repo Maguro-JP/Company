@@ -40,21 +40,22 @@ python3 -m zipfile -e "$ZIP" "$SRC/python"
 rm -f "$SRC/python/python$PYTAG._pth"
 
 echo "== 部品（Windows 用の wheel）"
-W="--platform win_amd64 --python-version $PYVER --implementation cp --only-binary=:all: -q --disable-pip-version-check --no-deps"
+W="--platform win_amd64 --python-version $PYVER --implementation cp --only-binary=:all: -q --disable-pip-version-check"
 SP="$SRC/python/Lib/site-packages"
 mkdir -p "$SP"
-# 依存は手で並べる（pip は --platform を渡しても環境マーカーをこの機械で評価するので、win32 だけの部品が抜ける）
-python3 -m pip install $W --target "$SP" \
-  fastapi starlette pydantic pydantic-core typing_extensions annotated-types anyio sniffio idna \
-  uvicorn h11 click colorama PyYAML \
-  pywebview pythonnet clr-loader bottle cffi pycparser \
-  numpy diskcache jinja2 MarkupSafe \
-  anthropic httpx httpcore certifi distro jiter docstring-parser
+# 依存ごと取る（手で並べると fastapi の annotated_doc のような新しい依存が抜ける。Windows のランナーで落ちた）。
+# pip は --platform を渡しても環境マーカーをこの機械で評価するので、Windows でだけ要る物（pythonnet）は下で足す
+python3 -m pip install $W --target "$SP" fastapi uvicorn PyYAML anthropic httpx
 python3 -m pip install $W --target "$SP" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu "llama-cpp-python==0.3.19"
-# proxy_tools は wheel が無い（sdist だけ）。純 Python の 1 パッケージなので、展開して置く
+# pywebview は proxy_tools（wheel が無い）に依存するので、依存を切って入れ、残りを手で足す
+python3 -m pip install $W --target "$SP" --no-deps pywebview
+python3 -m pip install $W --target "$SP" pythonnet clr-loader bottle typing_extensions
 python3 -m pip download -q --disable-pip-version-check --no-deps --no-binary :all: -d "$B/sdist" proxy_tools
 tar -xzf "$B"/sdist/proxy_tools-*.tar.gz -C "$B/sdist"
 cp -r "$B"/sdist/proxy_tools-*/proxy_tools "$SP/"
+
+echo "== 依存の抜けを見る（Windows の環境マーカーで METADATA の Requires-Dist を辿る）"
+python3 "$ROOT/packaging/company/check_deps.py" "$SP"
 
 echo "== 同梱物の欠けを見る"
 missing=""

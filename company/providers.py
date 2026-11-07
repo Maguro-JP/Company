@@ -78,11 +78,12 @@ KIND_TEXT = {
 def explain_network_error(reason: object) -> str:
     """接続の失敗を人の言葉で言う。errno の名前では何が起きたか分からない（AdaptiveAIStudio の net-why.ts と同じ分け方）。"""
     text = str(reason)
-    if re.search(r"Connection refused|ECONNREFUSED|errno 111", text, re.I):
+    # Windows は WinError の番号と英語の文で来る（10061 拒否、11001 名前、10060 時間切れ）
+    if re.search(r"Connection refused|ECONNREFUSED|errno 111|actively refused|10061", text, re.I):
         return "繋ぐ先に断られました。サーバーが起動していないか、ポートが違います。"
-    if re.search(r"Name or service not known|nodename nor servname|getaddrinfo|ENOTFOUND|errno -2", text, re.I):
+    if re.search(r"Name or service not known|nodename nor servname|getaddrinfo|ENOTFOUND|errno -2|11001", text, re.I):
         return "相手の名前を引けません。回線が繋がっていないか、URL の綴りが違います。"
-    if re.search(r"timed out|timeout", text, re.I):
+    if re.search(r"timed out|timeout|10060", text, re.I):
         return "時間切れです。相手が応答しません。"
     if re.search(r"CERTIFICATE|certificate|SSL|TLS", text):
         return "証明書か暗号化のやりとりで断られました。会社の回線（プロキシ）で起きることがあります。"
