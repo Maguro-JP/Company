@@ -6,6 +6,7 @@ Windows / Linux の両方で動くよう shell=True で実行する。
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,12 @@ from .providers import ToolSpec
 
 MAX_OUTPUT_CHARS = 20_000
 COMMAND_TIMEOUT_SEC = 300
+
+# 憲章 4 節「テストが落ちた状態でコミットしない」を、お願いではなく道具の側で止める。
+# コミットの直前にこのコマンドを走らせ、落ちていればコミット自体を実行しない。
+# git の後ろに来てよいのは、オプション（-c key=val、-C path、-q など）だけ。`git log --grep commit` を巻き込まない
+COMMIT_PATTERN = re.compile(r"\bgit(?:\s+-\S*(?:\s+[^-\s]\S*)?)*\s+commit\b")
+TEST_COMMAND = f"cd product && {sys.executable} -m unittest discover -s tests"
 
 ToolFn = Callable[[dict[str, Any]], str]
 
@@ -67,8 +74,41 @@ def list_files(args: dict[str, Any]) -> str:
     return "\n".join(found) if found else "（該当なし）"
 
 
+def _run(command: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        command,
+        shell=True,
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=COMMAND_TIMEOUT_SEC,
+    )
+
+
+def _tests_block_commit(command: str) -> str | None:
+    """コミットなら先にテストを走らせ、落ちていれば断る文を返す。通れば None。"""
+    if not COMMIT_PATTERN.search(command) or not TEST_COMMAND:
+        return None
+    try:
+        proc = _run(TEST_COMMAND)
+    except subprocess.TimeoutExpired:
+        return f"コミットを止めました: テストが {COMMAND_TIMEOUT_SEC} 秒で終わりませんでした（{TEST_COMMAND}）"
+    if proc.returncode == 0:
+        return None
+    tail = "\n".join((proc.stderr or proc.stdout or "").rstrip().splitlines()[-15:])
+    return (
+        "コミットを止めました: テストが落ちています（ガードレール「テストが落ちている状態でコミットしない」）。"
+        f"先に直してください。\n実行: {TEST_COMMAND}\nexit code: {proc.returncode}\n{tail}"
+    )
+
+
 def run_command(args: dict[str, Any]) -> str:
     command = args["command"]
+    refusal = _tests_block_commit(command)
+    if refusal:
+        return _clip(refusal)
     try:
         proc = subprocess.run(
             command,
