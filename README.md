@@ -163,4 +163,3 @@ cd product && python -m unittest discover -s tests  # プロダクト
 ## 未着手
 
 - 通知（メール / Slack）
-- 内蔵エンジンのストリーミング表示（今は1ターン分まとめて出る）
