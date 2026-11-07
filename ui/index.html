@@ -53,6 +53,7 @@
   .msg.status .body { background: transparent; color: var(--muted); font-size: 12.5px; padding: 4px 0; }
   .msg.error .body { border: 1px solid var(--err); color: var(--err); background: transparent; }
   .msg.role .body { background: var(--panel-2); font-weight: 500; }
+  .msg.live .body { border: 1px dashed var(--border); background: transparent; color: var(--muted); }
 
   .composer { border-top: 1px solid var(--border); padding: 14px 28px 18px; background: var(--bg); }
   .composer .box { max-width: 860px; margin: 0 auto; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 10px 12px 8px; }
@@ -181,6 +182,14 @@
       <input type="number" id="maxTokens" min="0" step="1000" value="0">
       <span class="small" style="display:block;margin-top:4px">入力＋出力の合計。0 = 無制限。クラウドで放置して回すときの費用の歯止め</span>
     </label>
+    <label class="field"><span>通知（Webhook）</span>
+      <input type="text" id="webhookUrl" placeholder="https://hooks.slack.com/… または Discord の Webhook URL">
+      <select id="notifyOn" style="margin-top:6px">
+        <option value="always">毎回知らせる</option>
+        <option value="error">失敗・停止のときだけ</option>
+      </select>
+      <span class="small" style="display:block;margin-top:4px">ランの終わりに1通。空なら知らせない</span>
+    </label>
     <div class="small" id="saveState"></div>
 
     <h3 style="margin:22px 0 6px">役職ごとの AI</h3>
@@ -205,13 +214,14 @@
   };
 
   // ---------- Settings panel ----------
-  const settingsEls = ['provider', 'baseUrl', 'apiKey', 'model', 'temperature', 'maxTurns', 'maxTokens', 'context', 'gpuLayers'];
+  const settingsEls = ['provider', 'baseUrl', 'apiKey', 'model', 'temperature', 'maxTurns', 'maxTokens', 'context', 'gpuLayers', 'webhookUrl', 'notifyOn'];
   const readSettings = () => ({
     provider: $('provider').value, base_url: $('baseUrl').value, api_key: $('apiKey').value,
     model: $('model').value, temperature: parseFloat($('temperature').value), max_turns: parseInt($('maxTurns').value || '60', 10),
     context: parseInt($('context').value, 10), gpu_layers: parseInt($('gpuLayers').value || '-1', 10),
     max_tokens_per_run: parseInt($('maxTokens').value || '0', 10),
     roles: readRoleAssignments(),
+    webhook_url: $('webhookUrl').value.trim(), notify_on: $('notifyOn').value,
   });
   const readRoleAssignments = () => {
     const out = {};
@@ -242,6 +252,7 @@
     $('apiKey').value = s.api_key || '';
     $('temperature').value = s.temperature ?? 0.2; $('tempVal').textContent = $('temperature').value;
     $('maxTurns').value = s.max_turns ?? 60; $('maxTokens').value = s.max_tokens_per_run ?? 0;
+    $('webhookUrl').value = s.webhook_url || ''; $('notifyOn').value = s.notify_on || 'always';
     $('context').value = String(s.context ?? 8192); $('gpuLayers').value = s.gpu_layers ?? -1;
     if (s.model) { $('model').innerHTML = `<option>${esc(s.model)}</option>`; $('model').value = s.model; }
     toggleProviderFields();
@@ -375,8 +386,22 @@
     stream.scrollTop = stream.scrollHeight;
   };
   const roleTitle = (role) => (state.roles.find((r) => r.role === role) || {}).title || role || '';
+  let live = null; // 生成中の枠。確定の出来事が来たら消す
+  const dropLive = () => { if (live) { live.remove(); live = null; } };
   const render = (ev) => {
     const who = `<b>${esc(roleTitle(ev.role))}</b> <span>${esc(ev.at || '')}</span>`;
+    if (ev.type === 'delta') {
+      if (!live) {
+        if (stream.querySelector('.empty')) stream.innerHTML = '';
+        live = document.createElement('div'); live.className = 'msg live';
+        live.innerHTML = `<div class="who">${who} <span class="small">生成中…</span></div><div class="body"></div>`;
+        stream.appendChild(live);
+      }
+      live.querySelector('.body').textContent += ev.text;
+      stream.scrollTop = stream.scrollHeight;
+      return;
+    }
+    dropLive();
     switch (ev.type) {
       case 'role_start': add('role', who, `${esc(ev.title)} が開始 · ${esc(ev.model || '')} · ${ev.writes ? '書き込み可' : '読み取りのみ'}`); break;
       case 'role_end': add('status', who, `${ev.turns} ターン · ツール ${ev.tool_calls} 回 · 入力 ${ev.usage?.input ?? 0} / 出力 ${ev.usage?.output ?? 0} トークン · ${esc(ev.reason)}`); break;

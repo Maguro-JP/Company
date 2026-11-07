@@ -95,7 +95,7 @@ AI Studio と同じ三分割。
 
 - **左**: サイクル（`build` = 決めて作る、`review` = 進捗と数字を見る）と役職。クリックで対象を選ぶ
 - **中央**: 実行ログ。モデルの発言、ツール呼び出し、その結果が順に流れる。下の欄にオーナーの指示を書ける（任意）
-- **右**: プロバイダ、モデル、モデルのダウンロード、コンテキスト長、GPU 層数、temperature、最大ターン数、トークン上限。変更は即保存される
+- **右**: プロバイダ、モデル、モデルのダウンロード、コンテキスト長、GPU 層数、temperature、最大ターン数、トークン上限、通知（Slack / Discord の Webhook）。変更は即保存される
 
 指示を空のまま「実行」すると、役職定義（`agents/*.md`）に従って自分で判断して動く。
 
@@ -133,6 +133,7 @@ company/gemini_bridge.py  Gemini と会話して会社を操作するブリッ�
 company/tools.py     エージェントのツール。read_file / write_file / list_files / run_command
 company/loop.py      ツール呼び出しループ。プロバイダ非依存
 company/runner.py    サイクルの組み立て、設定の永続化、実行中ランの管理
+company/notify.py    ランの終わりを Webhook（Slack / Discord）に1通知らせる
 company/server.py    HTTP API と SSE（UIが使う）
 app.py               起動。pywebview でウィンドウ、--browser でブラウザ
 ui/index.html        画面。依存なしの単一ファイル
@@ -145,6 +146,7 @@ data/runs.csv        役職ごとの実行の実績（ターン・トークン�
 コマンド実行のみ。報告と実行が同じ権限だと、自分の作業を自分で承認する構造になるため。
 
 ツールは全てリポジトリ内に閉じる。外のパスを指定するとエラーが返り、モデルはそれを見て別の手を打つ。
+`git commit` は道具の側でテストを先に走らせ、落ちていればコミットしない（憲章 4 節をお願いではなく仕組みで守る）。
 
 ## 設計上の判断
 
@@ -180,5 +182,5 @@ cd product && python -m unittest discover -s tests  # プロダクト
 
 ## 未着手
 
-- 通知（メール / Slack）
-- 内蔵エンジンのストリーミング表示（今は1ターン分まとめて出る）
+- Windows 実機での起動確認（オーナー作業）
+- 停止条件の自動化（憲章 4 節）

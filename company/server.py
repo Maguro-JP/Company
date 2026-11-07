@@ -50,6 +50,8 @@ class SettingsPatch(BaseModel):
     max_turns: int | None = None
     max_tokens_per_run: int | None = None
     roles: dict[str, dict[str, Any]] | None = None
+    webhook_url: str | None = None
+    notify_on: str | None = None
     context: int | None = None
     gpu_layers: int | None = None
 
