@@ -60,7 +60,7 @@ def ensure_workspace(app_root: Path, workspace: Path) -> int:
     (workspace / "data" / "decisions").mkdir(parents=True, exist_ok=True)
     ignore = workspace / ".gitignore"
     if not ignore.exists():
-        ignore.write_text("data/settings.json\ndata/models/\n__pycache__/\n*.pyc\nmigrate.log\n", encoding="utf-8")
+        ignore.write_text("data/settings.json\ndata/models/\nupdates/\n__pycache__/\n*.pyc\nmigrate.log\n", encoding="utf-8")
     if added:
         _log(workspace, f"ensure_workspace: {added} files added from {app_root}")
     return added

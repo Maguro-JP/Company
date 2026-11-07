@@ -28,7 +28,7 @@ SetCompressor /SOLID lzma
 !define LNK_ICON "$INSTDIR\ui\icon\app.ico"
 
 !define MUI_FINISHPAGE_RUN "$INSTDIR\python\pythonw.exe"
-!define MUI_FINISHPAGE_RUN_PARAMETERS "app.py"
+!define MUI_FINISHPAGE_RUN_PARAMETERS "-E -s app.py"
 !define MUI_FINISHPAGE_RUN_TEXT "Company を起動する"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -86,9 +86,9 @@ Section "Install"
   SetShellVarContext all
   SetOutPath "$INSTDIR"
   CreateDirectory "$SMPROGRAMS\${APP}"
-  CreateShortcut "$SMPROGRAMS\${APP}\${APP}.lnk" "$INSTDIR\python\pythonw.exe" "app.py" "${LNK_ICON}" 0
+  CreateShortcut "$SMPROGRAMS\${APP}\${APP}.lnk" "$INSTDIR\python\pythonw.exe" "-E -s app.py" "${LNK_ICON}" 0
   CreateShortcut "$SMPROGRAMS\${APP}\${APP} をアンインストール.lnk" "$INSTDIR\Uninstall.exe"
-  CreateShortcut "$DESKTOP\${APP}.lnk" "$INSTDIR\python\pythonw.exe" "app.py" "${LNK_ICON}" 0
+  CreateShortcut "$DESKTOP\${APP}.lnk" "$INSTDIR\python\pythonw.exe" "-E -s app.py" "${LNK_ICON}" 0
 
   WriteRegStr HKLM "Software\${APP}" "InstallDir" "$INSTDIR"
   WriteRegStr HKLM "${UNINST}" "DisplayName" "${APP}"
@@ -124,6 +124,8 @@ Section "Uninstall"
   Delete "$DESKTOP\${APP}.lnk"
   DeleteRegKey HKLM "${UNINST}"
   DeleteRegKey HKLM "Software\${APP}"
+  ; 取った更新の Setup.exe は、作業場を残すときも消す（作業の物ではなく一時の物）
+  RMDir /r "$COMMONPROGRAMDATA\${APP}\updates"
   ; 作業場（AI が作ったプロダクトと記録）は聞いてから消す。黙って消す（/S）ときは残す。模型（C:\LLM）はどのアプリも消さない
   MessageBox MB_YESNO|MB_ICONQUESTION "作業場（$COMMONPROGRAMDATA\${APP}）も消しますか？$\r$\nAI が作ったプロダクト、記録、設定が入っています。模型（C:\LLM）はここには入っていません。" /SD IDNO IDNO keep
     RMDir /r "$COMMONPROGRAMDATA\${APP}"

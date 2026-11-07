@@ -19,6 +19,8 @@ Windows のアプリウィンドウ（またはブラウザ）から操作する
 
 作業場を ProgramData に置くのは、利用者名が全角だと AppData の道で llama.cpp が模型を開けないため。
 環境変数 `COMPANY_HOME` で作業場を、`LLM_HOME` で模型の置き場を移せる（`company/paths.py`）。
+更新は右パネルの「更新を確かめる」から。新しい版の Setup.exe を取って開き、案内に沿って入れる（`company/updater.py`）。
+入れ方・置き場・更新・前の版からの移行は [docs/help/install.md](docs/help/install.md)。
 前の版（利用者ごとに入れていた v0.1.x）があれば、Setup.exe が作業場と記録と模型を新しい置き場へ移してから前の版を消す。
 
 Setup.exe は `packaging/company/build.sh` で組み、`.github/workflows/setup.yml` が main への push のたびに
@@ -159,6 +161,8 @@ ui/characters/       役職のキャラクターの絵（PNG、背景は透明�
 ui/icon/             アプリのアイコン（app.ico はショートカットと Setup.exe、app-256.png はウィンドウ、app-64.png は画面のタブ）
 company/paths.py     置き場（プログラム・作業場・模型）を 1 か所で決める
 company/migrate.py   配布版の作業場を整える。最初の起動と更新、前の版からの移行
+company/updater.py   アプリ本体の更新。releases/latest と VERSION を比べ、Setup.exe を取って開く
+docs/help/install.md 入れる・置き場・更新・前の版から・消す
 packaging/company/   Setup.exe の組み方（build.sh、installer.nsi）。VERSION が版
 product/             プロダクト本体
 data/decisions/      review サイクルの記録

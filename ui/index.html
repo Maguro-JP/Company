@@ -243,6 +243,11 @@
 
     <h3 style="margin:22px 0 6px">この会社</h3>
     <div class="small" id="companyInfo"></div>
+    <div class="field" id="updateField" style="margin-top:18px;border-top:1px solid var(--border);padding-top:12px">
+      <span class="small" style="display:block;margin-bottom:6px">このアプリ <b id="appVersion"></b></span>
+      <button class="btn" id="checkUpdate">更新を確かめる</button>
+      <div class="note" id="updateNote" style="display:none"></div>
+    </div>
   </aside>
 </main>
 
@@ -503,6 +508,27 @@
     }
   };
 
+
+  // ---------- 更新 ----------
+  // 起動時は黙って確かめ、新しい版があるときだけ知らせる。押したときは、確かめられない理由も出す（CharacterDesigner と同じ）
+  const showUpdate = (r, pressed) => {
+    const note = $('updateNote'); note.className = 'note'; note.style.display = '';
+    if (r.error) { if (!pressed) { note.style.display = 'none'; return; } note.textContent = r.error; note.className = 'note err'; return; }
+    if (!r.newer) { if (!pressed) { note.style.display = 'none'; return; } note.textContent = `今の版（${r.current}）が最新です。`; return; }
+    note.className = 'note ok';
+    note.innerHTML = `新しい版 ${esc(r.newer.version)} があります。<button class="btn" id="applyUpdate" style="margin-left:8px">取って入れる</button>`;
+    $('applyUpdate').addEventListener('click', async () => {
+      $('applyUpdate').disabled = true; $('applyUpdate').textContent = '取っています…';
+      try { const a = await api('/api/update', { method: 'POST' }); note.textContent = a.setup ? `Setup.exe を取って開きました。案内に沿って入れてください（${a.setup}）` : '新しい版はありませんでした。'; }
+      catch (e) { note.textContent = String(e.message || e); note.className = 'note err'; }
+    });
+  };
+  $('checkUpdate').addEventListener('click', async () => {
+    $('checkUpdate').disabled = true;
+    try { showUpdate(await api('/api/update?quiet=false'), true); } finally { $('checkUpdate').disabled = false; }
+  });
+  api('/api/update').then((r) => showUpdate(r, false)).catch(() => {});
+
   // ---------- Stream ----------
   const stream = $('stream');
   const add = (cls, who, html) => {
@@ -580,6 +606,7 @@
     Object.assign(state, { cadences: s.cadences, roles: s.roles, runs: s.runs, settings: s.settings });
     if (Object.keys(chara).join() !== state.roles.map((r) => r.role).join()) renderStage();
     $('companyName').textContent = s.company.name || '';
+    $('appVersion').textContent = s.version ? `v${s.version}` : '';
     $('companyInfo').innerHTML = `<div>${esc(s.company.mission || '')}</div><div style="margin-top:6px">顧客: ${esc(s.company.customer || '')}</div><div>ステージ: ${esc(s.company.stage || '')}</div>`;
     renderNav();
   };
