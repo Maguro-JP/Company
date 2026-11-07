@@ -49,6 +49,8 @@ class SettingsPatch(BaseModel):
     temperature: float | None = None
     max_turns: int | None = None
     max_tokens_per_run: int | None = None
+    webhook_url: str | None = None
+    notify_on: str | None = None
     context: int | None = None
     gpu_layers: int | None = None
 

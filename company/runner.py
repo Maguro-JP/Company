@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from . import context as context_builder
+from . import notify
 from . import tools as toolkit
 from . import config as config_module
 from .config import AGENTS_DIR, DATA_DIR, DECISIONS_DIR, Config, load_agent, load_config
@@ -31,6 +32,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "temperature": 0.2,
     "max_turns": 60,
     "max_tokens_per_run": 0,   # 1つの役職の実行あたりの入力＋出力トークン上限。0 = 無制限
+    "webhook_url": "",         # Slack / Discord の incoming webhook。空なら知らせない
+    "notify_on": "always",     # always | error
     "context": 8192,     # 内蔵エンジンのコンテキスト長
     "gpu_layers": -1,    # 内蔵エンジン。-1 = GPU があれば全部載せる
 }
@@ -235,6 +238,7 @@ def _execute(run: Run, roles: list[str], cadence: str, instruction: str | None) 
     config = load_config()
     settings = load_settings()
     reports: list[tuple[str, str]] = []
+    usage = {"input": 0, "output": 0}
     status = "done"
     for role in roles:
         if run.stop.is_set():
@@ -244,6 +248,8 @@ def _execute(run: Run, roles: list[str], cadence: str, instruction: str | None) 
         if result is None:
             status = "error"
             break
+        usage["input"] += result.usage.get("input", 0)
+        usage["output"] += result.usage.get("output", 0)
         if result.stopped_reason == "stopped":
             status = "stopped"
             break
@@ -251,6 +257,12 @@ def _execute(run: Run, roles: list[str], cadence: str, instruction: str | None) 
     if reports and run.kind == "cycle" and status == "done":
         path = write_record(config, cadence, reports)
         run.emit({"type": "status", "role": "", "text": f"記録を書き出しました: {path.relative_to(DATA_DIR.parent)}"})
+    if notify.should_notify(settings, status):
+        try:
+            notify.send(settings["webhook_url"], notify.build_message(run.summary(), status, reports, usage))
+            run.emit({"type": "status", "role": "", "text": "Webhook に知らせました"})
+        except RuntimeError as exc:
+            run.emit({"type": "status", "role": "", "text": f"Webhook に知らせられませんでした: {exc}"})
     run.finish(status)
 
 
