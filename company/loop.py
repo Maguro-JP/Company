@@ -62,6 +62,7 @@ def run_loop(
     usage = {"input": 0, "output": 0}
     tool_calls_total = 0
     final_text = ""
+    malformed = 0
 
     for turn in range(1, max_turns + 1):
         if stop is not None and stop.is_set():
@@ -88,6 +89,22 @@ def run_loop(
             emit({"type": "status", "role": role,
                   "text": f"トークン上限 {max_total_tokens} に達したので止めました（使用 {spent}）"})
             return LoopResult(final_text, turn, tool_calls_total, usage, "budget")
+
+        # 道具の形が壊れている（<tool_call> と書いたのに読めない）。小さい模型が閉じずに繰り返すと起きる。
+        # 本文として出さず、形を教えて言い直させる。2 回続いたら、その模型では無理として止める
+        if not result.tool_calls and "<tool_call>" in (result.text or ""):
+            malformed += 1
+            emit({"type": "status", "role": role, "text": f"道具の呼び方が読めなかったので言い直させます（{malformed} 回目）"})
+            if malformed >= 2:
+                emit({"type": "error", "role": role,
+                      "text": "模型が道具の形を守れません。小さい模型（0.5B）ではよく起きます。設定で 1.5B 以上の模型を選んでください"})
+                return LoopResult("", turn, tool_calls_total, usage, "error")
+            names = ", ".join(tools) or "（道具なし）"
+            history.append(provider.user_message(
+                "道具の呼び方が読めませんでした。道具を使うなら、1 回に 1 つだけ、"
+                '<tool_call>{"name": "道具の名前", "arguments": {...}}</tool_call> の形で、閉じタグまで書いてください。'
+                f"使える道具は {names} だけです。道具を使わずに答えるなら、<tool_call> を書かずに本文だけを書いてください。"))
+            continue
 
         if result.text:
             final_text = result.text

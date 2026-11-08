@@ -324,7 +324,7 @@ class BuiltinProvider:
             with _ENGINE_LOCK:
                 if on_delta is None:
                     resp = engine.create_chat_completion(
-                        messages=messages, temperature=temperature, max_tokens=self.max_tokens,
+                        messages=messages, temperature=temperature, max_tokens=self.max_tokens, repeat_penalty=1.15,
                         stop=["</tool_call>", "<tool_result", "\n<tool_call>"],
                     )
                 else:
@@ -332,7 +332,7 @@ class BuiltinProvider:
                     parts: list[str] = []
                     usage_seen: dict = {}
                     for chunk in engine.create_chat_completion(
-                        messages=messages, temperature=temperature, max_tokens=self.max_tokens,
+                        messages=messages, temperature=temperature, max_tokens=self.max_tokens, repeat_penalty=1.15,
                         stop=["</tool_call>", "<tool_result", "\n<tool_call>"], stream=True,
                     ):
                         delta = ((chunk.get("choices") or [{}])[0].get("delta") or {}).get("content") or ""
