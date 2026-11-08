@@ -173,11 +173,32 @@ class Registry:
 REGISTRY = Registry()
 
 
+INSTRUCTED_TASK = """
+# オーナーの指示（これだけをやる）
+
+{instruction}
+
+上の指示をそのまま行ってください。指示に無いこと（別の機能を足す、方針を決め直す、提案で止める）はしないでください。
+手順は、必要なら list_files と read_file で現状を見てから、指示の通りに作り、テストが要るなら run_command で通し、
+終わったら何をしたかを 3 行以内で報告してください。指示が読むだけのものなら、読んだ結果だけを報告してください。
+""".strip()
+
+
 def _task_for(role: str, shared: str, instruction: str | None) -> str:
-    base = BUILD_TASK if role in WRITER_ROLES else REVIEW_TASK
+    """役職の仕事の文。オーナーの指示があるときは、それを先頭に置き、それだけをやらせる。
+    末尾に付けると、長い文脈の後ろで小さい模型が指示を無視した（ユーザーの機械で起きた）。"""
     if instruction:
-        base = f"{base}\n\n# オーナーからの指示\n\n{instruction.strip()}\n\nこの指示を最優先してください。"
+        return f"{INSTRUCTED_TASK.format(instruction=instruction.strip())}\n\n# 参考（会社の現状。指示に関係ある所だけ見る）\n\n{shared}"
+    base = BUILD_TASK if role in WRITER_ROLES else REVIEW_TASK
     return f"{shared}\n\n{base}"
+
+
+def _system_for(agent_instructions: str, settings: dict[str, Any], instructed: bool) -> str:
+    """役職の system。オーナーの指示があるときは、その旨を一番先に置く（役職の定義より上）。"""
+    ctx = int(settings.get("context", 8192) or 8192)
+    head = ("オーナーの指示が最優先です。役職の定義や会社の現状より、この後の「オーナーの指示」を優先し、指示に無いことはしないでください。\n\n"
+            if instructed else "")
+    return f"{head}{workstyle.build(max_chars=workstyle.budget_for(ctx))}\n\n{agent_instructions}"
 
 
 def run_role(
@@ -199,7 +220,7 @@ def run_role(
 
     result = run_loop(
         provider=provider,
-        system=f"{workstyle.build(max_chars=workstyle.budget_for(int(settings.get('context', 8192) or 8192)))}\n\n{agent.instructions}",
+        system=_system_for(agent.instructions, settings, bool(instruction)),
         task=_task_for(role, shared, instruction),
         tools={**toolkit.toolset(can_write), **partners.toolset()},
         emit=run.emit,

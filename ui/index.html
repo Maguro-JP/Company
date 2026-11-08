@@ -754,7 +754,7 @@
     es.onerror = () => { es.close(); state.es = null; setRunning(false); };
     state.es = es;
   };
-  const syncSettingsSummary = () => { const m = $('model').value; $('settingsSummary').textContent = m ? `${$('provider').value} / ${m}` : '未選択'; };
+  const syncSettingsSummary = () => { const m = $('model').value; $('settingsSummary').textContent = m ? `${$('provider').value} / ${m}` : '未選択'; $('modelPill').textContent = m ? (m.includes('0.5b') ? `${m}（動作確認用。指示を守らせるなら 3B 以上）` : m) : 'モデル未選択'; };
   document.addEventListener('change', (e) => { if (e.target && (e.target.id === 'model' || e.target.id === 'provider')) syncSettingsSummary(); });
   setTimeout(syncSettingsSummary, 1500);
   // 開いた節を覚える
