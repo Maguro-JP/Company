@@ -78,6 +78,7 @@ Company はオマケではない。既製品のソフトやユーザーの自作
 | Ciel | `.claude/skills` | 入っているスキルの数を見る |
 | 部署の席（予定） | 席だけ | ビジュアル・映像・音響・ボイス・情報システムの部署ごとの席。ツールができたら口を足す（docs/knowledge/creative-series.md） |
 
+自社のツールは共有の登録簿（Windows は `%ProgramData%\Maguro\services.json`、環境変数 `MAGURO_SERVICES` で移せる）に起動時に自分の口を書き、Company はそこから他のツールを読む。Company 自身も `company` として `/mcp` を書く。この決まりに従うツールは、設定なしで Company の画面と /mcp に現れる。
 置き場が違うとき、非公開のツールを足すときは、作業場の `data/partners.json` に `{"id", "name", "about", "http", "mcp", "files"}` の形で書く
 （`POST /api/partners` でも書ける）。public のリポジトリなので、非公開のツールの名前はコードに書かない。
 

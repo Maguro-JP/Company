@@ -964,7 +964,7 @@
     const tools = p.tools ? `　道具 ${p.tools}` : (p.files !== undefined ? `　${p.files} 件` : '');
     const extra = p.give === 'register_mcp' ? `<div style="margin-top:6px"><button class="btn sm" data-register="${esc(p.id)}" ${p.alive ? '' : 'disabled'} title="起動のたびに自動で登録しています。向こうの設定を消したときだけ押す">登録し直す</button></div>` : '';
     const err = p.mcp_error ? `<div class="note err">${esc(p.mcp_error)}</div>` : '';
-    return `<div class="card"><h4>${dot} ${esc(p.name)} <span class="pill">${esc(p.dept || '')}</span>${tools}</h4><div class="small">${esc(p.about)}</div><div class="small" style="opacity:.7;word-break:break-all;margin-top:4px">${esc(p.detail)}</div>${err}${extra}</div>`;
+    return `<div class="card"><h4>${dot} ${esc(p.name)} <span class="pill">${esc(p.dept || '')}</span>${p.registered ? '<span class="pill" title="相手が自分で登録簿に書いた口">自動で連結</span>' : ''}${tools}</h4><div class="small">${esc(p.about)}</div><div class="small" style="opacity:.7;word-break:break-all;margin-top:4px">${esc(p.detail)}</div>${err}${extra}</div>`;
   };
   const loadPartners = async () => {
     try {

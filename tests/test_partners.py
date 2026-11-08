@@ -220,3 +220,36 @@ class AggregateMcpTest(unittest.TestCase):
                 missing = client.post("/mcp", json={"jsonrpc": "2.0", "id": 3, "method": "tools/call",
                                                     "params": {"name": "nobody__x", "arguments": {}}}).json()
                 self.assertTrue(missing["result"]["isError"])
+
+
+class RegistryTest(unittest.TestCase):
+    """自社のツールの登録簿。自分の口を書き、他のツールの口を読んで、設定なしで相手に出る。"""
+
+    def test_register_self_and_load_others(self):
+        with tempfile.TemporaryDirectory() as d:
+            book = Path(d) / "services.json"
+            with mock.patch.dict(os.environ, {"MAGURO_SERVICES": str(book)}):
+                r = partners.register_self(partners.company_entry("http://127.0.0.1:8765"))
+                self.assertEqual(r["entries"], 1)
+                # 別のツールが自分で書いた項目
+                data = json.loads(book.read_text(encoding="utf-8"))
+                data["drawtool"] = {"name": "絵のツール", "dept": "ビジュアル", "about": "描く", "mcp": {"url": "http://127.0.0.1:9999/mcp"}}
+                book.write_text(json.dumps(data), encoding="utf-8")
+                ids = {p["id"]: p for p in partners.load(path=Path(d) / "none.json")}
+            self.assertIn("drawtool", ids)
+            self.assertTrue(ids["drawtool"]["registered"])
+            self.assertNotIn("company", ids)  # 自分は相手に数えない
+            self.assertEqual(data["company"]["mcp"]["url"], "http://127.0.0.1:8765/mcp")
+
+    def test_register_keeps_other_entries_and_survives_bad_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            book = Path(d) / "services.json"
+            book.write_text("{broken", encoding="utf-8")
+            partners.register_self({"id": "company", "name": "Company"}, book)
+            data = json.loads(book.read_text(encoding="utf-8"))
+            self.assertIn("company", data)
+            partners.register_self({"id": "other", "name": "他"}, book)
+            self.assertEqual(set(json.loads(book.read_text(encoding="utf-8"))), {"company", "other"})
+
+    def test_registry_path_follows_platform(self):
+        self.assertEqual(partners.registry_path({"MAGURO_SERVICES": "/x/s.json"}), Path("/x/s.json"))

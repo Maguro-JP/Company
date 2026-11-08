@@ -55,6 +55,9 @@ Section "Install"
   ; S-1-5-32-545 は Users 群の番号。日本語の Windows では名前が「ユーザー」になるので、名前ではなく番号で指す
   CreateDirectory "$COMMONPROGRAMDATA\${APP}"
   nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$COMMONPROGRAMDATA\${APP}" /grant *S-1-5-32-545:(OI)(CI)M /T /Q'
+  ; 自社のツールどうしの登録簿（services.json）。どのアプリも書けるように Users に書き込みを付ける
+  CreateDirectory "$COMMONPROGRAMDATA\Maguro"
+  nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$COMMONPROGRAMDATA\Maguro" /grant *S-1-5-32-545:(OI)(CI)M /T /Q'
   ; 模型の置き場はシステムのドライブの LLM（company/paths.py の models_dir と同じ。C: 以外にも合わせる）
   StrCpy $1 "$WINDIR" 3
   CreateDirectory "$1LLM\gguf"
