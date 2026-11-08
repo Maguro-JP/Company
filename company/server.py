@@ -6,6 +6,8 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -166,6 +168,53 @@ def delete_run(run_id: str) -> dict[str, Any]:
     if not runner.REGISTRY.delete(run_id):
         raise HTTPException(409, "実行中か、記録がありません")
     return {"deleted": run_id}
+
+
+@app.post("/api/workspace/open")
+def workspace_open() -> dict[str, Any]:
+    """作業場をファイルの画面（エクスプローラー）で開く。中身を自分で見られるように。"""
+    import subprocess  # noqa: PLC0415
+    target = str(ROOT)
+    try:
+        if sys.platform == "win32":
+            os.startfile(target)  # type: ignore[attr-defined]
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", target])
+        else:
+            subprocess.Popen(["xdg-open", target])
+    except OSError as exc:
+        return {"error": f"開けません: {exc}", "path": target}
+    return {"path": target}
+
+
+@app.get("/api/workspace")
+def workspace_info() -> dict[str, Any]:
+    """作業場に何があるか。画面の「このアプリ」とメニューの「作業場」で見せる。"""
+    items = []
+    for name in ("company.yaml", "org.yaml", "agents", "product", "docs", "data", "logs", ".claude", "README.md", "CLAUDE.md"):
+        p = ROOT / name
+        if not p.exists():
+            continue
+        if p.is_dir():
+            n = sum(1 for _ in p.rglob("*") if _.is_file())
+            items.append({"name": name + "/", "what": WORKSPACE_WHAT.get(name, ""), "count": n})
+        else:
+            items.append({"name": name, "what": WORKSPACE_WHAT.get(name, ""), "count": None})
+    return {"path": str(ROOT), "items": items, "git": (ROOT / ".git").exists()}
+
+
+WORKSPACE_WHAT = {
+    "company.yaml": "会社の設定（名前、使命、承認なしでやること、KPI）",
+    "org.yaml": "会社の形（親会社 → 子会社 → 部門 → 部署 → 課）",
+    "agents": "役職の定義（1 役職 1 ファイル）",
+    "product": "会社が作る製品",
+    "docs": "憲章、手順書、知識、報告",
+    "data": "記録（実行の履歴、意思決定、実績、設定、模型）",
+    "logs": "起動の記録（起動しないときはここを見る）",
+    ".claude": "働き方のスキル（Ciel）",
+    "README.md": "説明",
+    "CLAUDE.md": "作業の決まり",
+}
 
 
 @app.get("/api/deliverables")

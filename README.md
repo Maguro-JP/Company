@@ -154,22 +154,9 @@ Ctrl+1〜5 で画面を切り替え、Ctrl+Enter で実行、Esc で停止、Ctr
 
 ## 作っているもの
 
-`product/` — **Churn Radar**。個人でSaaSを運営している人向けの、解約予兆検知。
-
-```
-cd product
-python -m churn_radar sample_events.csv --today 2026-09-01
-```
-
-```
-予兆 3 件（平常時の14日間と比較）
-
-  beta-labs  停止  稼働 14日 → 0日  最終 2026-08-18 (14日前)
-  gamma-io   急減  稼働 13日 → 1日  最終 2026-08-23 (9日前)
-  delta-app  減少  稼働 10日 → 3日  最終 2026-08-28 (4日前)
-```
-
-アカウント自身の過去と比べて落ちたものを拾う。他社比較も絶対値のしきい値も使わない。
+`product/` は会社が作る製品の置き場で、最初は空。何を作るかは CEO が「会社の形」の子会社と
+[docs/knowledge/group-strategy.md](docs/knowledge/group-strategy.md) を見て決め、実装担当が `product/tests/` のテストを通してからコミットする。
+見本の製品は置かない（置いていた偽の製品は消した）。
 
 ## 会社の仕組み
 

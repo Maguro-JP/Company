@@ -240,7 +240,8 @@
 <nav class="menubar" id="menubar">
   <span class="brand"><img src="/icon/app-64.png" alt=""> Company</span>
   <div class="menu"><button>ファイル</button><div class="list">
-    <button data-act="open-workspace">作業場の場所を見る<span class="key"></span></button>
+    <button data-act="open-workspace">作業場を開く<span class="key"></span></button>
+    <button data-act="workspace-info">作業場に何があるか</button>
     <button data-act="settings">設定…<span class="key">Ctrl+,</span></button>
     <hr>
     <button data-act="quit">閉じる</button>
@@ -520,7 +521,8 @@
   document.addEventListener('click', () => menubar.querySelectorAll('.menu').forEach((x) => x.classList.remove('open')));
   const act = async (name) => {
     switch (name) {
-      case 'open-workspace': await dialog('作業場', `${state.workspace}\n\ncompany.yaml、agents、product、docs、data（記録）はここにあります。`); break;
+      case 'open-workspace': try { const r = await api('/api/workspace/open', { method: 'POST' }); toast(r.error ? r.error : `開きました: ${r.path}`); } catch (e) { toast(String(e.message || e)); } break;
+      case 'workspace-info': { const w = await api('/api/workspace'); await dialog('作業場 ' + w.path, w.items.map((i) => `${i.name}${i.count !== null ? `（${i.count} 件）` : ''}　${i.what}`).join('\n') + (w.git ? '\n\n作業場は git のリポジトリで、役職のコミットが履歴になる' : '')); break; }
       case 'settings': showSettings('model'); break;
       case 'quit': window.close(); break;
       case 'run': $('runBtn').click(); break;
@@ -1001,7 +1003,7 @@
     $('statusWorkspace').textContent = s.workspace || '';
     $('histCount').textContent = s.runs.length;
     $('companyInfo').innerHTML = `<div><b>${esc(s.company.name || '')}</b></div><div>${esc(s.company.mission || '')}</div><div style="margin-top:6px">顧客: ${esc(s.company.customer || '')}</div><div>収益モデル: ${esc(s.company.business_model || '')}</div><div>ステージ: ${esc(s.company.stage || '')}</div>`;
-    $('appInfo').innerHTML = `<div>版 ${esc(s.version || '')}</div><div>作業場: ${esc(s.workspace || '')}</div>`;
+    try { const w = await api('/api/workspace'); $('appInfo').innerHTML = `<div>版 ${esc(s.version || '')}</div><div style="margin:4px 0 8px">作業場: ${esc(w.path)} <button class="btn sm" id="openWs">開く</button></div><table class="list">${w.items.map((i) => `<tr><td style="white-space:nowrap">${esc(i.name)}</td><td class="muted">${i.count !== null ? `${i.count} 件` : ''}</td><td class="muted">${esc(i.what)}</td></tr>`).join('')}</table>`; $('openWs').addEventListener('click', () => act('open-workspace')); } catch (_) { $('appInfo').innerHTML = `<div>版 ${esc(s.version || '')}</div><div>作業場: ${esc(s.workspace || '')}</div>`; }
     renderNav();
     if (s.runs.some((r) => r.status === 'running') && !state.es) { const r = s.runs.find((x) => x.status === 'running'); if (r && state.current !== r.id) openRun(r.id); }
   };
