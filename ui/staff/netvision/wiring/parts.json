@@ -1,0 +1,33 @@
+{
+ "base": "characterdesigner:thief",
+ "name": "結線係",
+ "brief": "結線と取り込み・書き出し。土台は CharacterDesigner の thief。会社の色（髪と服）だけを変えた",
+ "materials": {
+  "hair": {
+   "outline": "#1a4a3a",
+   "line": "#1a4a3a",
+   "ramp": [
+    "#1a4a3a",
+    "#2a7a5a",
+    "#4aaa7a"
+   ],
+   "steps": [
+    0.55,
+    0.86
+   ]
+  },
+  "tunic": {
+   "outline": "#163a30",
+   "line": "#163a30",
+   "ramp": [
+    "#163a30",
+    "#226050",
+    "#3a9070"
+   ],
+   "steps": [
+    0.55,
+    0.86
+   ]
+  }
+ }
+}

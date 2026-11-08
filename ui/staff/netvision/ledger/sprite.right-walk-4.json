@@ -1,0 +1,113 @@
+{
+ "name": "台帳係",
+ "style": "diorama",
+ "brief": "機器・拠点・保守期限を引く。土台は CharacterDesigner の merchant。会社の色（髪と服）だけを変えた",
+ "generated_from": "parts.json（tools/build.py が書き出す。手で直さない）",
+ "frame": "child",
+ "head_height": 13,
+ "body_box": [
+  2,
+  0,
+  15,
+  34
+ ],
+ "palette": {
+  "a": "#213a33",
+  "b": "#284a3f",
+  "c": "#2a2020",
+  "d": "#2a4a78",
+  "e": "#2b4d44",
+  "f": "#2c2324",
+  "g": "#2e2426",
+  "h": "#312523",
+  "i": "#32292d",
+  "j": "#352824",
+  "k": "#356055",
+  "l": "#42322a",
+  "m": "#427a64",
+  "n": "#447868",
+  "o": "#4a404a",
+  "p": "#4e3b2e",
+  "q": "#54907a",
+  "r": "#549276",
+  "s": "#5a3826",
+  "t": "#5a4433",
+  "u": "#5a4f5a",
+  "v": "#602e18",
+  "w": "#67aa88",
+  "x": "#69422d",
+  "y": "#714831",
+  "z": "#725640",
+  "A": "#743a1e",
+  "B": "#8a684e",
+  "C": "#8d5a3e",
+  "D": "#985028",
+  "E": "#a66c4a",
+  "F": "#c07d57",
+  "G": "#d49468",
+  "H": "#d88848",
+  "I": "#e0d8b8",
+  "J": "#e8a870",
+  "K": "#e8aa79",
+  "L": "#f8c898"
+ },
+ "rows": [
+  "......yyyyy.............",
+  "....yyKKKKKyy...........",
+  "...yKKKKKGFEEy..........",
+  "..bbKGECCEECCx..........",
+  "..bbFEbbbbbbbbb.........",
+  "..brbbbbbDJHHHv.........",
+  "..bwbbbmDbbLJJd.........",
+  "..brbbbDLIdLJJv.........",
+  "..bmbbbDLLLJJJv.........",
+  ".yybbDDAHLJJHHv.........",
+  "yKKKKsHHJJHHHv..........",
+  "yKFEFEssJJHDHv..........",
+  ".yccccqqaADqa...........",
+  ".jBzBcqqqaqqqa..........",
+  ".jBtcennnaqqka..........",
+  ".jBzceqqkeaqka..........",
+  ".jBtcakkeaaqka..........",
+  ".jBpcDaaaaanav..........",
+  ".jBlzcccccccHHv.........",
+  "jpBlBcqqqqkaHHv.........",
+  "hlBlzcnqkkkavv..........",
+  ".jBlzcnnnkeaa...........",
+  "..jhannkkaaaaa..........",
+  "....akkaaaaaaa..........",
+  "....aeeaaauuaa..........",
+  ".....acccguuog..........",
+  "......fiffjccf..........",
+  "......fifjBzBj..........",
+  "......fifjBBBj..........",
+  "......jcjjBlBj..........",
+  ".....jBpzjBlBj..........",
+  ".....jBlpjjhj...........",
+  ".....jBllh..............",
+  "......jhh...............",
+  "........................"
+ ],
+ "intended": [
+  [
+   9,
+   6
+  ],
+  [
+   9,
+   7
+  ],
+  [
+   10,
+   6
+  ],
+  [
+   10,
+   7
+  ],
+  [
+   14,
+   6
+  ]
+ ]
+}

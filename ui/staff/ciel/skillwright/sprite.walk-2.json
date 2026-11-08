@@ -1,0 +1,122 @@
+{
+ "name": "スキル職人",
+ "style": "diorama",
+ "brief": "スキルを作り、直し、配る。土台は CharacterDesigner の scholar。会社の色（髪と服）だけを変えた",
+ "generated_from": "parts.json（tools/build.py が書き出す。手で直さない）",
+ "head_height": 13,
+ "body_box": [
+  7,
+  0,
+  22,
+  35
+ ],
+ "palette": {
+  "a": "#1a1a28",
+  "b": "#1e1e28",
+  "c": "#22222c",
+  "d": "#252837",
+  "e": "#262632",
+  "f": "#2a1f18",
+  "g": "#2a2020",
+  "h": "#2a2a37",
+  "i": "#2a2a3a",
+  "j": "#312523",
+  "k": "#352824",
+  "l": "#391d12",
+  "m": "#3a3a4a",
+  "n": "#403024",
+  "o": "#42322a",
+  "p": "#442414",
+  "q": "#44385a",
+  "r": "#54486a",
+  "s": "#564771",
+  "t": "#583018",
+  "u": "#5a4433",
+  "v": "#5a6d9a",
+  "w": "#656677",
+  "x": "#676780",
+  "y": "#685688",
+  "z": "#6e5c89",
+  "A": "#7a4c28",
+  "B": "#816ea4",
+  "C": "#8871a8",
+  "D": "#8a684e",
+  "E": "#8a8e9c",
+  "F": "#9a85c0",
+  "G": "#9c6838",
+  "H": "#b7a1d8",
+  "I": "#ba884c",
+  "J": "#cfd5e0",
+  "K": "#d8a860",
+  "L": "#e2c27f",
+  "M": "#f4f6fa",
+  "N": "#f6f7fa"
+ },
+ "rows": [
+  ".............rrrr..r......",
+  "...........rrrHzHrrrr.....",
+  "..........rzHrHrHrCrr.....",
+  ".........rHzFrCrHrCrr.....",
+  ".........rCIrGrCrCzrrr....",
+  ".........lKKIKKtrCrrrr....",
+  ".........liaaaatrzrrrr....",
+  ".........lKKKiMItrrrrr....",
+  ".........lKKKKIGAtrrr.....",
+  ".........lKKIIGGAprr......",
+  "..........lIIIGGGl........",
+  "..........lIIGGGlqq.......",
+  "..........qqJIppJqyq......",
+  "..........qFFJJJEqsyq.....",
+  "..........qFFJEEqqqqq.....",
+  "..........qFyqqqsysqq.....",
+  ".........qqqqqByyqqqq.....",
+  ".........dvvvbqqqqqqq.....",
+  ".........dvvbGbqqqqqqq....",
+  ".........dvvbGGqqqqqtl....",
+  ".........wNMbGbgDuDtpl....",
+  "..........wogffgDoDkl.....",
+  "..........qqqqqqqqqq......",
+  "..........qFqqyyyssq......",
+  ".........qBqxhqysqqqq.....",
+  ".........qqmxeqqqqqqq.....",
+  ".........qqmxeqqqqqqq.....",
+  ".........nqexeqqLLqqn.....",
+  "........nqfhrfLLLLLLLn....",
+  ".........ncexcnnnggggj....",
+  ".........kkbbc.koooooj....",
+  "........kDDDDk..kjjjj.....",
+  ".......kDuDoDk............",
+  "........koAoDk............",
+  ".........jkjk............."
+ ],
+ "intended": [
+  [
+   10,
+   6
+  ],
+  [
+   11,
+   6
+  ],
+  [
+   12,
+   6
+  ],
+  [
+   13,
+   6
+  ],
+  [
+   13,
+   7
+  ],
+  [
+   14,
+   6
+  ],
+  [
+   14,
+   7
+  ]
+ ]
+}

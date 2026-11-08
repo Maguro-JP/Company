@@ -1,0 +1,122 @@
+{
+ "name": "絵コンテ係",
+ "style": "diorama",
+ "brief": "台本から絵コンテを起こす。土台は CharacterDesigner の scholar。会社の色（髪と服）だけを変えた",
+ "generated_from": "parts.json（tools/build.py が書き出す。手で直さない）",
+ "head_height": 13,
+ "body_box": [
+  4,
+  1,
+  19,
+  35
+ ],
+ "palette": {
+  "a": "#1a1a28",
+  "b": "#1e1e28",
+  "c": "#262632",
+  "d": "#2a1f18",
+  "e": "#2a2020",
+  "f": "#2a2a2a",
+  "g": "#2a2a37",
+  "h": "#2a2a3a",
+  "i": "#2e3449",
+  "j": "#312523",
+  "k": "#352824",
+  "l": "#373737",
+  "m": "#391d12",
+  "n": "#3a2f24",
+  "o": "#403024",
+  "p": "#42322a",
+  "q": "#444444",
+  "r": "#4e2a16",
+  "s": "#4e3b2e",
+  "t": "#524230",
+  "u": "#56566c",
+  "v": "#575757",
+  "w": "#583018",
+  "x": "#5a4433",
+  "y": "#5a6d9a",
+  "z": "#656677",
+  "A": "#676780",
+  "B": "#6a543d",
+  "C": "#6a6a6a",
+  "D": "#725640",
+  "E": "#856c50",
+  "F": "#8a684e",
+  "G": "#9c6838",
+  "H": "#a08564",
+  "I": "#ba884c",
+  "J": "#cfd5e0",
+  "K": "#d8a860",
+  "L": "#e2c27f",
+  "M": "#f4f6fa",
+  "N": "#f6f7fa"
+ },
+ "rows": [
+  "..........................",
+  "......n..nnnn.............",
+  ".....nHnnnHntnn...........",
+  ".....nHBBBEntnnn..........",
+  ".....nHBBBHBBnBnn.........",
+  "....nEBEnBnnGnGnn.........",
+  "....nHnHntwIKKGIm.........",
+  "....nBnBnnwaaaahm.........",
+  "....nBnnnwKMhKIGm.........",
+  ".....ntnwrIKIIGGm.........",
+  "......nnGrGIIIGGm.........",
+  "........mIIIIGGm..........",
+  ".......ffmIIGGGm..........",
+  "......fCfJrrGJff..........",
+  ".....fqCfNJJJCCf..........",
+  ".....fvCCfJJJCCf..........",
+  ".....fvCCvfffCCf..........",
+  ".....fCCvqqlfffff.........",
+  ".....fvqvqlfbyyyg.........",
+  "....ffqvqqfbKbuic.........",
+  "....mwlffffIGbiic.........",
+  "....mlwFFDebGbNNz.........",
+  ".....mjpFpeddepz..........",
+  "......ffffffffff..........",
+  "......fCCvvfAgff..........",
+  ".....fCCvvvfAcAff.........",
+  ".....fvvvqqfAgAff.........",
+  ".....fqlffffAcAff.........",
+  ".....offLLfffcufo.........",
+  "....oLLLLLLLdcudoo........",
+  ".....ooboooobbbkk.........",
+  "....kxFpsk..kFFDFk........",
+  "....jpFpsk..kDFpFpj.......",
+  ".....ksppj..jpFpxk........",
+  "......kjj....jkjk........."
+ ],
+ "intended": [
+  [
+   11,
+   7
+  ],
+  [
+   11,
+   8
+  ],
+  [
+   12,
+   7
+  ],
+  [
+   12,
+   8
+  ],
+  [
+   13,
+   7
+  ],
+  [
+   14,
+   7
+  ],
+  [
+   15,
+   7
+  ]
+ ]
+}

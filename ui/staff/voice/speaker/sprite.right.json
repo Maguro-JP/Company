@@ -1,0 +1,113 @@
+{
+ "name": "合成音声係",
+ "style": "diorama",
+ "brief": "文を声にする。土台は CharacterDesigner の cleric。会社の色（髪と服）だけを変えた",
+ "generated_from": "parts.json（tools/build.py が書き出す。手で直さない）",
+ "head_height": 13,
+ "body_box": [
+  1,
+  1,
+  19,
+  35
+ ],
+ "palette": {
+  "a": "#252b40",
+  "b": "#272c3f",
+  "c": "#2a1f18",
+  "d": "#2a2020",
+  "e": "#2a2d3e",
+  "f": "#2a4a78",
+  "g": "#2c2e3d",
+  "h": "#2f2f3c",
+  "i": "#312523",
+  "j": "#352824",
+  "k": "#382a20",
+  "l": "#403024",
+  "m": "#42322a",
+  "n": "#444e6b",
+  "o": "#4e3b2e",
+  "p": "#5a442d",
+  "q": "#5a4433",
+  "r": "#5a6d9a",
+  "s": "#602e18",
+  "t": "#6a4832",
+  "u": "#7085b1",
+  "v": "#72563a",
+  "w": "#725640",
+  "x": "#743a1e",
+  "y": "#869dc8",
+  "z": "#896241",
+  "A": "#8a6847",
+  "B": "#8a684e",
+  "C": "#985028",
+  "D": "#a5815a",
+  "E": "#a87d50",
+  "F": "#c09a6d",
+  "G": "#c49864",
+  "H": "#d88848",
+  "I": "#e0b377",
+  "J": "#e0d8b8",
+  "K": "#e2c27f",
+  "L": "#e8a870",
+  "M": "#f8c898"
+ },
+ "rows": [
+  "........................",
+  "....t..tttt.............",
+  "...tIttEItEtt....l......",
+  "...tIEIzGtEttt..lKl.....",
+  "...tIEGzItEtEttlKKKl....",
+  "..tGzGtEttHtHtlKKlBqk...",
+  "..tItGtECLMMHLslKwwl....",
+  "..tGtzttCttMLfs.lwl.....",
+  "..tEtttCMJfMLLs.jqj.....",
+  "..tzttCxHMMLHHs.jwj.....",
+  "..tEEtHxHMLHHHs.jwj.....",
+  ".tEEEttLLLLHHs..jqj.....",
+  ".tIIEttsLLHHHs..jwj.....",
+  ".tEEEtyraxLaab..jqj.....",
+  ".tEEtgyhraaFFp..jwj.....",
+  ".tEEtgyeraFFFp..jBj.....",
+  ".tEEtpppreaFFp..jqj.....",
+  ".ttztpFDpeaFFFppswj.....",
+  ".tzztpAApnrpDFFpMdj.....",
+  ".ttttCppprupppApMMs.....",
+  ".tztCCKKcgypp.ppsdi.....",
+  "..ttslcccnuck...imi.....",
+  ".....pFFpgupp...jwj.....",
+  ".....pFDpgrpp...jqj.....",
+  ".....pFFpgrpp...jwj.....",
+  "....pFFDpguppp..jqj.....",
+  "....pDFDpguppp..jwj.....",
+  "....pDAAphrppp..jqj.....",
+  "....pAAApgrppp..jBj.....",
+  "....pAAvphuppp..jwj.....",
+  "....lppppaapppp.jBj.....",
+  "...lKKKKKKccccl.jqj.....",
+  "....lldddjBwBmi.jwj.....",
+  ".....jqmmjBmBmi.joj.....",
+  "......jii.jiji...j......"
+ ],
+ "intended": [
+  [
+   9,
+   7
+  ],
+  [
+   9,
+   8
+  ],
+  [
+   10,
+   7
+  ],
+  [
+   10,
+   8
+  ],
+  [
+   13,
+   7
+  ]
+ ]
+}

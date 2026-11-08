@@ -1,0 +1,33 @@
+{
+ "base": "characterdesigner:hunter",
+ "name": "見回り係",
+ "brief": "脆弱性とセッションを週に 1 回見回る。土台は CharacterDesigner の hunter。会社の色（髪と服）だけを変えた",
+ "materials": {
+  "hair": {
+   "outline": "#4a3a6a",
+   "line": "#4a3a6a",
+   "ramp": [
+    "#4a3a6a",
+    "#7a5aa8",
+    "#a98ad8"
+   ],
+   "steps": [
+    0.55,
+    0.86
+   ]
+  },
+  "tunic": {
+   "outline": "#3a2a5a",
+   "line": "#3a2a5a",
+   "ramp": [
+    "#3a2a5a",
+    "#5a4088",
+    "#8a6cc0"
+   ],
+   "steps": [
+    0.55,
+    0.86
+   ]
+  }
+ }
+}

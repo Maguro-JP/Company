@@ -43,6 +43,7 @@ children:
           - { name: "取引記録課", kind: section, about: "取引・判断の記録と監査の跡（data/decisions）" }
   - name: "AdaptiveAIStudio"
     kind: company
+    staff_id: aas
     about: "モデル非依存の AI 開発の土台"
     children:
       - name: "AI 作業部門"
@@ -65,6 +66,7 @@ children:
 
   - name: "Ciel"
     kind: company
+    staff_id: ciel
     about: "働き方のスキルを作り・配る"
     children:
       - name: "スキル部門"
@@ -86,6 +88,7 @@ children:
 
   - name: "CharacterDesigner"
     kind: company
+    staff_id: characterdesigner
     about: "チャットで頼むと AI が絵を描く"
     children:
       - name: "キャラクター部門"
@@ -112,6 +115,7 @@ children:
 
   - name: "NetVision"
     kind: company
+    staff_id: netvision
     about: "ネットワーク機器の台帳・保守期限"
     children:
       - name: "台帳部門"
@@ -133,6 +137,7 @@ children:
 
   - name: "映像（これから）"
     kind: company
+    staff_id: video
     about: "映像を作るツール。オーナーの予定"
     children:
       - name: "企画部門"
@@ -161,6 +166,7 @@ children:
 
   - name: "音楽（これから）"
     kind: company
+    staff_id: music
     about: "音を作るツール。オーナーの予定"
     children:
       - name: "制作部門"
@@ -182,6 +188,7 @@ children:
 
   - name: "ボイス（これから）"
     kind: company
+    staff_id: voice
     about: "声を作るツール。オーナーの予定"
     children:
       - name: "音声部門"

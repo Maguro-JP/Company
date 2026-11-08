@@ -59,6 +59,8 @@ run.bat
 （無い席、無い役職、二重の席は保存しない）。ツールが増えたら課を 1 行足し、`partners.py` の席の `planned` を外すだけでつながる。
 部門と課の一覧は [docs/knowledge/creative-series.md](docs/knowledge/creative-series.md)。
 
+子会社ごとの社員は `ui/staff/`（`tools/staff_build.py` が CharacterDesigner の手順 parts.json → build → anim → sheet で組んだドット絵。土台は向こうの職業、色だけ会社ごと）。会社の形の子会社の行に待機の絵で並び、`/api/staff` で一覧が取れる。
+
 ### 同じ作者のツールと連携する
 
 Company はオマケではない。既製品のソフトやユーザーの自作ツールも、MCP・HTTP・ファイルの口があれば `data/partners.json` に書くだけで子会社として AI から使える。自社製品は当たり前に使えるというだけで、抱き合わせにしない。売りは Company にしか無い機能（検品、セキュリティ、法令遵守。会社の形の親会社直下の 3 部門）。

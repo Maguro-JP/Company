@@ -575,11 +575,20 @@
     const repo = n.repo ? `<div style="opacity:.5;margin-left:14px">${esc(n.repo)}${n.private ? '（非公開）' : ''}${n.pushed_at ? `　最終 push ${esc(String(n.pushed_at).slice(0, 10))}` : ''}</div>` : '';
     det.innerHTML = `<summary style="cursor:pointer"><span style="opacity:.55;font-size:11px">${esc(n.label)}</span> <b>${esc(n.name)}</b>${roles}${state}${n.about ? `<div style="opacity:.6;margin-left:14px">${esc(n.about)}</div>` : ''}${repo}</summary>${seats}`;
     det.style.marginLeft = depth ? '12px' : '0';
+    const staff = staffByCompany[n.staff_id || ''] || [];
+    if (staff.length) {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 2px 14px';
+      row.innerHTML = staff.map((s) => `<div style="text-align:center;font-size:10px;opacity:.85" title="${esc(s.role)}"><img src="${esc(s.art)}" alt="" style="height:52px;image-rendering:pixelated;display:block;margin:0 auto"><div>${esc(s.name)}</div></div>`).join('');
+      det.appendChild(row);
+    }
     for (const c of n.children || []) det.appendChild(orgNode(c, depth + 1));
     return det;
   };
+  let staffByCompany = {};
   const loadOrg = async () => {
     try {
+      try { const st = await api('/api/staff'); staffByCompany = {}; for (const s of st.staff) (staffByCompany[s.company] ||= []).push(s); } catch (e) { staffByCompany = {}; }
       const r = await api('/api/org');
       const box = $('org'); box.innerHTML = '';
       if (r.errors && r.errors.length) { const e = document.createElement('div'); e.className = 'note err'; e.textContent = r.errors.join('；'); box.appendChild(e); }

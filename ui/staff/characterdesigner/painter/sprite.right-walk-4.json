@@ -1,0 +1,108 @@
+{
+ "name": "作画担当",
+ "style": "diorama",
+ "brief": "頼まれた絵を描き、描き直す。土台は CharacterDesigner の dancer。会社の色（髪と服）だけを変えた",
+ "generated_from": "parts.json（tools/build.py が書き出す。手で直さない）",
+ "head_height": 13,
+ "body_box": [
+  1,
+  0,
+  20,
+  35
+ ],
+ "palette": {
+  "a": "#2a1f18",
+  "b": "#2a4a78",
+  "c": "#312523",
+  "d": "#352824",
+  "e": "#382a20",
+  "f": "#403024",
+  "g": "#42322a",
+  "h": "#4a2a2d",
+  "i": "#522e30",
+  "j": "#552f32",
+  "k": "#5a4433",
+  "l": "#602e18",
+  "m": "#633638",
+  "n": "#703c3e",
+  "o": "#725640",
+  "p": "#743a1e",
+  "q": "#7a424d",
+  "r": "#7c4343",
+  "s": "#864523",
+  "t": "#8a684e",
+  "u": "#95525d",
+  "v": "#985028",
+  "w": "#9a5552",
+  "x": "#b0626d",
+  "y": "#b69566",
+  "z": "#b86760",
+  "A": "#b86c38",
+  "B": "#c87a85",
+  "C": "#d88848",
+  "D": "#e0929d",
+  "E": "#e0d8b8",
+  "F": "#e2c27f",
+  "G": "#e8a870",
+  "H": "#f8c898"
+ },
+ "rows": [
+  "....q..qqqq.............",
+  "...qDqqxxqxqq...........",
+  "...qDxDuDqxqxq..........",
+  "...qDuBqDxxxqxq.........",
+  "..qqBxxqqqCqCqq.........",
+  "..qBqxqqvGHHCGl.........",
+  "..qBqxqxvqqHGbl.........",
+  "..qxqqqvHEbGGCl.........",
+  "..qxqqvpGHHGGCl.........",
+  "..qxxqCsCHGGCCl.........",
+  ".qDDuqqCGGCCCl..........",
+  ".qxxxqqlGGCCCl..........",
+  ".qDDxqqvvvvvl...........",
+  ".qxxxqFFFFFFf...........",
+  ".qxxqqFFFFFtvl..........",
+  ".qxxqqFFFFokvHl.........",
+  ".qxxqvttokkkvHHflll.....",
+  ".qqqqvvvvvvvlHvaHGCl....",
+  ".qxqqvGGCAAAlleklCl.....",
+  ".qqqvvvvvvvvl..e.l......",
+  "..qqlaaaaaaaf...........",
+  "...fFazzzzzrj...........",
+  "..fFFazzzzzzj...........",
+  "..fFazzzzrrrj...........",
+  ".fFFazzzzzzrj...........",
+  ".fyyjzzzwzzzzj..........",
+  ".fyfjzzzzmmmmi..........",
+  "..f.jzzzzzwmmi..........",
+  "....jzwmmjmhnj..........",
+  "...jzzzzrjhthhi.........",
+  "...jnnmnmdtgtgc.........",
+  "....jjijiddcdc..........",
+  ".....dtgod..............",
+  ".....dogd...............",
+  "......dc................"
+ ],
+ "intended": [
+  [
+   9,
+   6
+  ],
+  [
+   9,
+   7
+  ],
+  [
+   10,
+   6
+  ],
+  [
+   10,
+   7
+  ],
+  [
+   13,
+   6
+  ]
+ ]
+}

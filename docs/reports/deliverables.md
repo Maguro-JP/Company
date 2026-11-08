@@ -19,3 +19,4 @@
 | 12 | 配布版が Windows で入れてすぐ動く | Actions の Windows で、入れる→起動→内蔵の模型を取る→1 問答える→CEO を 1 周→data/runs.csv に 1 行、まで緑 | 完成 | setup.yml の run 16 で緑（模型 491 MB を 30 秒で取り、1+1=2、CEO 1 周、runs.csv 1 行）。ユーザーの機械での不動は logs\\app.log で切り分ける | 2026-11-07 |
 | 13 | 役職の AI がオーナーの働き方（Ciel のスキル）で動く | 毎回の指示の先頭に CLAUDE.md の決めたこと、lessons の「次から」、work-style ほかのスキルが模型の大きさに合わせて入り、配布版にもスキルが同梱される | 完成 | company/workstyle.py、tests/test_workstyle.py。実モデルでの効き目は未確認 | 2026-11-07 |
 | 14 | 会社の形（親会社 → 子会社 → 部門 → 部署 → 課）で管理する | org.yaml の木に課ごとの席と役職が付き、右パネルの「会社の形」に課ごとのつながりが出て、GET/POST /api/org で読める・直せる。無い席・無い役職・二重の席は保存しない | 完成 | company/org.py、tests/test_org.py（5 件）。画面は Chromium の写しで確認 | 2026-11-07 |
+| 16 | 子会社ごとの社員 | 子会社 7 社に 2 人ずつの社員（名前、役割、ドット絵の待機・歩きと設定画）があり、会社の形の子会社の行に並び、/api/staff で取れる。絵は CharacterDesigner の手順（parts.json → build → anim → sheet）で組む | 完成 | tools/staff_build.py で 14 人を組んだ。写しで確認 | 2026-11-08 |

@@ -1,0 +1,113 @@
+{
+ "name": "合成音声係",
+ "style": "diorama",
+ "brief": "文を声にする。土台は CharacterDesigner の cleric。会社の色（髪と服）だけを変えた",
+ "generated_from": "parts.json（tools/build.py が書き出す。手で直さない）",
+ "head_height": 13,
+ "body_box": [
+  5,
+  0,
+  23,
+  35
+ ],
+ "palette": {
+  "a": "#252b40",
+  "b": "#272c3f",
+  "c": "#2a1f18",
+  "d": "#2a2020",
+  "e": "#2a2d3e",
+  "f": "#2a4a78",
+  "g": "#2c2e3d",
+  "h": "#312523",
+  "i": "#352824",
+  "j": "#382a20",
+  "k": "#403024",
+  "l": "#42322a",
+  "m": "#444e6b",
+  "n": "#5a442d",
+  "o": "#5a4433",
+  "p": "#5a6d9a",
+  "q": "#602e18",
+  "r": "#6a4832",
+  "s": "#7085b1",
+  "t": "#72563a",
+  "u": "#725640",
+  "v": "#743a1e",
+  "w": "#864523",
+  "x": "#869dc8",
+  "y": "#896241",
+  "z": "#8a6847",
+  "A": "#8a684e",
+  "B": "#985028",
+  "C": "#a5815a",
+  "D": "#a87d50",
+  "E": "#b86c38",
+  "F": "#c09a6d",
+  "G": "#c49864",
+  "H": "#d88848",
+  "I": "#e0b377",
+  "J": "#e0d8b8",
+  "K": "#e2c27f",
+  "L": "#e8a870",
+  "M": "#f8c898"
+ },
+ "rows": [
+  ".............rrrr..r....",
+  "......k....rrrIyIrrrr...",
+  ".....kKk..ryIrIrIrDrr...",
+  "....kKKKkrIyGrDrIrDrr...",
+  "...kKKkAojDLrHrDrDyrrr..",
+  "....kKuojqMMLMMBrDrrrr..",
+  ".....kuj.qfMMrrBryrrrr..",
+  ".....iAi.qMMMfJLBrrrrr..",
+  ".....ioi.qMMMMLHEBrrrr..",
+  ".....iAi.qMMLLHHEvrrrr..",
+  ".....iui..qLLLHHHrrDyrr.",
+  ".....iAi..qLLHHHqrDyrrr.",
+  ".....ioi..baaLvaxgryryr.",
+  ".....iAi..nFFaaexeprrrr.",
+  ".....ioi..nFFCaepemrryr.",
+  ".....iAi..nFCapennnrrrr.",
+  ".....ioqnnFFzapnnnnrrrr.",
+  ".....idLnFCzngsnnnnrrrr.",
+  ".....qLHnFnnnmsnnnBryrr.",
+  ".....idqnn.kcgpcKKBwrrr.",
+  ".....ioi...kcmpcccjqrr..",
+  ".....iui...nnmpnCtn.....",
+  ".....iui...nnmpnztn.....",
+  ".....iui...nnmsnznn.....",
+  ".....iAi..nzngsntnnn....",
+  ".....iAi..nzngxnnnnn....",
+  ".....iAi..nCnmxnnnnn....",
+  ".....iui..nznmxnnnnn....",
+  ".....iui..nnnasnnnnn....",
+  ".....iAi.nnAAoannnnk....",
+  ".....ioi.iAlAlcKKKKAk...",
+  ".....ioi..ihihkkddkk....",
+  ".....iui......hlllh.....",
+  "......i.......hlllh.....",
+  "...............hhh......"
+ ],
+ "intended": [
+  [
+   10,
+   6
+  ],
+  [
+   13,
+   6
+  ],
+  [
+   13,
+   7
+  ],
+  [
+   14,
+   6
+  ],
+  [
+   14,
+   7
+  ]
+ ]
+}

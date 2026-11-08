@@ -26,6 +26,8 @@ app.include_router(mcp_http.router)
 # キャラクターの絵とアイコン。画面は依存なしの 1 ファイルだが、絵だけは別に置く（HTML に埋めると 1 MB を超える）
 app.mount("/characters", StaticFiles(directory=UI_DIR / "characters"), name="characters")
 app.mount("/icon", StaticFiles(directory=UI_DIR / "icon"), name="icon")
+if (UI_DIR / "staff").is_dir():
+    app.mount("/staff", StaticFiles(directory=UI_DIR / "staff"), name="staff")
 
 
 @app.get("/")
@@ -245,6 +247,15 @@ def partners_list() -> dict[str, Any]:
     """相手ごとに生きているかを短く見る。落ちている相手は理由つきで出す。"""
     return {"partners": [partners.probe(p) for p in partners.load()],
             "file": str(partners.PARTNERS_FILE)}
+
+
+@app.get("/api/staff")
+def staff_list() -> dict[str, Any]:
+    """子会社ごとの社員（CharacterDesigner の手順で組んだドット絵）。tools/staff_build.py が書く。"""
+    path = UI_DIR / "staff" / "staff.json"
+    if not path.exists():
+        return {"staff": []}
+    return {"staff": json.loads(path.read_text(encoding="utf-8"))}
 
 
 @app.get("/api/org")
