@@ -194,3 +194,23 @@ class RealInferenceTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ToolCallParseTest(unittest.TestCase):
+    def test_unclosed_repeated_tool_calls_take_only_the_first(self):
+        from company.local_llm import parse_tool_call
+        garbage = ('<tool_call>{"name": "read_file", "arguments": {"path": "README.md"}}\n'
+                   '<tool_call>{"name": "run_tests", "arguments": {"code": "True"}}\n' * 50)
+        before, call = parse_tool_call(garbage)
+        self.assertIsNotNone(call)
+        self.assertEqual(call.name, "read_file")
+        self.assertEqual(call.arguments, {"path": "README.md"})
+        self.assertEqual(before, "")
+
+    def test_braces_inside_strings_do_not_break_parsing(self):
+        from company.local_llm import parse_tool_call
+        text = '考えます。<tool_call>{"name": "write_file", "arguments": {"path": "a.py", "content": "d = {\\"x\\": 1}"}}</tool_call>'
+        before, call = parse_tool_call(text)
+        self.assertEqual(before, "考えます。")
+        self.assertEqual(call.name, "write_file")
+        self.assertIn("x", call.arguments["content"])

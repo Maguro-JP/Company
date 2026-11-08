@@ -222,9 +222,56 @@ def tool_instructions(tools: list[ToolSpec]) -> str:
     return "\n".join(lines)
 
 
+def _first_json_object(text: str, start: int) -> tuple[str, int, int] | None:
+    """start 以降の最初の { から、括弧の釣り合う } までを返す（文字列の中の括弧は数えない）。"""
+    i = text.find("{", start)
+    if i < 0:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    for j in range(i, len(text)):
+        c = text[j]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+            continue
+        if c == '"':
+            in_str = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return text[i:j + 1], i, j + 1
+    return None
+
+
 def parse_tool_call(text: str) -> tuple[str, ToolCall | None]:
-    """返答からツール呼び出しを取り出す。無ければ (本文, None)。"""
-    m = TOOL_CALL_RE.search(text) or JSON_BLOCK_RE.search(text)
+    """返答からツール呼び出しを取り出す。無ければ (本文, None)。
+
+    小さい模型は </tool_call> を閉じずに <tool_call> を何個も続けて吐くことがある（Windows の実走で 1,300 トークン分出た）。
+    最初の 1 個だけを、括弧の釣り合いで切り出す。残りは捨てる（次のターンで道具の結果を見てから続ける）。"""
+    tag = text.find("<tool_call>")
+    m = None
+    if tag >= 0:
+        found = _first_json_object(text, tag)
+        if found:
+            raw, _s, _e = found
+
+            class _M:  # TOOL_CALL_RE と同じ形で返す
+                def group(self, _i):
+                    return raw
+
+                def start(self):
+                    return tag
+            m = _M()
+    if m is None:
+        m = JSON_BLOCK_RE.search(text)
     if not m:
         return text.strip(), None
     try:
@@ -278,7 +325,7 @@ class BuiltinProvider:
                 if on_delta is None:
                     resp = engine.create_chat_completion(
                         messages=messages, temperature=temperature, max_tokens=self.max_tokens,
-                        stop=["</tool_call>", "<tool_result"],
+                        stop=["</tool_call>", "<tool_result", "\n<tool_call>"],
                     )
                 else:
                     # 生成中の文字を流す。使い終わるまで _ENGINE_LOCK を持つ（llama.cpp は同時に1つ）
@@ -286,7 +333,7 @@ class BuiltinProvider:
                     usage_seen: dict = {}
                     for chunk in engine.create_chat_completion(
                         messages=messages, temperature=temperature, max_tokens=self.max_tokens,
-                        stop=["</tool_call>", "<tool_result"], stream=True,
+                        stop=["</tool_call>", "<tool_result", "\n<tool_call>"], stream=True,
                     ):
                         delta = ((chunk.get("choices") or [{}])[0].get("delta") or {}).get("content") or ""
                         if delta:

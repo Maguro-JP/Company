@@ -15,6 +15,13 @@ RECENT_DECISIONS = 3
 RECENT_METRIC_ROWS = 8
 
 
+AUTONOMY_LABELS = {
+    "write_code": "コードを書く", "run_tests": "テストを実行する", "commit": "コミットする", "push": "push する",
+    "decide_roadmap": "次に何を作るかを決める", "decide_pricing": "価格を決める", "publish_externally": "対外的な文章を公開する",
+    "spend_money": "お金を使う",
+}
+
+
 def _metrics_block(path: Path = METRICS_PATH) -> str:
     if not path.exists():
         return "（data/metrics.csv が存在しません。数値は「データなし」として扱うこと）"
@@ -93,10 +100,10 @@ def build(config: Config, cadence: str) -> str:
         f"- ステージ: {company.get('stage', '未設定')}",
         f"- 北極星指標: {config.kpi.get('north_star', '未設定')}",
         "",
-        "## あなたが承認なしに実行してよいこと",
-        "true のものは、確認を取らずに実行してください。提案で止めないこと。",
+        "## 承認なしでやってよいこと（方針。道具の名前ではない）",
+        "「できる」のものは、確認を取らずに進めてください。提案で止めないこと。道具は別に渡します。",
     ]
-    lines += [f"- {key}: {value}" for key, value in autonomy.items()]
+    lines += [f"- {AUTONOMY_LABELS.get(key, key)}: {'できる' if value else 'できない（オーナー作業）'}" for key, value in autonomy.items()]
     lines += [
         "",
         "## AIに手段が無いこと",
