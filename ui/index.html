@@ -114,6 +114,21 @@
   @keyframes floaty { 50% { transform: translate(-50%, -5px); } }
   @keyframes spin { to { transform: translateX(-50%) rotate(360deg); } }
   @keyframes pop { 0% { transform: translate(-50%, 6px) scale(.4); } 70% { transform: translate(-50%, -4px) scale(1.25); } 100% { transform: translate(-50%, -2px) scale(1); } }
+  /* 右パネル。普段要らない情報は節ごとにたたむ。開いた節は覚える */
+  aside.right details.sec { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
+  aside.right details.sec > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; user-select: none; }
+  aside.right details.sec > summary::before { content: '▸'; font-size: 10px; }
+  aside.right details.sec[open] > summary::before { content: '▾'; }
+  aside.right details.sec > summary .cnt { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: .7; }
+  aside.right details.sec .help { display: none; }
+  aside.right details.sec[open] .help { display: block; }
+  /* 会社の形: 説明は題にだけ入れ、予定の席は「予定も見る」を押したときだけ出す */
+  #org .about { display: none; }
+  #org.show-planned .about { display: block; }
+  #org .planned-only { display: none; }
+  #org.show-planned .planned-only { display: block; }
+  /* 声で指示する */
+  #micBtn.on { background: var(--err); color: #fff; animation: pulse 1s ease-in-out infinite; }
   @keyframes breathe { 50% { transform: scaleY(1.025) translateY(-1px); } }
   @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
   @keyframes talk { to { transform: scaleY(2.4); } }
@@ -216,6 +231,7 @@
         <div class="row">
           <span class="hint" id="targetHint">対象: 未選択</span>
           <span class="spacer"></span>
+          <button class="btn" id="micBtn" title="声で指示する。もう一度押すか、黙ると止まる。最後に「実行」と言うとそのまま実行する">🎤 声で</button>
           <button class="btn danger" id="stopBtn" style="display:none">停止</button>
           <button class="btn primary" id="runBtn">実行</button>
         </div>
@@ -224,7 +240,7 @@
   </section>
 
   <aside class="right">
-    <h3 style="margin-left:0">実行設定</h3>
+    <details class="sec" open data-sec="settings"><summary>実行設定 <span class="cnt" id="settingsSummary"></span></summary>
     <label class="field"><span>プロバイダ</span>
       <select id="provider"></select>
     </label>
@@ -248,6 +264,7 @@
       <span class="small" style="display:block;margin-bottom:6px">モデルをアプリ内にダウンロード（初回のみ。以後はオフラインで動く）</span>
       <div id="catalog"></div>
     </div>
+    <details class="sec" data-sec="advanced" style="margin-top:8px;border-top:none;padding-top:0"><summary>詳しい設定 <span class="cnt">コンテキスト長、GPU、Temperature、ターン数、トークン上限、通知</span></summary>
     <label class="field" id="contextField"><span>コンテキスト長</span>
       <select id="context">
         <option value="4096">4096（省メモリ）</option>
@@ -278,31 +295,38 @@
       </select>
       <span class="small" style="display:block;margin-top:4px">ランの終わりに1通。空なら知らせない</span>
     </label>
+    </details>
     <div class="small" id="saveState"></div>
+    </details>
 
-    <h3 style="margin:22px 0 6px">役職ごとの AI</h3>
-    <div class="small" style="margin-bottom:6px">空なら上の設定に従う。役職によって別の AI を使える</div>
+    <details class="sec" data-sec="roles"><summary>役職ごとの AI</summary>
+    <div class="small help" style="margin-bottom:6px">空なら上の設定に従う。役職によって別の AI を使える</div>
     <div id="roleAssign"></div>
+    </details>
 
-    <h3 style="margin:22px 0 6px">この会社</h3>
+    <details class="sec" data-sec="company"><summary>この会社</summary>
     <div class="small" id="companyInfo"></div>
+    </details>
 
-    <h3 style="margin:22px 0 6px">会社の形 <button class="btn" id="refreshOrg" title="つながりを見直す" style="padding:2px 8px">↻</button></h3>
-    <div class="small" style="margin-bottom:6px">親会社は Company、子会社は各ツール、部門は機能別、その下が機能・道具・作業用エージェントです（org.yaml）。</div>
+    <details class="sec" data-sec="org"><summary>会社の形 <span class="cnt" id="orgSummary"></span> <button class="btn" id="refreshOrg" title="つながりを見直す" style="padding:2px 8px" onclick="event.preventDefault()">↻</button></summary>
+    <div class="small help" style="margin-bottom:6px">親会社は Company、子会社は各ツール、部門は機能別、その下が機能・道具・作業用エージェントです（org.yaml）。<label style="margin-left:8px"><input type="checkbox" id="showPlanned"> 予定と説明も見る</label></div>
     <div id="org" class="small">…</div>
     <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
       <button class="btn" id="syncRepos" title="GitHub のリポジトリを 1 つ 1 社として業種ごとに取り込む">リポジトリを子会社として取り込む</button>
       <span class="small" id="syncNote"></span>
     </div>
+    </details>
 
-    <h3 style="margin:22px 0 6px">連携しているツール <button class="btn" id="refreshPartners" title="生きているかを見直す" style="padding:2px 8px">↻</button></h3>
-    <div class="small" style="margin-bottom:6px">同じ作者のツール。入っていれば自動で見つけてつなぎます。緑はつながっていて、役職の AI がその道具を使えます。</div>
+    <details class="sec" data-sec="partners"><summary>連携しているツール <span class="cnt" id="partnersSummary"></span> <button class="btn" id="refreshPartners" title="生きているかを見直す" style="padding:2px 8px" onclick="event.preventDefault()">↻</button></summary>
+    <div class="small help" style="margin-bottom:6px">同じ作者のツール。入っていれば自動で見つけてつなぎます。緑はつながっていて、役職の AI がその道具を使えます。</div>
     <div id="partners" class="small">…</div>
-    <div class="field" id="updateField" style="margin-top:18px;border-top:1px solid var(--border);padding-top:12px">
-      <span class="small" style="display:block;margin-bottom:6px">このアプリ <b id="appVersion"></b></span>
+    </details>
+    <details class="sec" data-sec="update"><summary>このアプリ <span class="cnt" id="appVersion"></span></summary>
+    <div class="field" id="updateField">
       <button class="btn" id="checkUpdate">更新を確かめる</button>
       <div class="note" id="updateNote" style="display:none"></div>
     </div>
+    </details>
   </aside>
 </main>
 
@@ -568,12 +592,13 @@
   // ---------- 会社の形 ----------
   const orgNode = (n, depth) => {
     const det = document.createElement('details');
-    det.open = depth < 2 || n.alive > 0;
+    det.open = depth < 1;
     const state = n.total ? `　<span style="color:${n.alive ? '#3ec46d' : '#999'}">${n.alive}/${n.total - n.planned}</span>${n.planned ? `<span style="opacity:.5">　予定 ${n.planned}</span>` : ''}` : '';
     const roles = [...(n.roles || []), ...(n.agents || [])].map((r) => `<span class="pill" style="margin-left:4px">${esc(r)}</span>`).join('');
     const seats = (n.seat_states || []).map((s) => `<div style="margin-left:14px;opacity:.8">${s.planned ? '○' : (s.alive ? '<span style="color:#3ec46d">●</span>' : '<span style="color:#c44">●</span>')} ${esc(s.name)}${s.tools ? `　道具 ${s.tools}` : ''}</div>`).join('');
     const repo = n.repo ? `<div style="opacity:.5;margin-left:14px">${esc(n.repo)}${n.private ? '（非公開）' : ''}${n.pushed_at ? `　最終 push ${esc(String(n.pushed_at).slice(0, 10))}` : ''}</div>` : '';
-    det.innerHTML = `<summary style="cursor:pointer"><span style="opacity:.55;font-size:11px">${esc(n.label)}</span> <b>${esc(n.name)}</b>${roles}${state}${n.about ? `<div style="opacity:.6;margin-left:14px">${esc(n.about)}</div>` : ''}${repo}</summary>${seats}`;
+    det.innerHTML = `<summary style="cursor:pointer" title="${esc(n.about || '')}"><span style="opacity:.55;font-size:11px">${esc(n.label)}</span> <b>${esc(n.name)}</b>${roles}${state}${n.about ? `<div class="about" style="opacity:.6;margin-left:14px">${esc(n.about)}</div>` : ''}${repo}</summary>${seats}`;
+    if (n.total && n.total === n.planned) det.classList.add('planned-only');
     det.style.marginLeft = depth ? '12px' : '0';
     const staff = staffByCompany[n.staff_id || ''] || [];
     if (staff.length) {
@@ -593,9 +618,11 @@
       const box = $('org'); box.innerHTML = '';
       if (r.errors && r.errors.length) { const e = document.createElement('div'); e.className = 'note err'; e.textContent = r.errors.join('；'); box.appendChild(e); }
       box.appendChild(orgNode(r.tree, 0));
+      const t = r.tree; $('orgSummary').textContent = `接続 ${t.alive}/${t.total - t.planned}${t.planned ? `・予定 ${t.planned}` : ''}`;
     } catch (e) { $('org').textContent = String(e.message || e); }
   };
   $('refreshOrg').addEventListener('click', loadOrg);
+  $('showPlanned').addEventListener('change', () => $('org').classList.toggle('show-planned', $('showPlanned').checked));
   $('syncRepos').addEventListener('click', async () => {
     const b = $('syncRepos'); b.disabled = true; $('syncNote').textContent = '取っています…';
     try {
@@ -648,7 +675,7 @@
       return row;
     }
   };
-  const loadPartners = async () => { try { renderPartners(await api('/api/partners')); } catch (e) { $('partners').textContent = String(e.message || e); } };
+  const loadPartners = async () => { try { const r = await api('/api/partners'); renderPartners({ partners: r.partners.filter((p) => !p.planned) }); const live = r.partners.filter((p) => !p.planned); $('partnersSummary').textContent = `${live.filter((p) => p.alive).length}/${live.length}`; } catch (e) { $('partners').textContent = String(e.message || e); } };
   $('refreshPartners').addEventListener('click', loadPartners);
   loadPartners();
 
@@ -727,6 +754,12 @@
     es.onerror = () => { es.close(); state.es = null; setRunning(false); };
     state.es = es;
   };
+  const syncSettingsSummary = () => { const m = $('model').value; $('settingsSummary').textContent = m ? `${$('provider').value} / ${m}` : '未選択'; };
+  document.addEventListener('change', (e) => { if (e.target && (e.target.id === 'model' || e.target.id === 'provider')) syncSettingsSummary(); });
+  setTimeout(syncSettingsSummary, 1500);
+  // 開いた節を覚える
+  document.querySelectorAll('aside.right details.sec').forEach((d) => { try { const k = 'sec:' + d.dataset.sec; const v = localStorage.getItem(k); if (v !== null) d.open = v === '1'; d.addEventListener('toggle', () => localStorage.setItem(k, d.open ? '1' : '0')); } catch (_) {} });
+
   const setRunning = (on) => { $('runBtn').disabled = on; $('stopBtn').style.display = on ? '' : 'none'; };
 
   $('runBtn').addEventListener('click', async () => {
@@ -741,6 +774,33 @@
     } catch (e) { alert(e.message); }
   });
   $('stopBtn').addEventListener('click', () => state.current && api(`/api/runs/${state.current}/stop`, { method: 'POST' }));
+
+  // ---------- 声で指示する ----------
+  // ブラウザ（Edge WebView2、Chromium）の音声認識で指示の欄に書く。無い環境では Windows の音声入力（Win+H）を案内する。
+  // 最後が「実行」「やって」「お願い」で終わったら、その語を外してそのまま実行する（手を使わずに回せるように）
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, recBase = '';
+  const micStop = () => { if (rec) { try { rec.stop(); } catch (_) {} } };
+  $('micBtn').addEventListener('click', () => {
+    if (rec) { micStop(); return; }
+    if (!Rec) { alert('この環境には音声認識がありません。指示の欄を押して Windows の音声入力（Win+H）で話してください。'); return; }
+    rec = new Rec(); rec.lang = 'ja-JP'; rec.interimResults = true; rec.continuous = true;
+    recBase = $('instruction').value.trim(); recBase = recBase ? recBase + '\n' : '';
+    $('micBtn').classList.add('on'); $('micBtn').textContent = '🎤 聞いています…';
+    let finalText = '';
+    rec.onresult = (e) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalText += t; else interim += t; }
+      $('instruction').value = recBase + finalText + interim;
+    };
+    rec.onerror = (e) => { $('targetHint').textContent = `声: ${e.error}`; };
+    rec.onend = () => {
+      rec = null; $('micBtn').classList.remove('on'); $('micBtn').textContent = '🎤 声で';
+      const m = $('instruction').value.match(/^(.*?)[\s、。]*(実行|やって|お願い|お願いします)[。！!]?$/s);
+      if (m) { $('instruction').value = m[1].trim(); $('runBtn').click(); }
+    };
+    try { rec.start(); } catch (e) { rec = null; alert(String(e.message || e)); }
+  });
   $('instruction').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('runBtn').click(); });
 
   // ---------- Boot ----------
