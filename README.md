@@ -59,7 +59,7 @@ run.bat
 （無い席、無い役職、二重の席は保存しない）。ツールが増えたら課を 1 行足し、`partners.py` の席の `planned` を外すだけでつながる。
 部門と課の一覧は [docs/knowledge/creative-series.md](docs/knowledge/creative-series.md)。
 
-子会社ごとの社員は `ui/staff/`（`tools/staff_build.py` が CharacterDesigner の手順 parts.json → build → anim → sheet で組んだドット絵。土台は向こうの職業、色だけ会社ごと）。会社の形の子会社の行に待機の絵で並び、`/api/staff` で一覧が取れる。
+子会社ごとの社員は `ui/staff/<会社の id>/<社員の id>.png`（役職 6 人と同じ描き方のデフォルメのアニメ調の絵）と `ui/staff/staff.json`。会社の形の子会社の行に並び、`/api/staff` で一覧が取れる。
 
 ### 同じ作者のツールと連携する
 

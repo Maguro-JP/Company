@@ -1,142 +1,51 @@
 [
  {
   "company": "aas",
-  "id": "operator",
+  "id": "aas",
   "name": "作業担当",
   "role": "画面で受けた依頼を作業場で書く",
-  "base": "scholar",
-  "art": "/staff/aas/operator/idle.gif",
-  "walk": "/staff/aas/operator/walk.gif",
-  "sheet": "/staff/aas/operator/sheet.png"
- },
- {
-  "company": "aas",
-  "id": "modeler",
-  "name": "モデル係",
-  "role": "プロバイダとモデルを選び、答えを確かめる",
-  "base": "apothecary",
-  "art": "/staff/aas/modeler/idle.gif",
-  "walk": "/staff/aas/modeler/walk.gif",
-  "sheet": "/staff/aas/modeler/sheet.png"
+  "art": "/staff/aas.png"
  },
  {
   "company": "ciel",
-  "id": "skillwright",
+  "id": "ciel",
   "name": "スキル職人",
-  "role": "スキルを作り、直し、配る",
-  "base": "scholar",
-  "art": "/staff/ciel/skillwright/idle.gif",
-  "walk": "/staff/ciel/skillwright/walk.gif",
-  "sheet": "/staff/ciel/skillwright/sheet.png"
- },
- {
-  "company": "ciel",
-  "id": "patrol",
-  "name": "見回り係",
-  "role": "脆弱性とセッションを週に 1 回見回る",
-  "base": "hunter",
-  "art": "/staff/ciel/patrol/idle.gif",
-  "walk": "/staff/ciel/patrol/walk.gif",
-  "sheet": "/staff/ciel/patrol/sheet.png"
+  "role": "働き方のスキルを作り、直し、配る",
+  "art": "/staff/ciel.png"
  },
  {
   "company": "characterdesigner",
-  "id": "painter",
+  "id": "characterdesigner",
   "name": "作画担当",
-  "role": "頼まれた絵を描き、描き直す",
-  "base": "dancer",
-  "art": "/staff/characterdesigner/painter/idle.gif",
-  "walk": "/staff/characterdesigner/painter/walk.gif",
-  "sheet": "/staff/characterdesigner/painter/sheet.png"
- },
- {
-  "company": "characterdesigner",
-  "id": "director",
-  "name": "作画監督",
-  "role": "崩れを数字で見て、通す・戻す",
-  "base": "cleric",
-  "art": "/staff/characterdesigner/director/idle.gif",
-  "walk": "/staff/characterdesigner/director/walk.gif",
-  "sheet": "/staff/characterdesigner/director/sheet.png"
+  "role": "頼まれた絵を描き、検品して直す",
+  "art": "/staff/characterdesigner.png"
  },
  {
   "company": "netvision",
-  "id": "ledger",
+  "id": "netvision",
   "name": "台帳係",
   "role": "機器・拠点・保守期限を引く",
-  "base": "merchant",
-  "art": "/staff/netvision/ledger/idle.gif",
-  "walk": "/staff/netvision/ledger/walk.gif",
-  "sheet": "/staff/netvision/ledger/sheet.png"
- },
- {
-  "company": "netvision",
-  "id": "wiring",
-  "name": "結線係",
-  "role": "結線と取り込み・書き出し",
-  "base": "thief",
-  "art": "/staff/netvision/wiring/idle.gif",
-  "walk": "/staff/netvision/wiring/walk.gif",
-  "sheet": "/staff/netvision/wiring/sheet.png"
+  "art": "/staff/netvision.png"
  },
  {
   "company": "video",
-  "id": "boarder",
-  "name": "絵コンテ係",
-  "role": "台本から絵コンテを起こす",
-  "base": "scholar",
-  "art": "/staff/video/boarder/idle.gif",
-  "walk": "/staff/video/boarder/walk.gif",
-  "sheet": "/staff/video/boarder/sheet.png"
- },
- {
-  "company": "video",
-  "id": "editor",
-  "name": "編集係",
-  "role": "切る、つなぐ、テロップ、書き出し",
-  "base": "swordsman",
-  "art": "/staff/video/editor/idle.gif",
-  "walk": "/staff/video/editor/walk.gif",
-  "sheet": "/staff/video/editor/sheet.png"
+  "id": "video",
+  "name": "映像係",
+  "role": "絵コンテから動画を作り、編集する",
+  "art": "/staff/video.png"
  },
  {
   "company": "music",
-  "id": "composer",
+  "id": "music",
   "name": "作曲係",
-  "role": "曲と効果音を作る",
-  "base": "dancer",
-  "art": "/staff/music/composer/idle.gif",
-  "walk": "/staff/music/composer/walk.gif",
-  "sheet": "/staff/music/composer/sheet.png"
- },
- {
-  "company": "music",
-  "id": "mixer",
-  "name": "ミックス係",
-  "role": "音量と整音、書き出し",
-  "base": "apothecary",
-  "art": "/staff/music/mixer/idle.gif",
-  "walk": "/staff/music/mixer/walk.gif",
-  "sheet": "/staff/music/mixer/sheet.png"
+  "role": "曲と効果音を作り、整える",
+  "art": "/staff/music.png"
  },
  {
   "company": "voice",
-  "id": "speaker",
-  "name": "合成音声係",
-  "role": "文を声にする",
-  "base": "cleric",
-  "art": "/staff/voice/speaker/idle.gif",
-  "walk": "/staff/voice/speaker/walk.gif",
-  "sheet": "/staff/voice/speaker/sheet.png"
- },
- {
-  "company": "voice",
-  "id": "caster",
-  "name": "キャスト係",
-  "role": "キャラクターごとの声を管理する",
-  "base": "merchant",
-  "art": "/staff/voice/caster/idle.gif",
-  "walk": "/staff/voice/caster/walk.gif",
-  "sheet": "/staff/voice/caster/sheet.png"
+  "id": "voice",
+  "name": "ボイス係",
+  "role": "文を声にし、声を管理する",
+  "art": "/staff/voice.png"
  }
 ]

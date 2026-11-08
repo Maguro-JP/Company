@@ -604,7 +604,7 @@
     if (staff.length) {
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 2px 14px';
-      row.innerHTML = staff.map((s) => `<div style="text-align:center;font-size:10px;opacity:.85" title="${esc(s.role)}"><img src="${esc(s.art)}" alt="" style="height:52px;image-rendering:pixelated;display:block;margin:0 auto"><div>${esc(s.name)}</div></div>`).join('');
+      row.innerHTML = staff.map((s) => `<div style="text-align:center;font-size:10px;opacity:.9" title="${esc(s.role)}"><img src="${esc(s.art)}" alt="" style="height:84px;display:block;margin:0 auto;filter:drop-shadow(0 3px 4px rgba(0,0,0,.45))"><div>${esc(s.name)}</div></div>`).join('');
       det.appendChild(row);
     }
     for (const c of n.children || []) det.appendChild(orgNode(c, depth + 1));
