@@ -11,3 +11,4 @@ logs/
 data/partners.json
 data/org.generated.yaml
 data/repos.json
+data/runs/

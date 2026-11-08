@@ -7,7 +7,7 @@
 <link rel="icon" href="/icon/app-64.png">
 <style>
   :root {
-    --bg: #131314; --panel: #1e1f20; --panel-2: #28292a; --border: #3c3d3f;
+    --bg: #131314; --panel: #1e1f20; --panel-2: #28292a; --panel-3: #323335; --border: #3c3d3f;
     --text: #e3e3e3; --muted: #9aa0a6; --accent: #8ab4f8; --accent-2: #a8c7fa;
     --ok: #81c995; --warn: #fdd663; --err: #f28b82; --tool: #c58af9;
     --radius: 12px; --font: "Segoe UI", "Yu Gothic UI", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
@@ -15,41 +15,69 @@
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 var(--font); }
-  body { display: grid; grid-template-rows: 52px 1fr; }
+  body { display: grid; grid-template-rows: 34px 48px 1fr 26px; }
+  button { font: inherit; }
 
-  header { display: flex; align-items: center; gap: 14px; padding: 0 18px; border-bottom: 1px solid var(--border); background: var(--bg); }
-  header .brand { font-weight: 600; font-size: 16px; letter-spacing: .2px; }
-  header .company { color: var(--muted); }
-  header .spacer { flex: 1; }
-  header .pill { font-size: 12px; color: var(--muted); padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; }
+  /* ---------- メニューの帯（自作のアプリと同じ。上の帯にメニュー、下に状態） ---------- */
+  .menubar { display: flex; align-items: center; gap: 2px; padding: 0 8px; background: var(--panel); border-bottom: 1px solid var(--border); font-size: 12.5px; user-select: none; }
+  .menubar .brand { font-weight: 600; margin-right: 10px; padding: 0 6px; display: flex; align-items: center; gap: 6px; }
+  .menubar .brand img { width: 18px; height: 18px; border-radius: 4px; }
+  .menu { position: relative; }
+  .menu > button { background: none; border: 0; color: var(--text); padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+  .menu > button:hover, .menu.open > button { background: var(--panel-2); }
+  .menu .list { display: none; position: absolute; top: 100%; left: 0; min-width: 240px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px; z-index: 50; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  .menu.open .list { display: block; }
+  .menu .list button { display: flex; width: 100%; justify-content: space-between; gap: 18px; text-align: left; background: none; border: 0; color: var(--text); padding: 7px 10px; border-radius: 6px; cursor: pointer; }
+  .menu .list button:hover { background: var(--panel-3); }
+  .menu .list button:disabled { color: var(--muted); cursor: default; }
+  .menu .list .key { color: var(--muted); font-size: 11px; }
+  .menu .list hr { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
+  .menubar .spacer { flex: 1; }
+  .menubar .pill { font-size: 12px; color: var(--muted); padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; }
+  .menubar .pill:hover { color: var(--text); }
+  .menubar .pill.warn { color: var(--warn); border-color: var(--warn); }
 
-  main { display: grid; grid-template-columns: 270px 1fr 320px; min-height: 0; }
-  aside, section { min-height: 0; overflow: auto; }
-  aside.left { border-right: 1px solid var(--border); padding: 14px 10px; }
-  aside.right { border-left: 1px solid var(--border); padding: 16px; }
+  /* ---------- 画面の切り替え ---------- */
+  .tabs { display: flex; align-items: center; gap: 4px; padding: 0 14px; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .tabs button { background: none; border: 0; color: var(--muted); padding: 0 14px; height: 48px; border-bottom: 2px solid transparent; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tabs button .cnt { font-size: 11px; color: var(--muted); background: var(--panel-2); border-radius: 999px; padding: 1px 7px; }
+  .tabs .company { margin-left: auto; color: var(--muted); font-size: 13px; }
+  .view { display: none; min-height: 0; overflow: hidden; }
+  .view.active { display: grid; }
 
+  /* ---------- 状態の帯 ---------- */
+  .statusbar { display: flex; align-items: center; gap: 18px; padding: 0 14px; border-top: 1px solid var(--border); background: var(--panel); font-size: 11.5px; color: var(--muted); }
+  .statusbar .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; margin-right: 6px; }
+  .statusbar .dot.running { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+  .statusbar .dot.done { background: var(--ok); } .statusbar .dot.error { background: var(--err); }
+  .statusbar .spacer { flex: 1; }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  /* ---------- 仕事 ---------- */
+  #view-work { grid-template-columns: 250px 1fr; }
+  .side { border-right: 1px solid var(--border); padding: 12px 8px; overflow: auto; }
   h3 { margin: 10px 8px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
-  .nav button { display: flex; width: 100%; align-items: center; gap: 10px; text-align: left; background: none; border: 0; color: var(--text); padding: 9px 10px; border-radius: 8px; cursor: pointer; font: inherit; }
+  .nav button { display: flex; width: 100%; align-items: center; gap: 10px; text-align: left; background: none; border: 0; color: var(--text); padding: 8px 10px; border-radius: 8px; cursor: pointer; }
   .nav button:hover { background: var(--panel); }
   .nav button.active { background: var(--panel-2); }
   .nav .sub { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; padding-left: 8px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
-  .dot.running { background: var(--accent); animation: pulse 1.2s infinite; }
-  .dot.done { background: var(--ok); } .dot.error { background: var(--err); } .dot.stopped { background: var(--warn); }
-  @keyframes pulse { 50% { opacity: .35; } }
+  .nav .ava { width: 26px; height: 30px; flex: none; display: flex; align-items: flex-end; justify-content: center; }
+  .nav .ava .art { height: 30px; width: auto; max-width: 26px; object-fit: contain; }
+  .nav .ava svg.art { width: 22px; height: 26px; overflow: visible; }
+  .nav button.running .ava .art { animation: hop .6s ease-in-out infinite; }
+  .nav .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .nav .dot.running { background: var(--accent); animation: pulse 1s infinite; } .nav .dot.done { background: var(--ok); } .nav .dot.error { background: var(--err); } .nav .dot.stopped { background: var(--warn); }
+  section.center { display: grid; grid-template-rows: auto 1fr auto; min-height: 0; }
 
-  section.center { display: grid; grid-template-rows: auto 1fr auto; }
-  /* ---------- キャラクター ----------
-     役職を人の姿で見せる。誰が今動いているか、考えているのか、道具を使っているのかが、文字を読まなくても分かる。
-     動きは CSS だけで付け、JS は状態の class を付け替えるだけにする（流れる文字の描画を邪魔しない）。 */
-  .stage { display: flex; justify-content: center; align-items: flex-end; gap: 8px; padding: 44px 16px 4px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, transparent, rgba(255,255,255,.02)); min-height: 226px; overflow: hidden; }
-  /* 幅が狭い窓（1024px）では 6 人が入りきらず端が切れた。箱を縮めて、絵は箱の中に収める */
+  /* ---------- キャラクター ---------- */
+  .stage { display: flex; justify-content: center; align-items: flex-end; gap: 8px; padding: 44px 16px 4px; border-bottom: 1px solid var(--border); min-height: 226px; overflow: hidden; background: linear-gradient(180deg, transparent 0, transparent 60%, rgba(255,255,255,.035) 60%, rgba(255,255,255,.035)); }
   .chara { position: relative; flex: 1 1 0; min-width: 0; max-width: 108px; text-align: center; color: var(--muted); font-size: 11px; transition: transform .3s; }
   .chara .art { position: relative; z-index: 0; height: 150px; width: 100%; max-width: 106px; object-fit: contain; object-position: bottom; display: block; margin: 0 auto 2px; transform-origin: 50% 100%; animation: breathe 3.2s ease-in-out infinite; filter: drop-shadow(0 6px 6px rgba(0,0,0,.45)); }
   .chara svg.art { width: 72px; height: 88px; overflow: visible; }
   .chara .name { position: relative; z-index: 2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chara .eye { animation: blink 4.6s infinite; transform-origin: center; transform-box: fill-box; }
-  .chara:nth-child(2n) .eye { animation-delay: 1.3s; } .chara:nth-child(3n) .eye { animation-delay: 2.1s; }
   .chara .mouth { transform-origin: center; transform-box: fill-box; }
   .chara .tool { opacity: 0; transform-origin: 20% 80%; transform-box: fill-box; }
   .chara .bubble { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, 0); min-width: 56px; max-width: 220px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 5px 9px; font-size: 11.5px; line-height: 1.35; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 2; }
@@ -61,19 +89,12 @@
   .chara.thinking .art { animation: think 1.6s ease-in-out infinite; }
   .chara.talking .art { animation: speak .32s ease-in-out infinite alternate; }
   .chara.talking .mouth { animation: talk .28s ease-in-out infinite alternate; }
-  .chara.working .art { animation: work .55s ease-in-out infinite alternate; }
+  .chara.working .art { animation: typing .36s ease-in-out infinite alternate; }
   .chara.working .tool { opacity: 1; animation: swing .5s ease-in-out infinite alternate; }
   .chara.done .art { animation: hop .6s ease-out 2; }
   .chara.error .art { animation: shake .4s ease-in-out 3; }
   .chara.error .bubble { border-color: var(--err); color: var(--err); }
   .chara.stopped { opacity: .55; }
-  .nav .ava { width: 26px; height: 30px; flex: none; display: flex; align-items: flex-end; justify-content: center; }
-  .nav .ava .art { height: 30px; width: auto; max-width: 26px; object-fit: contain; }
-  .nav .ava svg.art { width: 22px; height: 26px; overflow: visible; }
-  .nav button.running .ava .art { animation: hop .6s ease-in-out infinite; }
-  /* オフィス。机とノートパソコンを各人の前に置き、働いている様子（打っている、考えている、できた、困った）が
-     絵を見るだけで分かるようにする。絵は PNG なので手や口は動かせず、机・画面・効果で動きを出す */
-  .stage { background: linear-gradient(180deg, transparent 0, transparent 60%, rgba(255,255,255,.035) 60%, rgba(255,255,255,.035)); }
   .chara .desk { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 96px; height: 26px; pointer-events: none; z-index: 1; }
   .chara .desk::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 9px; border-radius: 3px; background: linear-gradient(180deg, #6b4a2b, #4a321c); box-shadow: 0 4px 6px rgba(0,0,0,.45); }
   .chara .laptop { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 34px; height: 22px; }
@@ -85,27 +106,17 @@
   .chara.working .laptop .screen i:nth-child(2) { animation: typeline 1.4s steps(10) .3s infinite; }
   .chara.working .laptop .screen i:nth-child(3) { animation: typeline .9s steps(6) .6s infinite; }
   .chara.working .laptop .base { animation: keys .18s steps(2) infinite; }
-  .chara.working .art { animation: typing .36s ease-in-out infinite alternate; }
   .chara.thinking .laptop .screen { background: #141a26; }
   .chara.thinking .laptop .screen i:nth-child(1) { width: 60%; animation: cursor 1s steps(2) infinite; }
-  .chara.done .laptop .screen { background: #15351f; }
-  .chara.done .laptop .screen i { width: 70%; background: #3ec46d; }
-  .chara.error .laptop .screen { background: #3a1515; }
-  .chara.error .laptop .screen i { width: 70%; background: #e06666; }
-  .chara.stopped .laptop .screen { background: #0a0d12; }
-  .chara.stopped .laptop .screen i { width: 0; }
-  /* 頭の上の効果。考えているときは「…」、できたら「✓」、困ったら「!」、止まったら「zz」 */
+  .chara.done .laptop .screen { background: #15351f; } .chara.done .laptop .screen i { width: 70%; background: #3ec46d; }
+  .chara.error .laptop .screen { background: #3a1515; } .chara.error .laptop .screen i { width: 70%; background: #e06666; }
+  .chara.stopped .laptop .screen { background: #0a0d12; } .chara.stopped .laptop .screen i { width: 0; }
   .chara .fx { position: absolute; left: 76%; top: 26px; transform: translateX(-50%); font-size: 18px; font-weight: 700; opacity: 0; pointer-events: none; z-index: 3; text-shadow: 0 2px 4px rgba(0,0,0,.6); }
-  .chara.thinking .fx::before { content: '…'; color: var(--muted); }
-  .chara.thinking .fx { opacity: 1; animation: floaty 1.6s ease-in-out infinite; }
-  .chara.working .fx::before { content: '⚙'; color: #8ab4f8; }
-  .chara.working .fx { opacity: .9; animation: spin 1.4s linear infinite; }
-  .chara.done .fx::before { content: '✓'; color: #3ec46d; }
-  .chara.done .fx { opacity: 1; animation: pop .6s ease-out 1 forwards; }
-  .chara.error .fx::before { content: '!'; color: #e06666; }
-  .chara.error .fx { opacity: 1; animation: pop .4s ease-out 1 forwards; }
-  .chara.stopped .fx::before { content: 'zz'; color: var(--muted); font-size: 13px; }
-  .chara.stopped .fx { opacity: .8; animation: floaty 2.4s ease-in-out infinite; }
+  .chara.thinking .fx::before { content: '…'; color: var(--muted); } .chara.thinking .fx { opacity: 1; animation: floaty 1.6s ease-in-out infinite; }
+  .chara.working .fx::before { content: '⚙'; color: #8ab4f8; } .chara.working .fx { opacity: .9; animation: spin 1.4s linear infinite; }
+  .chara.done .fx::before { content: '✓'; color: #3ec46d; } .chara.done .fx { opacity: 1; animation: pop .6s ease-out 1 forwards; }
+  .chara.error .fx::before { content: '!'; color: #e06666; } .chara.error .fx { opacity: 1; animation: pop .4s ease-out 1 forwards; }
+  .chara.stopped .fx::before { content: 'zz'; color: var(--muted); font-size: 13px; } .chara.stopped .fx { opacity: .8; animation: floaty 2.4s ease-in-out infinite; }
   .chara.talking .fx { opacity: 0; }
   @keyframes typeline { from { width: 0; } to { width: 90%; } }
   @keyframes keys { 50% { filter: brightness(1.5); } }
@@ -114,32 +125,17 @@
   @keyframes floaty { 50% { transform: translate(-50%, -5px); } }
   @keyframes spin { to { transform: translateX(-50%) rotate(360deg); } }
   @keyframes pop { 0% { transform: translate(-50%, 6px) scale(.4); } 70% { transform: translate(-50%, -4px) scale(1.25); } 100% { transform: translate(-50%, -2px) scale(1); } }
-  /* 右パネル。普段要らない情報は節ごとにたたむ。開いた節は覚える */
-  aside.right details.sec { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
-  aside.right details.sec > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; user-select: none; }
-  aside.right details.sec > summary::before { content: '▸'; font-size: 10px; }
-  aside.right details.sec[open] > summary::before { content: '▾'; }
-  aside.right details.sec > summary .cnt { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: .7; }
-  aside.right details.sec .help { display: none; }
-  aside.right details.sec[open] .help { display: block; }
-  /* 会社の形: 説明は題にだけ入れ、予定の席は「予定も見る」を押したときだけ出す */
-  #org .about { display: none; }
-  #org.show-planned .about { display: block; }
-  #org .planned-only { display: none; }
-  #org.show-planned .planned-only { display: block; }
-  /* 声で指示する */
-  #micBtn.on { background: var(--err); color: #fff; animation: pulse 1s ease-in-out infinite; }
   @keyframes breathe { 50% { transform: scaleY(1.025) translateY(-1px); } }
   @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
   @keyframes talk { to { transform: scaleY(2.4); } }
   @keyframes think { 50% { transform: rotate(-4deg) translateY(-2px); } }
   @keyframes speak { from { transform: translateY(0) scaleY(1); } to { transform: translateY(-3px) scaleY(1.02); } }
-  @keyframes work { from { transform: rotate(-3deg) translateY(0); } to { transform: rotate(3deg) translateY(-2px); } }
   @keyframes swing { from { transform: rotate(-18deg); } to { transform: rotate(22deg); } }
   @keyframes hop { 30% { transform: translateY(-14px) scaleX(.96); } 60% { transform: translateY(0); } }
   @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
   @media (prefers-reduced-motion: reduce) { .chara .art, .chara .eye, .chara .mouth, .chara .tool, .chara .fx, .chara .laptop *, .nav .ava .art { animation: none !important; } }
 
+  /* ---------- 流れ ---------- */
   .stream { padding: 22px 28px; overflow: auto; }
   .empty { color: var(--muted); max-width: 560px; margin: 60px auto; text-align: center; }
   .empty h2 { font-weight: 500; color: var(--text); margin-bottom: 6px; }
@@ -150,79 +146,162 @@
   .msg.tool .body { background: transparent; border: 1px solid var(--border); padding: 8px 12px; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
   .msg.tool .name { color: var(--tool); }
   .msg.tool details summary { cursor: pointer; list-style: none; }
-  .msg.tool details summary::-webkit-details-marker { display: none; }
   .msg.tool pre { margin: 8px 0 0; white-space: pre-wrap; color: var(--text); max-height: 320px; overflow: auto; }
   .msg.status .body { background: transparent; color: var(--muted); font-size: 12.5px; padding: 4px 0; }
   .msg.error .body { border: 1px solid var(--err); color: var(--err); background: transparent; }
   .msg.role .body { background: var(--panel-2); font-weight: 500; }
   .msg.live .body { border: 1px dashed var(--border); background: transparent; color: var(--muted); }
-
   .composer { border-top: 1px solid var(--border); padding: 14px 28px 18px; background: var(--bg); }
   .composer .box { max-width: 860px; margin: 0 auto; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 10px 12px 8px; }
   .composer textarea { width: 100%; background: none; border: 0; color: var(--text); font: inherit; resize: none; outline: none; min-height: 44px; }
   .composer .row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
   .composer .hint { color: var(--muted); font-size: 12px; }
   .composer .spacer { flex: 1; }
+  #micBtn.on { background: var(--err); color: #fff; border-color: var(--err); animation: pulse 1s ease-in-out infinite; }
 
-  select, input[type=text], input[type=password], input[type=number] { width: 100%; background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 8px; font: inherit; }
+  /* ---------- 部品 ---------- */
+  select, input[type=text], input[type=password], input[type=number], textarea.plain { width: 100%; background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 8px; font: inherit; }
   input[type=range] { width: 100%; accent-color: var(--accent); }
   label.field { display: block; margin-bottom: 14px; }
   label.field > span { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
   .inline { display: flex; gap: 6px; }
   .inline select { flex: 1; }
-  button.btn { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 999px; cursor: pointer; font: inherit; }
+  button.btn { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 999px; cursor: pointer; }
   button.btn:hover { border-color: var(--muted); }
   button.btn.primary { background: var(--accent); border-color: var(--accent); color: #062e6f; font-weight: 600; }
   button.btn.primary:hover { background: var(--accent-2); }
   button.btn.danger { border-color: var(--err); color: var(--err); }
+  button.btn.sm { padding: 3px 10px; font-size: 12px; }
   button.btn:disabled { opacity: .5; cursor: default; }
   .small { font-size: 12px; color: var(--muted); }
   .note { font-size: 12px; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
   .note.err { color: var(--err); border-color: var(--err); }
   .note.ok { color: var(--ok); border-color: var(--ok); border-style: solid; }
-  .ok { color: var(--ok); }
-  .ra { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 5px 0; border-top: 1px solid var(--border); align-items: center; font-size: 12px; }
-  .ra:first-child { border-top: 0; }
-  .ra select, .ra input { padding: 5px 6px; font-size: 12px; }
-  .cat { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--border); }
-  .cat:first-child { border-top: 0; }
-  .cat .lbl { flex: 1; min-width: 0; }
-  .cat .lbl div { font-size: 12px; color: var(--muted); }
-  .cat button.btn { padding: 4px 10px; font-size: 12px; }
-  .bar { height: 4px; background: var(--panel-2); border-radius: 2px; overflow: hidden; margin-top: 4px; }
-  .bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+  .ok { color: var(--ok); } .err { color: var(--err); }
+  .pill { font-size: 11px; color: var(--muted); padding: 1px 8px; border: 1px solid var(--border); border-radius: 999px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .card h4 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+  table.list { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.list th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11.5px; padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table.list td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.list tr.row { cursor: pointer; } table.list tr.row:hover td { background: var(--panel); } table.list tr.active td { background: var(--panel-2); }
+  table.list .muted { color: var(--muted); }
+  .ellipsis { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .twocol { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(0, 1.4fr); min-height: 0; }
+  .twocol > * { min-height: 0; overflow: auto; }
+  .twocol > .left { border-right: 1px solid var(--border); }
+  .toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 2; }
+  .toolbar .spacer { flex: 1; }
+  .toolbar .seg { display: flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+  .toolbar .seg button { background: none; border: 0; color: var(--muted); padding: 5px 12px; cursor: pointer; font-size: 12.5px; }
+  .toolbar .seg button.active { background: var(--panel-2); color: var(--text); }
+  .doc { padding: 18px 24px; max-width: 900px; }
+  .doc pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font); font-size: 13.5px; line-height: 1.6; margin: 0; }
+  .doc h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  .doc .meta { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+  .cat { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .cat .lbl { font-size: 13px; } .cat .lbl div { color: var(--muted); font-size: 11.5px; }
+  .bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; overflow: hidden; } .bar i { display: block; height: 100%; background: var(--accent); }
+  .ra { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; align-items: center; margin-bottom: 6px; font-size: 12.5px; }
 
-  @media (max-width: 1000px) {
-    main { grid-template-columns: 1fr; }
-    aside { display: none; }
-  }
+  /* ---------- 設定 ---------- */
+  #view-settings { grid-template-columns: 220px 1fr; }
+  .settings-nav { border-right: 1px solid var(--border); padding: 12px 8px; }
+  .settings-body { overflow: auto; padding: 18px 28px; max-width: 760px; }
+  .settings-body section { display: none; } .settings-body section.active { display: block; }
+  .settings-body h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; } .settings-body .lead { color: var(--muted); font-size: 12.5px; margin-bottom: 16px; }
+
+  /* ---------- 会社 ---------- */
+  #view-company { grid-template-columns: 1fr; }
+  .company-wrap { overflow: auto; padding: 18px 24px; }
+  .orgtree details { margin-left: 0; } .orgtree details details { margin-left: 16px; }
+  .orgtree summary { cursor: pointer; list-style: none; padding: 4px 6px; border-radius: 6px; } .orgtree summary:hover { background: var(--panel); }
+  .orgtree summary::-webkit-details-marker { display: none; }
+  .orgtree .kind { font-size: 10.5px; color: var(--muted); margin-right: 6px; }
+  .orgtree .about { color: var(--muted); font-size: 12px; margin-left: 10px; }
+  .orgtree .seat { margin-left: 24px; font-size: 12.5px; color: var(--muted); padding: 2px 0; }
+  .orgtree .planned-only { display: none; } .orgtree.show-planned .planned-only { display: block; }
+  .staffrow { display: flex; gap: 14px; flex-wrap: wrap; margin: 6px 0 6px 24px; }
+  .staffrow .st { text-align: center; font-size: 11px; color: var(--muted); }
+  .staffrow .st img { height: 96px; display: block; margin: 0 auto 2px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.45)); }
+  .partners-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+
+  /* ---------- 小さい窓 ---------- */
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; min-width: 360px; max-width: 560px; }
+  dialog::backdrop { background: rgba(0,0,0,.55); }
+  dialog h3 { margin: 0 0 10px; font-size: 14px; text-transform: none; letter-spacing: 0; color: var(--text); }
+  .toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 99; }
+  .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
-<header>
-  <span class="brand">Company</span>
-  <span class="company" id="companyName">…</span>
-  <span class="spacer"></span>
-  <span class="pill" id="modelPill">モデル未選択</span>
-</header>
 
-<main>
-  <aside class="left">
+<!-- メニューの帯 -->
+<nav class="menubar" id="menubar">
+  <span class="brand"><img src="/icon/app-64.png" alt=""> Company</span>
+  <div class="menu"><button>ファイル</button><div class="list">
+    <button data-act="open-workspace">作業場の場所を見る<span class="key"></span></button>
+    <button data-act="settings">設定…<span class="key">Ctrl+,</span></button>
+    <hr>
+    <button data-act="quit">閉じる</button>
+  </div></div>
+  <div class="menu"><button>実行</button><div class="list" id="runMenu">
+    <button data-act="run">今の対象を実行<span class="key">Ctrl+Enter</span></button>
+    <button data-act="stop" id="menuStop" disabled>停止<span class="key">Esc</span></button>
+    <hr>
+    <div id="runMenuTargets"></div>
+  </div></div>
+  <div class="menu"><button>表示</button><div class="list">
+    <button data-view="work">仕事<span class="key">Ctrl+1</span></button>
+    <button data-view="history">履歴<span class="key">Ctrl+2</span></button>
+    <button data-view="deliverables">成果物<span class="key">Ctrl+3</span></button>
+    <button data-view="company">会社<span class="key">Ctrl+4</span></button>
+    <button data-view="settings">設定<span class="key">Ctrl+5</span></button>
+  </div></div>
+  <div class="menu"><button>会社</button><div class="list">
+    <button data-act="org">会社の形</button>
+    <button data-act="partners">連携しているツール</button>
+    <button data-act="sync-repos">リポジトリを子会社として取り込む</button>
+    <hr>
+    <button data-act="register-aas">AdaptiveAIStudio に登録し直す</button>
+  </div></div>
+  <div class="menu"><button>ヘルプ</button><div class="list">
+    <button data-act="help">使い方（手順書）</button>
+    <button data-act="update">更新を確かめる</button>
+    <hr>
+    <button data-act="about">Company について <span class="key" id="aboutVersion"></span></button>
+  </div></div>
+  <span class="spacer"></span>
+  <span class="pill" id="modelPill" title="押すと設定へ">モデル未選択</span>
+</nav>
+
+<!-- 画面の切り替え -->
+<div class="tabs" id="tabs">
+  <button data-view="work" class="active">仕事</button>
+  <button data-view="history">履歴 <span class="cnt" id="histCount">0</span></button>
+  <button data-view="deliverables">成果物 <span class="cnt" id="delivCount">0</span></button>
+  <button data-view="company">会社</button>
+  <button data-view="settings">設定</button>
+  <span class="company" id="companyName"></span>
+</div>
+
+<!-- 仕事 -->
+<div class="view active" id="view-work">
+  <aside class="side">
     <h3>サイクル</h3>
     <div class="nav" id="cadenceNav"></div>
     <h3>役職</h3>
     <div class="nav" id="roleNav"></div>
-    <h3>履歴</h3>
+    <h3>最近の実行</h3>
     <div class="nav" id="runNav"></div>
   </aside>
-
   <section class="center">
     <div class="stage" id="stage" aria-label="役職のキャラクター"></div>
     <div class="stream" id="stream">
       <div class="empty">
         <h2>AIが経営する会社</h2>
         <p>左でサイクルか役職を選び、下に指示を書いて実行します。指示が空なら、役職定義に従って自分で決めて動きます。</p>
-        <p class="small">右のパネルで AI を選んでください。内蔵モデル、Ollama / LM Studio、OpenAI、OpenRouter、Gemini、Anthropic など。役職ごとに別の AI も選べます。</p>
+        <p class="small">モデルは「設定」で選びます。内蔵モデル、Ollama / LM Studio、OpenAI、OpenRouter、Gemini、Anthropic など。役職ごとに別の AI も選べます。</p>
       </div>
     </div>
     <div class="composer">
@@ -238,102 +317,160 @@
       </div>
     </div>
   </section>
+</div>
 
-  <aside class="right">
-    <details class="sec" open data-sec="settings"><summary>実行設定 <span class="cnt" id="settingsSummary"></span></summary>
-    <label class="field"><span>プロバイダ</span>
-      <select id="provider"></select>
-    </label>
-    <label class="field" id="baseUrlField"><span>エンドポイント</span>
-      <input type="text" id="baseUrl" placeholder="http://localhost:11434/v1">
-      <span class="small" id="baseUrlHint" style="display:block;margin-top:4px">Ollama: :11434/v1 　LM Studio: :1234/v1</span>
-    </label>
-    <label class="field" id="apiKeyField" style="display:none"><span>APIキー</span>
-      <input type="password" id="apiKey" placeholder="">
-      <span class="small" id="apiKeyHint" style="display:block;margin-top:4px"></span>
-    </label>
-    <label class="field"><span>モデル</span>
-      <div class="inline">
-        <select id="model"></select>
-        <button class="btn" id="refreshModels" title="一覧を取得">↻</button>
+<!-- 履歴 -->
+<div class="view" id="view-history">
+  <div class="twocol">
+    <div class="left">
+      <div class="toolbar">
+        <span class="small" id="histSummary"></span>
+        <span class="spacer"></span>
+        <button class="btn sm" id="histRefresh">↻ 見直す</button>
       </div>
-      <button class="btn" id="checkModel" style="margin-top:6px" title="選んだ AI に 1+1= を送り、本当に答えるかを見る">本当に答えるか確かめる</button>
-      <div class="note" id="modelNote" style="display:none"></div>
-    </label>
-    <div id="catalogField" class="field">
-      <span class="small" style="display:block;margin-bottom:6px">モデルをアプリ内にダウンロード（初回のみ。以後はオフラインで動く）</span>
-      <div id="catalog"></div>
+      <table class="list" id="histTable"><thead><tr><th>日時</th><th>対象</th><th>結果</th><th>ターン</th><th>トークン</th><th></th></tr></thead><tbody></tbody></table>
+      <div class="empty" id="histEmpty" style="display:none"><h2>まだ実行がありません</h2><p>「仕事」で実行すると、ここに残ります。アプリを閉じても消えません。</p></div>
     </div>
-    <details class="sec" data-sec="advanced" style="margin-top:8px;border-top:none;padding-top:0"><summary>詳しい設定 <span class="cnt">コンテキスト長、GPU、Temperature、ターン数、トークン上限、通知</span></summary>
-    <label class="field" id="contextField"><span>コンテキスト長</span>
-      <select id="context">
-        <option value="4096">4096（省メモリ）</option>
-        <option value="8192">8192</option>
-        <option value="16384">16384</option>
-        <option value="32768">32768（要メモリ）</option>
-      </select>
-    </label>
-    <label class="field" id="gpuField"><span>GPU に載せる層数</span>
-      <input type="number" id="gpuLayers" min="-1" max="200" value="-1">
-      <span class="small" style="display:block;margin-top:4px">-1 = 全部（GPU 版のときだけ効く）。CPU 版では無視される</span>
-    </label>
-    <label class="field"><span>Temperature <b id="tempVal">0.2</b></span>
-      <input type="range" id="temperature" min="0" max="1" step="0.05" value="0.2">
-    </label>
-    <label class="field"><span>最大ターン数</span>
-      <input type="number" id="maxTurns" min="1" max="500" value="60">
-    </label>
-    <label class="field"><span>トークン上限（1役職の実行あたり）</span>
-      <input type="number" id="maxTokens" min="0" step="1000" value="0">
-      <span class="small" style="display:block;margin-top:4px">入力＋出力の合計。0 = 無制限。クラウドで放置して回すときの費用の歯止め</span>
-    </label>
-    <label class="field"><span>通知（Webhook）</span>
-      <input type="text" id="webhookUrl" placeholder="https://hooks.slack.com/… または Discord の Webhook URL">
-      <select id="notifyOn" style="margin-top:6px">
-        <option value="always">毎回知らせる</option>
-        <option value="error">失敗・停止のときだけ</option>
-      </select>
-      <span class="small" style="display:block;margin-top:4px">ランの終わりに1通。空なら知らせない</span>
-    </label>
-    </details>
-    <div class="small" id="saveState"></div>
-    </details>
-
-    <details class="sec" data-sec="roles"><summary>役職ごとの AI</summary>
-    <div class="small help" style="margin-bottom:6px">空なら上の設定に従う。役職によって別の AI を使える</div>
-    <div id="roleAssign"></div>
-    </details>
-
-    <details class="sec" data-sec="company"><summary>この会社</summary>
-    <div class="small" id="companyInfo"></div>
-    </details>
-
-    <details class="sec" data-sec="org"><summary>会社の形 <span class="cnt" id="orgSummary"></span> <button class="btn" id="refreshOrg" title="つながりを見直す" style="padding:2px 8px" onclick="event.preventDefault()">↻</button></summary>
-    <div class="small help" style="margin-bottom:6px">親会社は Company、子会社は各ツール、部門は機能別、その下が機能・道具・作業用エージェントです（org.yaml）。<label style="margin-left:8px"><input type="checkbox" id="showPlanned"> 予定と説明も見る</label></div>
-    <div id="org" class="small">…</div>
-    <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
-      <button class="btn" id="syncRepos" title="GitHub のリポジトリを 1 つ 1 社として業種ごとに取り込む">リポジトリを子会社として取り込む</button>
-      <span class="small" id="syncNote"></span>
+    <div class="right">
+      <div class="toolbar"><span id="histTitle" class="small">左から 1 件選ぶ</span><span class="spacer"></span><button class="btn sm" id="histOpenWork" style="display:none">仕事の画面で見る</button><button class="btn sm danger" id="histDelete" style="display:none">この記録を消す</button></div>
+      <div class="stream" id="histStream"></div>
     </div>
-    </details>
+  </div>
+</div>
 
-    <details class="sec" data-sec="partners"><summary>連携しているツール <span class="cnt" id="partnersSummary"></span> <button class="btn" id="refreshPartners" title="生きているかを見直す" style="padding:2px 8px" onclick="event.preventDefault()">↻</button></summary>
-    <div class="small help" style="margin-bottom:6px">同じ作者のツール。入っていれば自動で見つけてつなぎます。緑はつながっていて、役職の AI がその道具を使えます。</div>
-    <div id="partners" class="small">…</div>
-    </details>
-    <details class="sec" data-sec="update"><summary>このアプリ <span class="cnt" id="appVersion"></span></summary>
-    <div class="field" id="updateField">
-      <button class="btn" id="checkUpdate">更新を確かめる</button>
-      <div class="note" id="updateNote" style="display:none"></div>
+<!-- 成果物 -->
+<div class="view" id="view-deliverables">
+  <div class="twocol">
+    <div class="left">
+      <div class="toolbar">
+        <div class="seg" id="delivSeg">
+          <button data-kind="decisions" class="active">意思決定の記録</button>
+          <button data-kind="commits">製品の変更</button>
+          <button data-kind="reports">報告</button>
+          <button data-kind="runs">実績</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="btn sm" id="delivRefresh">↻ 見直す</button>
+      </div>
+      <div id="delivList"></div>
     </div>
-    </details>
+    <div class="right">
+      <div class="toolbar"><span class="small" id="delivTitle">左から 1 件選ぶ</span></div>
+      <div class="doc" id="delivDoc"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 会社 -->
+<div class="view" id="view-company">
+  <div class="company-wrap">
+    <div class="toolbar" style="position:static;border:0;padding:0 0 12px">
+      <h2 style="margin:0;font-size:16px;font-weight:600">会社の形</h2>
+      <span class="small" id="orgSummary"></span>
+      <span class="spacer"></span>
+      <label class="small"><input type="checkbox" id="showPlanned"> 予定と説明も見る</label>
+      <button class="btn sm" id="refreshOrg">↻ 見直す</button>
+      <button class="btn sm" id="syncRepos" title="GitHub のリポジトリを 1 つ 1 社として業種ごとに取り込む">リポジトリを子会社として取り込む</button>
+    </div>
+    <div class="small" id="syncNote" style="margin-bottom:8px"></div>
+    <div class="small" style="margin-bottom:10px">親会社は Company、子会社は各ツール、部門は機能別、その下が機能・道具・作業用エージェントです（org.yaml）。</div>
+    <div id="org" class="orgtree card">…</div>
+    <div class="toolbar" style="position:static;border:0;padding:22px 0 10px">
+      <h2 style="margin:0;font-size:16px;font-weight:600">連携しているツール</h2>
+      <span class="small" id="partnersSummary"></span>
+      <span class="spacer"></span>
+      <button class="btn sm" id="refreshPartners">↻ 見直す</button>
+    </div>
+    <div class="small" style="margin-bottom:10px">同じ作者のツールと、口（MCP・HTTP・ファイル）のある既製品。入っていれば自動で見つけてつなぎます。緑はつながっていて、役職の AI がその道具を使えます。</div>
+    <div id="partners" class="partners-grid"></div>
+    <div class="toolbar" style="position:static;border:0;padding:22px 0 10px"><h2 style="margin:0;font-size:16px;font-weight:600">この会社</h2></div>
+    <div class="card small" id="companyInfo"></div>
+  </div>
+</div>
+
+<!-- 設定 -->
+<div class="view" id="view-settings">
+  <aside class="settings-nav nav">
+    <button data-sec="model" class="active">AI とモデル</button>
+    <button data-sec="advanced">詳しい設定</button>
+    <button data-sec="roles">役職ごとの AI</button>
+    <button data-sec="notify">通知</button>
+    <button data-sec="app">このアプリ</button>
   </aside>
-</main>
+  <div class="settings-body">
+    <section data-sec="model" class="active">
+      <h2>AI とモデル</h2>
+      <div class="lead">どの AI で会社を回すか。内蔵モデルなら鍵もネットも要らない。</div>
+      <label class="field"><span>プロバイダ</span><select id="provider"></select></label>
+      <label class="field" id="baseUrlField"><span>エンドポイント</span>
+        <input type="text" id="baseUrl" placeholder="http://localhost:11434/v1">
+        <span class="small" id="baseUrlHint" style="display:block;margin-top:4px"></span>
+      </label>
+      <label class="field" id="apiKeyField" style="display:none"><span>APIキー</span>
+        <input type="password" id="apiKey" placeholder="">
+        <span class="small" id="apiKeyHint" style="display:block;margin-top:4px"></span>
+      </label>
+      <label class="field"><span>モデル</span>
+        <div class="inline"><select id="model"></select><button class="btn" id="refreshModels" title="一覧を取得">↻</button></div>
+        <button class="btn" id="checkModel" style="margin-top:6px" title="選んだ AI に 1+1= を送り、本当に答えるかを見る">本当に答えるか確かめる</button>
+        <div class="note" id="modelNote" style="display:none"></div>
+      </label>
+      <div id="catalogField" class="field">
+        <span class="small">内蔵モデル（初回だけ取得。以後はオフラインで動く）</span>
+        <div id="catalog"></div>
+      </div>
+    </section>
+    <section data-sec="advanced">
+      <h2>詳しい設定</h2>
+      <div class="lead">普段は触らなくてよい。</div>
+      <label class="field" id="contextField"><span>文脈の長さ</span>
+        <select id="context"><option value="4096">4096</option><option value="8192">8192</option><option value="16384">16384</option><option value="32768">32768</option></select>
+      </label>
+      <label class="field" id="gpuField"><span>GPU に載せる層数</span>
+        <input type="number" id="gpuLayers" min="-1" max="200" value="-1">
+        <span class="small">-1 = 全部（GPU 版のときだけ効く）。CPU 版では無視される</span>
+      </label>
+      <label class="field"><span>Temperature <b id="tempVal">0.2</b></span><input type="range" id="temperature" min="0" max="1" step="0.05" value="0.2"></label>
+      <label class="field"><span>最大ターン数</span><input type="number" id="maxTurns" min="1" max="500" value="60"></label>
+      <label class="field"><span>トークン上限（1 役職の実行あたり）</span><input type="number" id="maxTokens" min="0" step="1000" value="0"><span class="small">入力＋出力の合計。0 = 無制限。クラウドで放置して回すときの費用の歯止め</span></label>
+    </section>
+    <section data-sec="roles">
+      <h2>役職ごとの AI</h2>
+      <div class="lead">空なら全体の設定に従う。役職によって別の AI を使える。</div>
+      <div id="roleAssign"></div>
+    </section>
+    <section data-sec="notify">
+      <h2>通知</h2>
+      <div class="lead">実行の終わりに Webhook へ 1 通。空なら知らせない。</div>
+      <label class="field"><span>Webhook</span><input type="text" id="webhookUrl" placeholder="https://hooks.slack.com/… または Discord の Webhook URL"></label>
+      <label class="field"><span>いつ知らせるか</span><select id="notifyOn"><option value="always">毎回知らせる</option><option value="error">失敗したときだけ</option></select></label>
+    </section>
+    <section data-sec="app">
+      <h2>このアプリ <span class="small" id="appVersion"></span></h2>
+      <div class="lead">置き場と更新。</div>
+      <div class="card small" id="appInfo"></div>
+      <div class="field" style="margin-top:12px"><button class="btn" id="checkUpdate">更新を確かめる</button><div class="note" id="updateNote" style="display:none"></div></div>
+    </section>
+    <div class="small" id="saveState" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div class="statusbar">
+  <span><span class="dot" id="statusDot"></span><span id="statusText">待機中</span></span>
+  <span id="statusModel"></span>
+  <span class="spacer"></span>
+  <span id="statusWorkspace" title="作業場"></span>
+  <span id="statusVersion"></span>
+</div>
+
+<dialog id="dlg"><h3 id="dlgTitle"></h3><div id="dlgBody" class="small" style="white-space:pre-wrap;color:var(--text)"></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn" id="dlgCancel" style="display:none">やめる</button><button class="btn primary" id="dlgOk">閉じる</button></div></dialog>
+<div class="toast" id="toast"></div>
 
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
-  const state = { cadences: {}, roles: [], runs: [], settings: {}, target: null, current: null, es: null };
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const state = { cadences: {}, roles: [], runs: [], settings: {}, target: null, current: null, es: null, workspace: '', version: '' };
 
   // ---------- API ----------
   const api = async (path, opts) => {
@@ -342,7 +479,76 @@
     return r.json();
   };
 
-  // ---------- Settings panel ----------
+  // ---------- 小さい窓と知らせ ----------
+  const toast = (text) => { const t = $('toast'); t.textContent = text; t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2400); };
+  const dialog = (title, body, { confirm = false } = {}) => new Promise((resolve) => {
+    $('dlgTitle').textContent = title; $('dlgBody').textContent = body;
+    $('dlgCancel').style.display = confirm ? '' : 'none'; $('dlgOk').textContent = confirm ? 'はい' : '閉じる';
+    const d = $('dlg'); d.showModal();
+    const done = (v) => { d.close(); $('dlgOk').onclick = $('dlgCancel').onclick = null; resolve(v); };
+    $('dlgOk').onclick = () => done(true); $('dlgCancel').onclick = () => done(false);
+  });
+
+  // ---------- 画面の切り替え ----------
+  const VIEWS = ['work', 'history', 'deliverables', 'company', 'settings'];
+  const show = (name) => {
+    VIEWS.forEach((v) => { $(`view-${v}`).classList.toggle('active', v === name); });
+    $('tabs').querySelectorAll('button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
+    try { localStorage.setItem('view', name); } catch (_) {}
+    if (name === 'history') loadHistory();
+    if (name === 'deliverables') loadDeliverables();
+    if (name === 'company') { loadOrg(); loadPartners(); }
+  };
+  $('tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-view]'); if (b) show(b.dataset.view); });
+  const showSettings = (sec) => {
+    show('settings');
+    if (sec) {
+      document.querySelectorAll('.settings-nav button').forEach((b) => b.classList.toggle('active', b.dataset.sec === sec));
+      document.querySelectorAll('.settings-body section').forEach((s) => s.classList.toggle('active', s.dataset.sec === sec));
+    }
+  };
+  document.querySelector('.settings-nav').addEventListener('click', (e) => { const b = e.target.closest('button[data-sec]'); if (b) showSettings(b.dataset.sec); });
+
+  // ---------- メニュー ----------
+  const menubar = $('menubar');
+  menubar.querySelectorAll('.menu > button').forEach((b) => b.addEventListener('click', (e) => {
+    const m = b.parentElement; const open = m.classList.contains('open');
+    menubar.querySelectorAll('.menu').forEach((x) => x.classList.remove('open'));
+    if (!open) m.classList.add('open');
+    e.stopPropagation();
+  }));
+  document.addEventListener('click', () => menubar.querySelectorAll('.menu').forEach((x) => x.classList.remove('open')));
+  const act = async (name) => {
+    switch (name) {
+      case 'open-workspace': await dialog('作業場', `${state.workspace}\n\ncompany.yaml、agents、product、docs、data（記録）はここにあります。`); break;
+      case 'settings': showSettings('model'); break;
+      case 'quit': window.close(); break;
+      case 'run': $('runBtn').click(); break;
+      case 'stop': $('stopBtn').click(); break;
+      case 'org': show('company'); break;
+      case 'partners': show('company'); setTimeout(() => $('partners').scrollIntoView({ behavior: 'smooth' }), 100); break;
+      case 'sync-repos': show('company'); $('syncRepos').click(); break;
+      case 'register-aas': try { const a = await api('/api/partners/aas/register', { method: 'POST' }); toast(a.error ? a.error : `書きました: ${a.path}`); } catch (e) { toast(String(e.message || e)); } break;
+      case 'help': openDoc('docs/help/install.md', '使い方（手順書）'); break;
+      case 'update': showSettings('app'); $('checkUpdate').click(); break;
+      case 'about': await dialog('Company について', `AI が経営する会社。版 ${state.version || '?'}\n作業場: ${state.workspace}\n\n各ツールは人が使い、Company はそれらを AI から使える唯一の層。`); break;
+    }
+  };
+  menubar.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-act], button[data-view], button[data-run-target]'); if (!b) return;
+    menubar.querySelectorAll('.menu').forEach((x) => x.classList.remove('open'));
+    if (b.dataset.view) show(b.dataset.view);
+    else if (b.dataset.runTarget) { const [kind, target] = b.dataset.runTarget.split(':'); setTarget(kind, target); $('runBtn').click(); }
+    else act(b.dataset.act);
+  });
+  $('modelPill').addEventListener('click', () => showSettings('model'));
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '5') { e.preventDefault(); show(VIEWS[Number(e.key) - 1]); }
+    if ((e.ctrlKey || e.metaKey) && e.key === ',') { e.preventDefault(); showSettings('model'); }
+    if (e.key === 'Escape' && state.current && $('stopBtn').style.display !== 'none') $('stopBtn').click();
+  });
+
+  // ---------- 設定 ----------
   const settingsEls = ['provider', 'baseUrl', 'apiKey', 'model', 'temperature', 'maxTurns', 'maxTokens', 'context', 'gpuLayers', 'webhookUrl', 'notifyOn'];
   const readSettings = () => ({
     provider: $('provider').value, base_url: $('baseUrl').value, api_key: $('apiKey').value,
@@ -355,10 +561,8 @@
   const readRoleAssignments = () => {
     const out = {};
     $('roleAssign').querySelectorAll('.ra').forEach((row) => {
-      const role = row.dataset.role;
-      const provider = row.querySelector('select').value;
-      const model = row.querySelector('input').value.trim();
-      if (provider || model) out[role] = { provider, model };
+      const provider = row.querySelector('select').value; const model = row.querySelector('input').value.trim();
+      if (provider || model) out[row.dataset.role] = { provider, model };
     });
     return out;
   };
@@ -375,40 +579,42 @@
       row.querySelector('input').addEventListener('input', saveSettings);
     });
   };
+  const providerInfo = (id) => (state.providers || []).find((p) => p.id === id) || {};
+  const modelLabel = () => {
+    const s = state.settings; if (!s.model) return 'モデル未選択';
+    const label = (providerInfo(s.provider).label || s.provider || '').split('（')[0];
+    return `${label} · ${s.model}${String(s.model).includes('0.5b') ? '（動作確認用。指示を守らせるなら 3B 以上）' : ''}`;
+  };
   const applySettings = (s) => {
     $('provider').value = s.provider || 'builtin';
-    $('baseUrl').value = s.base_url || '';
-    $('apiKey').value = s.api_key || '';
+    $('baseUrl').value = s.base_url || ''; $('apiKey').value = s.api_key || '';
     $('temperature').value = s.temperature ?? 0.2; $('tempVal').textContent = $('temperature').value;
     $('maxTurns').value = s.max_turns ?? 60; $('maxTokens').value = s.max_tokens_per_run ?? 0;
     $('webhookUrl').value = s.webhook_url || ''; $('notifyOn').value = s.notify_on || 'always';
     $('context').value = String(s.context ?? 8192); $('gpuLayers').value = s.gpu_layers ?? -1;
     if (s.model) { $('model').innerHTML = `<option>${esc(s.model)}</option>`; $('model').value = s.model; }
     toggleProviderFields();
-    const label = (providerInfo(s.provider).label || s.provider || '').split('（')[0];
-    $('modelPill').textContent = s.model ? `${label} · ${s.model}` : 'モデル未選択';
+    $('modelPill').textContent = modelLabel(); $('modelPill').classList.toggle('warn', !s.model);
+    $('statusModel').textContent = s.model ? modelLabel() : '';
   };
-  const providerInfo = (id) => (state.providers || []).find((p) => p.id === id) || {};
   const toggleProviderFields = () => {
-    const p = $('provider').value;
-    const info = providerInfo(p);
+    const p = $('provider').value; const info = providerInfo(p);
     $('baseUrlField').style.display = (p === 'openai_compatible' || p === 'aas') ? '' : 'none';
     $('apiKeyField').style.display = info.needs_key ? '' : 'none';
-    if (p === 'aas') { $('baseUrl').placeholder = 'http://127.0.0.1:4174'; $('baseUrlHint').textContent = 'AdaptiveAIStudio の画面の URL（既定 4174）。会社のフォルダを作業場にして起動しておく'; }
-    else { $('baseUrl').placeholder = 'http://localhost:11434/v1'; $('baseUrlHint').textContent = 'OpenAI 互換の /v1 の URL（vLLM、llama-server、社内のプロキシなど）'; }
+    if (p === 'aas') { $('baseUrl').placeholder = 'http://127.0.0.1:4174'; $('baseUrlHint').textContent = 'AdaptiveAIStudio の画面の URL（既定 4174）。会社のディレクトリを作業場にして起動しておく'; }
+    else { $('baseUrl').placeholder = 'http://localhost:11434/v1'; $('baseUrlHint').textContent = 'OpenAI 互換の /v1 の URL（Ollama、LM Studio、vLLM、llama-server など）'; }
     $('apiKey').placeholder = p === 'gemini' ? 'AIza…' : p === 'anthropic' ? 'sk-ant-…' : 'sk-…';
     $('apiKeyHint').innerHTML = p === 'gemini'
       ? '<a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> で発行。環境変数 GEMINI_API_KEY でも可'
       : info.key_env ? `環境変数 ${esc(info.key_env)} でも可${info.key_in_env ? '（入っています）' : ''}` : '';
     ['catalogField', 'contextField', 'gpuField'].forEach((id) => $(id).style.display = p === 'builtin' ? '' : 'none');
   };
-
   let saveTimer;
   const saveSettings = () => {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
       state.settings = await api('/api/settings', { method: 'POST', body: JSON.stringify(readSettings()) });
-      $('saveState').textContent = '保存済み'; setTimeout(() => $('saveState').textContent = '', 1500);
+      $('saveState').textContent = '保存しました'; setTimeout(() => $('saveState').textContent = '', 1500);
       applySettings(state.settings);
     }, 300);
   };
@@ -420,8 +626,6 @@
     if (p === 'openai_compatible' && $('baseUrl').value.includes('4174')) $('baseUrl').value = 'http://localhost:11434/v1';
     refreshModels();
   });
-
-
   const refreshModels = async () => {
     const note = $('modelNote'); note.style.display = 'none'; note.className = 'note';
     const s = readSettings();
@@ -434,15 +638,12 @@
       $('model').innerHTML = models.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
       if (models.includes(current)) $('model').value = current; else if (models.length) saveSettings();
       if (error) { note.textContent = error; note.className = 'note err'; note.style.display = ''; }
-      else if (!models.length) { note.textContent = s.provider === 'builtin' ? '下からモデルをダウンロードしてください。' : 'モデルが見つかりません。'; note.style.display = ''; }
+      else if (!models.length) { note.textContent = s.provider === 'builtin' ? '下からモデルを取得してください。' : 'モデルが見つかりません。'; note.style.display = ''; }
     } finally { $('refreshModels').disabled = false; }
   };
   $('refreshModels').addEventListener('click', refreshModels);
-
-  // 設定が合っているかは、実際に 1 問送るまで分からない。結果は数字（秒）と答えで見せる
-  const checkModel = async () => {
-    const note = $('modelNote'); const btn = $('checkModel');
-    const s = readSettings();
+  $('checkModel').addEventListener('click', async () => {
+    const note = $('modelNote'); const btn = $('checkModel'); const s = readSettings();
     btn.disabled = true; note.className = 'note'; note.style.display = ''; note.textContent = '送っています…';
     try {
       const r = await api('/api/check', { method: 'POST', body: JSON.stringify({ provider: s.provider, model: s.model, base_url: s.base_url, api_key: s.api_key, context: s.context, gpu_layers: s.gpu_layers }) });
@@ -450,18 +651,13 @@
       else { note.textContent = `答えました（${r.seconds} 秒）: ${r.question} → ${r.answer || '（空）'}`; note.className = 'note ok'; }
     } catch (e) { note.textContent = String(e); note.className = 'note err'; }
     finally { btn.disabled = false; }
-  };
-  $('checkModel').addEventListener('click', checkModel);
-
-  // ---------- Built-in model catalog ----------
+  });
   const gb = (n) => (n / 1e9).toFixed(1) + ' GB';
   const pollers = {};
   const renderCatalog = (catalog) => {
     $('catalog').innerHTML = catalog.map((m) => {
       const dl = m.downloading;
-      const action = m.downloaded ? '<span class="ok small">取得済み</span>'
-        : dl ? `<span class="small">${dl.percent}%</span>`
-        : `<button class="btn" data-dl="${esc(m.id)}">取得</button>`;
+      const action = m.downloaded ? '<span class="ok small">取得済み</span>' : dl ? `<span class="small">${dl.percent}%</span>` : `<button class="btn sm" data-dl="${esc(m.id)}">取得</button>`;
       return `<div class="cat"><div class="lbl">${esc(m.label)}<div>${gb(m.bytes)}</div>${dl ? `<div class="bar"><i style="width:${dl.percent}%"></i></div>` : ''}${dl && dl.error ? `<div class="err small">${esc(dl.error)}</div>` : ''}</div>${action}</div>`;
     }).join('');
     catalog.filter((m) => m.downloading && !pollers[m.id]).forEach((m) => poll(m.id));
@@ -470,41 +666,37 @@
     pollers[id] = setInterval(async () => {
       try {
         const d = await api(`/api/download/${id}`);
-        if (d.finished) { clearInterval(pollers[id]); delete pollers[id]; refreshModels(); if (d.error) alert(d.error); return; }
+        if (d.finished) { clearInterval(pollers[id]); delete pollers[id]; refreshModels(); if (d.error) toast(d.error); else toast('モデルを取得しました'); return; }
         refreshCatalogOnly();
       } catch { clearInterval(pollers[id]); delete pollers[id]; }
     }, 1000);
   };
-  const refreshCatalogOnly = async () => {
-    const { catalog } = await api('/api/models?' + new URLSearchParams({ provider: 'builtin' }));
-    if (catalog) renderCatalog(catalog);
-  };
+  const refreshCatalogOnly = async () => { const { catalog } = await api('/api/models?' + new URLSearchParams({ provider: 'builtin' })); if (catalog) renderCatalog(catalog); };
   $('catalog').addEventListener('click', async (e) => {
     const b = e.target.closest('button[data-dl]'); if (!b) return;
     b.disabled = true;
     try { await api('/api/download', { method: 'POST', body: JSON.stringify({ model_id: b.dataset.dl }) }); poll(b.dataset.dl); refreshCatalogOnly(); }
-    catch (err) { alert(err.message); b.disabled = false; }
+    catch (err) { toast(err.message); b.disabled = false; }
   });
 
-  // ---------- Navigation ----------
-  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // ---------- 左の一覧 ----------
+  const isActive = (kind, target) => state.target && state.target.kind === kind && state.target.target === target ? 'active' : '';
+  const setTarget = (kind, target) => { state.target = { kind, target }; $('targetHint').textContent = `対象: ${kind === 'cycle' ? 'サイクル' : '役職'} / ${target}`; renderNav(); };
   const renderNav = () => {
     $('cadenceNav').innerHTML = Object.entries(state.cadences).map(([name, roles]) =>
       `<button data-kind="cycle" data-target="${esc(name)}" class="${isActive('cycle', name)}">${esc(name)}<span class="sub">${roles.join(' → ')}</span></button>`).join('');
     $('roleNav').innerHTML = state.roles.map((r) =>
       `<button data-kind="role" data-target="${esc(r.role)}" class="${isActive('role', r.role)}"><span class="ava">${avatar(r.role)}</span>${esc(r.title)}<span class="sub">${r.writes ? '実装' : '確認'}</span></button>`).join('');
-    $('runNav').innerHTML = state.runs.slice(0, 20).map((r) =>
-      `<button data-run="${r.id}" class="${state.current === r.id ? 'active' : ''}"><span class="dot ${r.status}"></span>${esc(r.target)}<span class="sub">${r.started_at.slice(11, 16)}</span></button>`).join('') || '<div class="small" style="padding:0 10px">まだありません</div>';
+    $('runNav').innerHTML = state.runs.slice(0, 12).map((r) =>
+      `<button data-run="${r.id}" class="${state.current === r.id ? 'active' : ''}"><span class="dot ${r.status}"></span>${esc(r.target)}<span class="sub">${esc(String(r.started_at).slice(5, 16).replace('T', ' '))}</span></button>`).join('') || '<div class="small" style="padding:0 10px">まだありません</div>';
+    $('runMenuTargets').innerHTML = [...Object.keys(state.cadences).map((c) => `<button data-run-target="cycle:${esc(c)}">サイクル ${esc(c)} を実行</button>`),
+      ...state.roles.map((r) => `<button data-run-target="role:${esc(r.role)}">${esc(r.title)} を実行</button>`)].join('');
   };
-  const isActive = (kind, target) => state.target && state.target.kind === kind && state.target.target === target ? 'active' : '';
-  document.querySelector('aside.left').addEventListener('click', (e) => {
+  document.querySelector('#view-work .side').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.run) { openRun(b.dataset.run); return; }
-    state.target = { kind: b.dataset.kind, target: b.dataset.target };
-    $('targetHint').textContent = `対象: ${b.dataset.kind === 'cycle' ? 'サイクル' : '役職'} / ${b.dataset.target}`;
-    renderNav();
+    setTarget(b.dataset.kind, b.dataset.target);
   });
-
 
   // ---------- キャラクター ----------
   // 見た目は役職の id で決める。agents/*.md に無い役職が増えても、既定の姿で出す。
@@ -522,19 +714,12 @@
     helmet: (c) => `<path d="M18 22 a18 16 0 0 1 36 0 v4 h-36 z" fill="${c}"/><rect x="14" y="25" width="44" height="4" rx="2" fill="${c}"/>`,
     glasses: (c) => `<g fill="none" stroke="${c}" stroke-width="1.6"><circle cx="29" cy="24" r="5.5"/><circle cx="43" cy="24" r="5.5"/><path d="M34.5 24 h3"/></g>`,
     megaphone: (c) => `<g class="tool"><path d="M50 50 l16 -8 v22 l-16 -8 z" fill="${c}"/><rect x="44" y="52" width="7" height="10" rx="2" fill="${c}"/></g>`,
-    calculator: (c) => `<g class="tool"><rect x="48" y="48" width="14" height="18" rx="2" fill="${c}"/><rect x="50" y="50" width="10" height="4" fill="#1b1b1b"/><g fill="#1b1b1b"><rect x="50" y="56" width="3" height="3"/><rect x="55" y="56" width="3" height="3"/><rect x="50" y="61" width="3" height="3"/><rect x="55" y="61" width="3" height="3"/></g></g>`,
+    calculator: (c) => `<g class="tool"><rect x="48" y="48" width="14" height="18" rx="2" fill="${c}"/><rect x="50" y="50" width="10" height="4" fill="#1b1b1b"/></g>`,
     headset: (c) => `<g fill="none" stroke="${c}" stroke-width="2.2"><path d="M22 26 a14 14 0 0 1 28 0"/><path d="M22 28 v6 M50 28 v6 M48 36 q0 6 -8 6"/></g>`,
-  };
-  const TOOLS = {
-    wrench: (c) => `<g class="tool"><path d="M48 50 l12 12" stroke="${c}" stroke-width="4" stroke-linecap="round"/><circle cx="47" cy="49" r="5" fill="none" stroke="${c}" stroke-width="3"/></g>`,
-    laptop: (c) => `<g class="tool"><rect x="44" y="48" width="18" height="12" rx="1.5" fill="${c}"/><rect x="42" y="60" width="22" height="3" rx="1" fill="${c}"/></g>`,
-    paper: (c) => `<g class="tool"><rect x="46" y="48" width="14" height="17" rx="1.5" fill="#f5f5f5"/><g stroke="${c}" stroke-width="1.5"><path d="M49 53 h8 M49 57 h8 M49 61 h5"/></g></g>`,
   };
   window.avatarSvg = (role) => {
     const L = LOOKS[role] || DEFAULT_LOOK;
     const item = ITEMS[L.item] ? ITEMS[L.item](L.accent) : '';
-    const tool = role === 'builder' ? TOOLS.wrench(L.accent) : role === 'cto' ? TOOLS.laptop(L.accent)
-      : ['ceo', 'cfo', 'ops'].includes(role) && !['calculator'].includes(L.item) ? TOOLS.paper(L.accent) : '';
     return `<svg class="art" viewBox="0 0 72 88" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <ellipse cx="36" cy="86" rx="22" ry="3" fill="rgba(0,0,0,.35)"/>
       <path d="M18 88 v-30 a18 14 0 0 1 36 0 v30 z" fill="${L.suit}"/>
@@ -542,14 +727,11 @@
       <circle cx="36" cy="26" r="17" fill="${L.skin}"/>
       <path d="M19 24 a17 17 0 0 1 34 0 q-8 -6 -17 -5 q-9 -1 -17 5 z" fill="${L.hair}"/>
       <circle class="eye" cx="30" cy="27" r="2" fill="#1b1b1b"/><circle class="eye" cx="42" cy="27" r="2" fill="#1b1b1b"/>
-      <rect class="mouth" x="33" y="34" width="6" height="1.6" rx=".8" fill="#8c4a3a"/>
-      ${item}${tool}
-    </svg>`;
+      <rect class="mouth" x="33" y="34" width="6" height="1.6" rx=".8" fill="#8c4a3a"/>${item}</svg>`;
   };
-  // 絵は ui/characters/<役職>.png。無い役職は SVG の姿に落とす（agents/ に役職を足しても画面が壊れない）
   const avatar = (role) => `<img class="art" src="/characters/${encodeURIComponent(role)}.png" alt="" draggable="false" onerror="this.outerHTML = avatarSvg(this.dataset.role)" data-role="${esc(role)}">`;
   const stageEl = $('stage');
-  const chara = {}; // role -> element
+  const chara = {};
   const renderStage = () => {
     stageEl.innerHTML = state.roles.map((r) =>
       `<div class="chara" data-role="${esc(r.role)}" title="${esc(r.title)}"><div class="bubble"></div><div class="fx"></div>${avatar(r.role)}<div class="desk"><div class="laptop"><div class="lid"><div class="screen"><i></i><i></i><i></i></div></div><div class="base"></div></div></div><div class="name">${esc(r.title)}</div></div>`).join('');
@@ -560,10 +742,8 @@
   const setChara = (role, cls, text) => {
     const el = chara[role]; if (!el) return;
     if (cls === 'done' || cls === 'error' || cls === 'stopped' || cls === 'idle') {
-      // 終わった役職は前に出たままにしない
       el.classList.remove(...STATES);
-      if (cls !== 'idle') el.classList.add(cls);
-      if (cls !== 'idle') el.classList.add('active');
+      if (cls !== 'idle') el.classList.add(cls, 'active');
       if (cls === 'done' || cls === 'stopped') setTimeout(() => el.classList.remove('active', 'done', 'stopped'), 2600);
     } else {
       Object.values(chara).forEach((o) => { if (o !== el) o.classList.remove('active', 'thinking', 'talking', 'working'); });
@@ -588,29 +768,173 @@
     }
   };
 
+  // ---------- 流れ（仕事と履歴で同じ描き方） ----------
+  const roleTitle = (role) => (state.roles.find((r) => r.role === role) || {}).title || role || '';
+  const msgHtml = (ev) => {
+    const who = `<b>${esc(roleTitle(ev.role))}</b> <span>${esc(ev.at || '')}</span>`;
+    const wrap = (cls, html) => `<div class="msg ${cls}"><div class="who">${who}</div><div class="body">${html}</div></div>`;
+    switch (ev.type) {
+      case 'role_start': return wrap('role', `${esc(ev.title)} が開始 · ${esc(ev.model || '')} · ${ev.writes ? '書き込み可' : '読み取りのみ'}`);
+      case 'role_end': return wrap('status', `${ev.turns} ターン · 道具 ${ev.tool_calls} 回 · 入力 ${ev.usage?.input ?? 0} / 出力 ${ev.usage?.output ?? 0} トークン · ${esc(ev.reason)}`);
+      case 'text': return wrap('', esc(ev.text));
+      case 'tool_call': return wrap('tool', `<span class="name">${esc(ev.name)}</span> ${esc(ev.args)}`);
+      case 'tool_result': return wrap('tool', `<details><summary>↳ ${esc(ev.name)} の結果 <span class="small">(${ev.ms} ms)</span></summary><pre>${esc(ev.text)}</pre></details>`);
+      case 'status': return wrap('status', esc(ev.text));
+      case 'error': return wrap('error', esc(ev.text));
+      case 'delta': return '';
+      default: return wrap('status', esc(JSON.stringify(ev)));
+    }
+  };
+  const stream = $('stream');
+  let live = null;
+  const dropLive = () => { if (live) { live.remove(); live = null; } };
+  const render = (ev) => {
+    stageEvent(ev);
+    if (stream.querySelector('.empty')) stream.innerHTML = '';
+    if (ev.type === 'delta') {
+      if (!live) { live = document.createElement('div'); live.className = 'msg live'; live.innerHTML = `<div class="who"><b>${esc(roleTitle(ev.role))}</b> <span class="small">生成中…</span></div><div class="body"></div>`; stream.appendChild(live); }
+      live.querySelector('.body').textContent += ev.text; stream.scrollTop = stream.scrollHeight; return;
+    }
+    dropLive();
+    stream.insertAdjacentHTML('beforeend', msgHtml(ev)); stream.scrollTop = stream.scrollHeight;
+  };
+  const setRunning = (on) => {
+    $('runBtn').disabled = on; $('stopBtn').style.display = on ? '' : 'none'; $('menuStop').disabled = !on;
+    $('statusDot').className = 'dot' + (on ? ' running' : ''); $('statusText').textContent = on ? '実行中' : '待機中';
+  };
+  const openRun = async (id) => {
+    if (state.es) { state.es.close(); state.es = null; }
+    state.current = id; stream.innerHTML = ''; renderNav(); resetStage(); show('work');
+    const run = await api(`/api/runs/${id}`);
+    run.events.forEach(render);
+    setRunning(run.status === 'running');
+    if (run.status === 'running') subscribe(id, run.events.length);
+  };
+  const subscribe = (id, from) => {
+    const es = new EventSource(`/api/runs/${id}/events`);
+    let seen = 0;
+    es.onmessage = (e) => { seen++; if (seen > from) render(JSON.parse(e.data)); };
+    es.addEventListener('end', () => { es.close(); state.es = null; setRunning(false); refreshState(); toast('実行が終わりました'); });
+    es.onerror = () => { es.close(); state.es = null; setRunning(false); };
+    state.es = es;
+  };
+  $('runBtn').addEventListener('click', async () => {
+    if (!state.target) { toast('左でサイクルか役職を選んでください'); return; }
+    if (!state.settings.model) { toast('先にモデルを選んでください'); showSettings('model'); return; }
+    const instruction = $('instruction').value.trim() || null;
+    try {
+      const run = await api('/api/runs', { method: 'POST', body: JSON.stringify({ ...state.target, instruction }) });
+      $('instruction').value = '';
+      await refreshState(); openRun(run.id);
+    } catch (e) { toast(e.message); }
+  });
+  $('stopBtn').addEventListener('click', () => state.current && api(`/api/runs/${state.current}/stop`, { method: 'POST' }));
+  $('instruction').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('runBtn').click(); });
+
+  // ---------- 声で指示する ----------
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, recBase = '';
+  $('micBtn').addEventListener('click', () => {
+    if (rec) { try { rec.stop(); } catch (_) {} return; }
+    if (!Rec) { dialog('声で指示する', 'この環境には音声認識がありません。指示の欄を押して Windows の音声入力（Win+H）で話してください。'); return; }
+    rec = new Rec(); rec.lang = 'ja-JP'; rec.interimResults = true; rec.continuous = true;
+    recBase = $('instruction').value.trim(); recBase = recBase ? recBase + '\n' : '';
+    $('micBtn').classList.add('on'); $('micBtn').textContent = '🎤 聞いています…';
+    let finalText = '';
+    rec.onresult = (e) => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalText += t; else interim += t; } $('instruction').value = recBase + finalText + interim; };
+    rec.onerror = (e) => toast(`声: ${e.error}`);
+    rec.onend = () => {
+      rec = null; $('micBtn').classList.remove('on'); $('micBtn').textContent = '🎤 声で';
+      const m = $('instruction').value.match(/^(.*?)[\s、。]*(実行|やって|お願い|お願いします)[。！!]?$/s);
+      if (m) { $('instruction').value = m[1].trim(); $('runBtn').click(); }
+    };
+    try { rec.start(); } catch (e) { rec = null; toast(String(e.message || e)); }
+  });
+
+  // ---------- 履歴 ----------
+  const fmtDate = (s) => String(s || '').slice(0, 16).replace('T', ' ');
+  const statusText = { running: '実行中', done: '終わった', error: '失敗', stopped: '止めた' };
+  let histSelected = null;
+  const loadHistory = async () => {
+    await refreshState();
+    const rows = state.runs;
+    $('histCount').textContent = rows.length; $('histEmpty').style.display = rows.length ? 'none' : '';
+    $('histSummary').textContent = rows.length ? `${rows.length} 件。終わった ${rows.filter((r) => r.status === 'done').length}、失敗 ${rows.filter((r) => r.status === 'error').length}` : '';
+    $('histTable').querySelector('tbody').innerHTML = rows.map((r) => {
+      const result = (r.results || []).map((x) => x.text).join(' / ') || (r.instruction ? `指示: ${r.instruction}` : '');
+      return `<tr class="row ${histSelected === r.id ? 'active' : ''}" data-id="${r.id}"><td class="muted" style="white-space:nowrap">${esc(fmtDate(r.started_at))}</td><td style="white-space:nowrap">${r.kind === 'cycle' ? 'サイクル' : '役職'} ${esc(r.target)}</td><td><span class="dot ${r.status}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px;${r.status === 'done' ? 'background:var(--ok)' : r.status === 'error' ? 'background:var(--err)' : r.status === 'running' ? 'background:var(--accent)' : ''}"></span>${statusText[r.status] || esc(r.status)}<div class="ellipsis muted" title="${esc(result)}">${esc(result)}</div></td><td class="muted">${r.turns ?? ''}</td><td class="muted">${r.usage ? `${r.usage.input} / ${r.usage.output}` : ''}</td><td class="muted">${r.events ?? ''}</td></tr>`;
+    }).join('');
+  };
+  $('histTable').addEventListener('click', async (e) => {
+    const tr = e.target.closest('tr.row'); if (!tr) return;
+    histSelected = tr.dataset.id;
+    $('histTable').querySelectorAll('tr.row').forEach((x) => x.classList.toggle('active', x.dataset.id === histSelected));
+    const run = await api(`/api/runs/${histSelected}`);
+    $('histTitle').textContent = `${fmtDate(run.started_at)} · ${run.kind === 'cycle' ? 'サイクル' : '役職'} ${run.target} · ${statusText[run.status] || run.status}${run.instruction ? ` · 指示: ${run.instruction}` : ''}`;
+    $('histStream').innerHTML = run.events.map(msgHtml).join('') || '<div class="small">出来事がありません</div>';
+    $('histOpenWork').style.display = ''; $('histDelete').style.display = run.status === 'running' ? 'none' : '';
+  });
+  $('histOpenWork').addEventListener('click', () => histSelected && openRun(histSelected));
+  $('histDelete').addEventListener('click', async () => {
+    if (!histSelected) return;
+    if (!await dialog('記録を消す', 'この実行の記録（出来事と要約）を消します。元に戻せません。', { confirm: true })) return;
+    try { await api(`/api/runs/${histSelected}`, { method: 'DELETE' }); histSelected = null; $('histStream').innerHTML = ''; $('histTitle').textContent = '左から 1 件選ぶ'; $('histOpenWork').style.display = $('histDelete').style.display = 'none'; await loadHistory(); toast('消しました'); }
+    catch (e) { toast(e.message); }
+  });
+  $('histRefresh').addEventListener('click', loadHistory);
+
+  // ---------- 成果物 ----------
+  let deliv = null, delivKind = 'decisions';
+  const loadDeliverables = async () => {
+    deliv = await api('/api/deliverables');
+    $('delivCount').textContent = deliv.decisions.length + deliv.commits.length + deliv.reports.length;
+    renderDeliv();
+  };
+  const renderDeliv = () => {
+    if (!deliv) return;
+    const box = $('delivList');
+    if (delivKind === 'decisions') {
+      box.innerHTML = deliv.decisions.length ? `<table class="list"><thead><tr><th>日時</th><th>記録</th><th>大きさ</th></tr></thead><tbody>${deliv.decisions.map((d) => `<tr class="row" data-path="${esc(d.path)}" data-title="${esc(d.title)}"><td class="muted" style="white-space:nowrap">${esc(fmtDate(d.mtime))}</td><td>${esc(d.title)}</td><td class="muted">${d.size.toLocaleString()} 字</td></tr>`).join('')}</tbody></table>`
+        : '<div class="empty"><h2>まだ記録がありません</h2><p>サイクルが終わると、役職の報告が 1 つの記録になってここに残ります（data/decisions）。</p></div>';
+    } else if (delivKind === 'commits') {
+      box.innerHTML = deliv.commits.length ? `<table class="list"><thead><tr><th>日時</th><th>変更</th><th>ファイル</th></tr></thead><tbody>${deliv.commits.map((c) => `<tr><td class="muted" style="white-space:nowrap">${esc(c.date)}</td><td>${esc(c.message)}<div class="muted small">${esc(c.hash)}</div></td><td class="muted small">${c.files.slice(0, 8).map(esc).join('<br>')}${c.files.length > 8 ? `<br>…他 ${c.files.length - 8} 件` : ''}</td></tr>`).join('')}</tbody></table>`
+        : '<div class="empty"><h2>変更がありません</h2><p>役職がコミットすると、ここに並びます。</p></div>';
+    } else if (delivKind === 'reports') {
+      box.innerHTML = deliv.reports.length ? `<table class="list"><thead><tr><th>更新</th><th>報告</th></tr></thead><tbody>${deliv.reports.map((r) => `<tr class="row" data-path="${esc(r.path)}" data-title="${esc(r.title)}"><td class="muted" style="white-space:nowrap">${esc(fmtDate(r.mtime))}</td><td>${esc(r.path)}</td></tr>`).join('')}</tbody></table>`
+        : '<div class="empty"><h2>報告がありません</h2></div>';
+    } else {
+      box.innerHTML = deliv.runs.length ? `<table class="list"><thead><tr><th>日時</th><th>役職</th><th>模型</th><th>ターン</th><th>道具</th><th>入力 / 出力</th><th>結果</th></tr></thead><tbody>${deliv.runs.map((r) => `<tr><td class="muted" style="white-space:nowrap">${esc(fmtDate(r.at))}</td><td>${esc(r.role)}</td><td class="muted">${esc(r.provider)} / ${esc(r.model)}</td><td>${esc(r.turns)}</td><td>${esc(r.tool_calls)}</td><td class="muted">${esc(r.input_tokens)} / ${esc(r.output_tokens)}</td><td>${esc(r.reason)}</td></tr>`).join('')}</tbody></table>`
+        : '<div class="empty"><h2>実績がありません</h2><p>役職が 1 周すると data/runs.csv に 1 行残ります。</p></div>';
+    }
+  };
+  $('delivSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; delivKind = b.dataset.kind; $('delivSeg').querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b)); renderDeliv(); });
+  $('delivList').addEventListener('click', (e) => { const tr = e.target.closest('tr.row[data-path]'); if (tr) openDoc(tr.dataset.path, tr.dataset.title); });
+  $('delivRefresh').addEventListener('click', loadDeliverables);
+  const openDoc = async (path, title) => {
+    show('deliverables');
+    try {
+      const f = await api(`/api/files/${path.split('/').map(encodeURIComponent).join('/')}`);
+      $('delivTitle').textContent = path;
+      $('delivDoc').innerHTML = `<h2>${esc(title || path)}</h2><div class="meta">${esc(path)}</div><pre>${esc(f.content)}</pre>`;
+    } catch (e) { $('delivDoc').innerHTML = `<div class="note err">${esc(e.message)}</div>`; }
+  };
 
   // ---------- 会社の形 ----------
+  let staffByCompany = {};
   const orgNode = (n, depth) => {
     const det = document.createElement('details');
-    det.open = depth < 1;
-    const state = n.total ? `　<span style="color:${n.alive ? '#3ec46d' : '#999'}">${n.alive}/${n.total - n.planned}</span>${n.planned ? `<span style="opacity:.5">　予定 ${n.planned}</span>` : ''}` : '';
+    det.open = depth < 2 && n.kind !== 'division';
+    const st = n.total ? `　<span style="color:${n.alive ? 'var(--ok)' : 'var(--muted)'}">${n.alive}/${n.total - n.planned}</span>${n.planned ? `<span class="muted small">　予定 ${n.planned}</span>` : ''}` : '';
     const roles = [...(n.roles || []), ...(n.agents || [])].map((r) => `<span class="pill" style="margin-left:4px">${esc(r)}</span>`).join('');
-    const seats = (n.seat_states || []).map((s) => `<div style="margin-left:14px;opacity:.8">${s.planned ? '○' : (s.alive ? '<span style="color:#3ec46d">●</span>' : '<span style="color:#c44">●</span>')} ${esc(s.name)}${s.tools ? `　道具 ${s.tools}` : ''}</div>`).join('');
-    const repo = n.repo ? `<div style="opacity:.5;margin-left:14px">${esc(n.repo)}${n.private ? '（非公開）' : ''}${n.pushed_at ? `　最終 push ${esc(String(n.pushed_at).slice(0, 10))}` : ''}</div>` : '';
-    det.innerHTML = `<summary style="cursor:pointer" title="${esc(n.about || '')}"><span style="opacity:.55;font-size:11px">${esc(n.label)}</span> <b>${esc(n.name)}</b>${roles}${state}${n.about ? `<div class="about" style="opacity:.6;margin-left:14px">${esc(n.about)}</div>` : ''}${repo}</summary>${seats}`;
+    const seats = (n.seat_states || []).map((s) => `<div class="seat">${s.planned ? '○' : (s.alive ? '<span class="ok">●</span>' : '<span class="err">●</span>')} ${esc(s.name)}${s.tools ? `　道具 ${s.tools}` : ''}</div>`).join('');
+    const repo = n.repo ? `<div class="about">${esc(n.repo)}${n.private ? '（非公開）' : ''}${n.pushed_at ? `　最終 push ${esc(String(n.pushed_at).slice(0, 10))}` : ''}</div>` : '';
+    det.innerHTML = `<summary title="${esc(n.about || '')}"><span class="kind">${esc(n.label)}</span><b>${esc(n.name)}</b>${roles}${st}${n.about ? `<div class="about">${esc(n.about)}</div>` : ''}${repo}</summary>${seats}`;
     if (n.total && n.total === n.planned) det.classList.add('planned-only');
-    det.style.marginLeft = depth ? '12px' : '0';
     const staff = staffByCompany[n.staff_id || ''] || [];
-    if (staff.length) {
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 2px 14px';
-      row.innerHTML = staff.map((s) => `<div style="text-align:center;font-size:10px;opacity:.9" title="${esc(s.role)}"><img src="${esc(s.art)}" alt="" style="height:84px;display:block;margin:0 auto;filter:drop-shadow(0 3px 4px rgba(0,0,0,.45))"><div>${esc(s.name)}</div></div>`).join('');
-      det.appendChild(row);
-    }
+    if (staff.length) { const row = document.createElement('div'); row.className = 'staffrow'; row.innerHTML = staff.map((s) => `<div class="st" title="${esc(s.role)}"><img src="${esc(s.art)}" alt=""><div>${esc(s.name)}</div><div class="small">${esc(s.role)}</div></div>`).join(''); det.appendChild(row); }
     for (const c of n.children || []) det.appendChild(orgNode(c, depth + 1));
     return det;
   };
-  let staffByCompany = {};
   const loadOrg = async () => {
     try {
       try { const st = await api('/api/staff'); staffByCompany = {}; for (const s of st.staff) (staffByCompany[s.company] ||= []).push(s); } catch (e) { staffByCompany = {}; }
@@ -631,187 +955,55 @@
       await loadOrg();
     } catch (e) { $('syncNote').textContent = String(e.message || e); } finally { b.disabled = false; }
   });
-  loadOrg();
 
-  // ---------- 連携しているツール ----------
-  const renderPartners = (r) => {
-    const box = $('partners'); box.innerHTML = '';
-    const order = ['経営', '開発', 'ビジュアル', '映像', '音響', 'ボイス', '情報システム', ''];
-    const groups = new Map();
-    for (const p of r.partners) { const k = p.dept || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
-    for (const dept of [...order, ...[...groups.keys()].filter((k) => !order.includes(k))]) {
-      const list = groups.get(dept); if (!list) continue;
-      const live = list.filter((p) => !p.planned), planned = list.filter((p) => p.planned);
-      const h = document.createElement('div');
-      h.style.cssText = 'margin-top:10px;font-weight:600;opacity:.8';
-      h.textContent = `${dept || 'その他'}部門　${live.length ? `${live.filter((p) => p.alive).length}/${live.length} 接続` : ''}${planned.length ? `　予定 ${planned.length}` : ''}`;
-      box.appendChild(h);
-      for (const p of live) box.appendChild(partnerRow(p));
-      if (planned.length) {
-        const det = document.createElement('details');
-        det.innerHTML = `<summary style="cursor:pointer;opacity:.6">これから作る部署（${planned.length}）</summary>`;
-        for (const p of planned) det.appendChild(partnerRow(p));
-        box.appendChild(det);
-      }
-    }
-    box.querySelectorAll('[data-register]').forEach((b) => b.addEventListener('click', async () => {
-      b.disabled = true; b.textContent = '書いています…';
-      try {
-        const a = await api('/api/partners/aas/register', { method: 'POST' });
-        b.textContent = a.error ? a.error : `書きました: ${a.path}。AdaptiveAIStudio を立ち上げ直すと繋がります`;
-      } catch (e) { b.textContent = String(e.message || e); }
-    }));
+  // ---------- 連携 ----------
+  const partnerCard = (p) => {
+    const dot = p.alive ? '<span class="ok">●</span>' : '<span class="err">●</span>';
+    const tools = p.tools ? `　道具 ${p.tools}` : (p.files !== undefined ? `　${p.files} 件` : '');
+    const extra = p.give === 'register_mcp' ? `<div style="margin-top:6px"><button class="btn sm" data-register="${esc(p.id)}" ${p.alive ? '' : 'disabled'} title="起動のたびに自動で登録しています。向こうの設定を消したときだけ押す">登録し直す</button></div>` : '';
+    const err = p.mcp_error ? `<div class="note err">${esc(p.mcp_error)}</div>` : '';
+    return `<div class="card"><h4>${dot} ${esc(p.name)} <span class="pill">${esc(p.dept || '')}</span>${tools}</h4><div class="small">${esc(p.about)}</div><div class="small" style="opacity:.7;word-break:break-all;margin-top:4px">${esc(p.detail)}</div>${err}${extra}</div>`;
   };
-  const partnerRow = (p) => {
-    {
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;flex-direction:column;gap:2px;padding:6px 0;border-top:1px solid var(--border)';
-      const dot = p.planned ? '<span style="color:#999">○</span>' : (p.alive ? '<span style="color:#3ec46d">●</span>' : '<span style="color:#c44">●</span>');
-      const tools = p.tools ? `　道具 ${p.tools}` : (p.files !== undefined ? `　${p.files} 件` : '');
-      let extra = '';
-      if (p.give === 'register_mcp') extra = `<button class="btn" data-register="${esc(p.id)}" style="padding:2px 8px;margin-top:4px" ${p.alive ? '' : 'disabled'} title="起動のたびに自動で登録しています。向こうの設定を消したときだけ押す">登録し直す</button>`;
-      const err = p.mcp_error ? `<div class="note err">${esc(p.mcp_error)}</div>` : '';
-      row.innerHTML = `<div>${dot} <b>${esc(p.name)}</b>${tools}</div><div style="opacity:.75">${esc(p.about)}</div><div style="opacity:.6;word-break:break-all">${esc(p.detail)}</div>${err}${extra}`;
-      return row;
-    }
+  const loadPartners = async () => {
+    try {
+      const r = await api('/api/partners'); const live = r.partners.filter((p) => !p.planned);
+      $('partners').innerHTML = live.map(partnerCard).join('');
+      $('partnersSummary').textContent = `${live.filter((p) => p.alive).length}/${live.length} 接続`;
+      $('partners').querySelectorAll('[data-register]').forEach((b) => b.addEventListener('click', async () => { b.disabled = true; try { const a = await api('/api/partners/aas/register', { method: 'POST' }); toast(a.error ? a.error : `書きました: ${a.path}`); } catch (e) { toast(String(e.message || e)); } finally { b.disabled = false; } }));
+    } catch (e) { $('partners').textContent = String(e.message || e); }
   };
-  const loadPartners = async () => { try { const r = await api('/api/partners'); renderPartners({ partners: r.partners.filter((p) => !p.planned) }); const live = r.partners.filter((p) => !p.planned); $('partnersSummary').textContent = `${live.filter((p) => p.alive).length}/${live.length}`; } catch (e) { $('partners').textContent = String(e.message || e); } };
   $('refreshPartners').addEventListener('click', loadPartners);
-  loadPartners();
 
   // ---------- 更新 ----------
-  // 起動時は黙って確かめ、新しい版があるときだけ知らせる。押したときは、確かめられない理由も出す（CharacterDesigner と同じ）
   const showUpdate = (r, pressed) => {
     const note = $('updateNote'); note.className = 'note'; note.style.display = '';
     if (r.error) { if (!pressed) { note.style.display = 'none'; return; } note.textContent = r.error; note.className = 'note err'; return; }
     if (!r.newer) { if (!pressed) { note.style.display = 'none'; return; } note.textContent = `今の版（${r.current}）が最新です。`; return; }
     note.className = 'note ok';
-    note.innerHTML = `新しい版 ${esc(r.newer.version)} があります。<button class="btn" id="applyUpdate" style="margin-left:8px">取って入れる</button>`;
+    note.innerHTML = `新しい版 ${esc(r.newer.version)} があります。<button class="btn sm" id="applyUpdate" style="margin-left:8px">取って入れる</button>`;
+    if (!pressed) toast(`新しい版 ${r.newer.version} があります（設定 → このアプリ）`);
     $('applyUpdate').addEventListener('click', async () => {
       $('applyUpdate').disabled = true; $('applyUpdate').textContent = '取っています…';
       try { const a = await api('/api/update', { method: 'POST' }); note.textContent = a.setup ? `Setup.exe を取って開きました。案内に沿って入れてください（${a.setup}）` : '新しい版はありませんでした。'; }
       catch (e) { note.textContent = String(e.message || e); note.className = 'note err'; }
     });
   };
-  $('checkUpdate').addEventListener('click', async () => {
-    $('checkUpdate').disabled = true;
-    try { showUpdate(await api('/api/update?quiet=false'), true); } finally { $('checkUpdate').disabled = false; }
-  });
+  $('checkUpdate').addEventListener('click', async () => { $('checkUpdate').disabled = true; try { showUpdate(await api('/api/update?quiet=false'), true); } finally { $('checkUpdate').disabled = false; } });
   api('/api/update').then((r) => showUpdate(r, false)).catch(() => {});
 
-  // ---------- Stream ----------
-  const stream = $('stream');
-  const add = (cls, who, html) => {
-    if (stream.querySelector('.empty')) stream.innerHTML = '';
-    const el = document.createElement('div'); el.className = `msg ${cls}`;
-    el.innerHTML = `<div class="who">${who}</div><div class="body">${html}</div>`;
-    stream.appendChild(el);
-    stream.scrollTop = stream.scrollHeight;
-  };
-  const roleTitle = (role) => (state.roles.find((r) => r.role === role) || {}).title || role || '';
-  let live = null; // 生成中の枠。確定の出来事が来たら消す
-  const dropLive = () => { if (live) { live.remove(); live = null; } };
-  const render = (ev) => {
-    stageEvent(ev);
-    const who = `<b>${esc(roleTitle(ev.role))}</b> <span>${esc(ev.at || '')}</span>`;
-    if (ev.type === 'delta') {
-      if (!live) {
-        if (stream.querySelector('.empty')) stream.innerHTML = '';
-        live = document.createElement('div'); live.className = 'msg live';
-        live.innerHTML = `<div class="who">${who} <span class="small">生成中…</span></div><div class="body"></div>`;
-        stream.appendChild(live);
-      }
-      live.querySelector('.body').textContent += ev.text;
-      stream.scrollTop = stream.scrollHeight;
-      return;
-    }
-    dropLive();
-    switch (ev.type) {
-      case 'role_start': add('role', who, `${esc(ev.title)} が開始 · ${esc(ev.model || '')} · ${ev.writes ? '書き込み可' : '読み取りのみ'}`); break;
-      case 'role_end': add('status', who, `${ev.turns} ターン · ツール ${ev.tool_calls} 回 · 入力 ${ev.usage?.input ?? 0} / 出力 ${ev.usage?.output ?? 0} トークン · ${esc(ev.reason)}`); break;
-      case 'text': add('', who, esc(ev.text)); break;
-      case 'tool_call': add('tool', who, `<span class="name">${esc(ev.name)}</span> ${esc(ev.args)}`); break;
-      case 'tool_result': add('tool', who, `<details><summary>↳ ${esc(ev.name)} の結果 <span class="small">(${ev.ms} ms)</span></summary><pre>${esc(ev.text)}</pre></details>`); break;
-      case 'status': add('status', who, esc(ev.text)); break;
-      case 'error': add('error', who, esc(ev.text)); break;
-      default: add('status', who, esc(JSON.stringify(ev)));
-    }
-  };
-
-  const openRun = async (id) => {
-    if (state.es) { state.es.close(); state.es = null; }
-    state.current = id; stream.innerHTML = ''; renderNav(); resetStage();
-    const run = await api(`/api/runs/${id}`);
-    run.events.forEach(render);
-    setRunning(run.status === 'running');
-    if (run.status === 'running') subscribe(id, run.events.length);
-  };
-  const subscribe = (id, from) => {
-    const es = new EventSource(`/api/runs/${id}/events`);
-    let seen = 0;
-    es.onmessage = (e) => { seen++; if (seen > from) render(JSON.parse(e.data)); };
-    es.addEventListener('end', () => { es.close(); state.es = null; setRunning(false); refreshState(); });
-    es.onerror = () => { es.close(); state.es = null; setRunning(false); };
-    state.es = es;
-  };
-  const syncSettingsSummary = () => { const m = $('model').value; $('settingsSummary').textContent = m ? `${$('provider').value} / ${m}` : '未選択'; $('modelPill').textContent = m ? (m.includes('0.5b') ? `${m}（動作確認用。指示を守らせるなら 3B 以上）` : m) : 'モデル未選択'; };
-  document.addEventListener('change', (e) => { if (e.target && (e.target.id === 'model' || e.target.id === 'provider')) syncSettingsSummary(); });
-  setTimeout(syncSettingsSummary, 1500);
-  // 開いた節を覚える
-  document.querySelectorAll('aside.right details.sec').forEach((d) => { try { const k = 'sec:' + d.dataset.sec; const v = localStorage.getItem(k); if (v !== null) d.open = v === '1'; d.addEventListener('toggle', () => localStorage.setItem(k, d.open ? '1' : '0')); } catch (_) {} });
-
-  const setRunning = (on) => { $('runBtn').disabled = on; $('stopBtn').style.display = on ? '' : 'none'; };
-
-  $('runBtn').addEventListener('click', async () => {
-    if (!state.target) { alert('左でサイクルか役職を選んでください'); return; }
-    if (!readSettings().model) { alert('右のパネルでモデルを選んでください'); return; }
-    const instruction = $('instruction').value.trim() || null;
-    try {
-      const run = await api('/api/runs', { method: 'POST', body: JSON.stringify({ ...state.target, instruction }) });
-      $('instruction').value = '';
-      await refreshState();
-      openRun(run.id);
-    } catch (e) { alert(e.message); }
-  });
-  $('stopBtn').addEventListener('click', () => state.current && api(`/api/runs/${state.current}/stop`, { method: 'POST' }));
-
-  // ---------- 声で指示する ----------
-  // ブラウザ（Edge WebView2、Chromium）の音声認識で指示の欄に書く。無い環境では Windows の音声入力（Win+H）を案内する。
-  // 最後が「実行」「やって」「お願い」で終わったら、その語を外してそのまま実行する（手を使わずに回せるように）
-  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let rec = null, recBase = '';
-  const micStop = () => { if (rec) { try { rec.stop(); } catch (_) {} } };
-  $('micBtn').addEventListener('click', () => {
-    if (rec) { micStop(); return; }
-    if (!Rec) { alert('この環境には音声認識がありません。指示の欄を押して Windows の音声入力（Win+H）で話してください。'); return; }
-    rec = new Rec(); rec.lang = 'ja-JP'; rec.interimResults = true; rec.continuous = true;
-    recBase = $('instruction').value.trim(); recBase = recBase ? recBase + '\n' : '';
-    $('micBtn').classList.add('on'); $('micBtn').textContent = '🎤 聞いています…';
-    let finalText = '';
-    rec.onresult = (e) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalText += t; else interim += t; }
-      $('instruction').value = recBase + finalText + interim;
-    };
-    rec.onerror = (e) => { $('targetHint').textContent = `声: ${e.error}`; };
-    rec.onend = () => {
-      rec = null; $('micBtn').classList.remove('on'); $('micBtn').textContent = '🎤 声で';
-      const m = $('instruction').value.match(/^(.*?)[\s、。]*(実行|やって|お願い|お願いします)[。！!]?$/s);
-      if (m) { $('instruction').value = m[1].trim(); $('runBtn').click(); }
-    };
-    try { rec.start(); } catch (e) { rec = null; alert(String(e.message || e)); }
-  });
-  $('instruction').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('runBtn').click(); });
-
-  // ---------- Boot ----------
+  // ---------- 起動 ----------
   const refreshState = async () => {
     const s = await api('/api/state');
-    Object.assign(state, { cadences: s.cadences, roles: s.roles, runs: s.runs, settings: s.settings });
+    Object.assign(state, { cadences: s.cadences, roles: s.roles, runs: s.runs, settings: s.settings, workspace: s.workspace || '', version: s.version || '' });
     if (Object.keys(chara).join() !== state.roles.map((r) => r.role).join()) renderStage();
     $('companyName').textContent = s.company.name || '';
-    $('appVersion').textContent = s.version ? `v${s.version}` : '';
-    $('companyInfo').innerHTML = `<div>${esc(s.company.mission || '')}</div><div style="margin-top:6px">顧客: ${esc(s.company.customer || '')}</div><div>ステージ: ${esc(s.company.stage || '')}</div>`;
+    $('appVersion').textContent = s.version ? `v${s.version}` : ''; $('aboutVersion').textContent = s.version ? `v${s.version}` : ''; $('statusVersion').textContent = s.version ? `v${s.version}` : '';
+    $('statusWorkspace').textContent = s.workspace || '';
+    $('histCount').textContent = s.runs.length;
+    $('companyInfo').innerHTML = `<div><b>${esc(s.company.name || '')}</b></div><div>${esc(s.company.mission || '')}</div><div style="margin-top:6px">顧客: ${esc(s.company.customer || '')}</div><div>収益モデル: ${esc(s.company.business_model || '')}</div><div>ステージ: ${esc(s.company.stage || '')}</div>`;
+    $('appInfo').innerHTML = `<div>版 ${esc(s.version || '')}</div><div>作業場: ${esc(s.workspace || '')}</div>`;
     renderNav();
+    if (s.runs.some((r) => r.status === 'running') && !state.es) { const r = s.runs.find((x) => x.status === 'running'); if (r && state.current !== r.id) openRun(r.id); }
   };
   (async () => {
     state.providers = (await api('/api/providers')).providers;
@@ -819,12 +1011,10 @@
     await refreshState();
     applySettings(state.settings);
     renderRoleAssignments();
-    if (!state.target && Object.keys(state.cadences).length) {
-      const first = Object.keys(state.cadences)[0];
-      state.target = { kind: 'cycle', target: first };
-      $('targetHint').textContent = `対象: サイクル / ${first}`; renderNav();
-    }
+    if (!state.target && Object.keys(state.cadences).length) setTarget('cycle', Object.keys(state.cadences)[0]);
     refreshModels();
+    try { const v = localStorage.getItem('view'); if (v && VIEWS.includes(v) && v !== 'work') show(v); } catch (_) {}
+    if (!state.settings.model) { showSettings('model'); toast('まず AI とモデルを選んでください'); }
   })();
 })();
 </script>

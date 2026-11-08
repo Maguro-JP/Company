@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import controls, gemini, local_llm, mcp_http, org, partners, repos, runner, updater
+from . import config as config_module
 from . import paths
 from .config import ROOT, load_config
 from .providers import ProviderError, answer_check, make_provider, provider_catalog
@@ -45,7 +47,8 @@ def state() -> dict[str, Any]:
         "cadences": {k: v for k, v in config.raw.get("cadence", {}).items()},
         "roles": runner.list_roles(),
         "settings": runner.load_settings(),
-        "runs": [r.summary() for r in runner.REGISTRY.all()],
+        "runs": runner.REGISTRY.history(),
+        "workspace": str(ROOT),
     }
 
 
@@ -151,10 +154,59 @@ def start(req: StartRequest) -> dict[str, Any]:
 
 @app.get("/api/runs/{run_id}")
 def get_run(run_id: str) -> dict[str, Any]:
-    run = runner.REGISTRY.get(run_id)
-    if run is None:
+    data = runner.REGISTRY.load(run_id)
+    if data is None:
         raise HTTPException(404, "run not found")
-    return {**run.summary(), "events": run.events}
+    return data
+
+
+@app.delete("/api/runs/{run_id}")
+def delete_run(run_id: str) -> dict[str, Any]:
+    """履歴から 1 件消す。実行中は消せない。"""
+    if not runner.REGISTRY.delete(run_id):
+        raise HTTPException(409, "実行中か、記録がありません")
+    return {"deleted": run_id}
+
+
+@app.get("/api/deliverables")
+def deliverables() -> dict[str, Any]:
+    """成果物の一覧。意思決定の記録、製品の変更（git log）、報告、実績。中身は /api/files で読む。"""
+    import subprocess  # noqa: PLC0415
+
+    decisions = []
+    ddir = ROOT / "data" / "decisions"
+    if ddir.is_dir():
+        for path in sorted(ddir.glob("*.md"), reverse=True):
+            text = path.read_text(encoding="utf-8", errors="replace")
+            first = next((ln.lstrip("# ").strip() for ln in text.splitlines() if ln.strip()), path.stem)
+            decisions.append({"path": str(path.relative_to(ROOT)).replace("\\", "/"), "title": first,
+                              "size": len(text), "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec="minutes")})
+    commits: list[dict[str, Any]] = []
+    try:
+        out = subprocess.run(["git", "log", "--date=iso-strict", "--pretty=%h%x1f%ad%x1f%s", "--stat=120", "-n", "40"],
+                             cwd=ROOT, capture_output=True, text=True, timeout=20, encoding="utf-8", errors="replace")
+        block: dict[str, Any] | None = None
+        for line in out.stdout.splitlines():
+            if "\x1f" in line:
+                h, d, msg = line.split("\x1f", 2)
+                block = {"hash": h, "date": d[:16].replace("T", " "), "message": msg, "files": []}
+                commits.append(block)
+            elif block is not None and line.strip() and "|" in line:
+                block["files"].append(line.strip().split("|")[0].strip())
+    except (OSError, subprocess.SubprocessError):
+        pass
+    reports = []
+    rdir = ROOT / "docs" / "reports"
+    if rdir.is_dir():
+        for path in sorted(rdir.rglob("*.md")):
+            reports.append({"path": str(path.relative_to(ROOT)).replace("\\", "/"), "title": path.stem,
+                            "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec="minutes")})
+    rows = []
+    if config_module.RUNS_PATH.exists():
+        import csv  # noqa: PLC0415
+        with config_module.RUNS_PATH.open(encoding="utf-8", newline="") as fh:
+            rows = list(csv.DictReader(fh))[-200:]
+    return {"decisions": decisions, "commits": commits, "reports": reports, "runs": list(reversed(rows)), "workspace": str(ROOT)}
 
 
 @app.post("/api/runs/{run_id}/stop")
