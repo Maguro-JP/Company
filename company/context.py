@@ -86,6 +86,19 @@ def _group_block() -> str:
     return "\n".join(lines) or "（子会社なし）"
 
 
+def brief(config: Config) -> str:
+    """指示があるときに渡す短い要約。全文を渡すと小さい模型が「参考」をそのまま書き写す（Windows の実走で起きた）。
+    詳しく要るときは list_files と read_file で読める。"""
+    company = config.company
+    return "\n".join([
+        "# 会社（要点だけ）",
+        f"- 会社名: {company.get('name', '未設定')}",
+        f"- ミッション: {company.get('mission', '未設定')}",
+        f"- 北極星指標: {config.kpi.get('north_star', '未設定')}",
+        "- 詳しい現状は company.yaml、org.yaml、data/ を read_file で読める。この要点を答えに書き写さないこと",
+    ])
+
+
 def build(config: Config, cadence: str) -> str:
     company = config.company
     autonomy = config.autonomy

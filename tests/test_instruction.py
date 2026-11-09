@@ -19,6 +19,15 @@ class InstructionFirstTest(unittest.TestCase):
         self.assertNotIn("価値が1つ増える状態", task)  # 既定の仕事は混ぜない
         self.assertIn("指示に無いこと", task)
 
+    def test_brief_context_is_short_and_has_no_section_dumps(self):
+        from company import context as context_builder
+        from company.config import load_config
+        cfg = load_config()
+        b = context_builder.brief(cfg)
+        self.assertLess(len(b), 600)
+        for heading in ("## 直近の実測値", "## 守るべきガードレール", "## 禁止事項", "承認なしでやってよいこと"):
+            self.assertNotIn(heading, b)
+
     def test_without_instruction_default_task_after_context(self):
         task = runner._task_for("builder", "# 会社の現状", None)
         self.assertTrue(task.startswith("# 会社の現状"))

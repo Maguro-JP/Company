@@ -137,6 +137,7 @@ jobs:
           $texts = @($r.events | Where-Object { $_.type -eq "text" } | ForEach-Object { $_.text })
           if (-not $texts) { throw "役職が本文を 1 つも出していない" }
           if ($texts -join "`n" -match "<tool_call>") { throw "役職の答えに道具の形が混ざっている（指示を守れていない）" }
+          if ($texts -join "`n" -match "直近の実測値|守るべきガードレール|会社（要点だけ）|オーナーの指示（これだけをやる）") { throw "役職の答えに文脈の書き写しが混ざっている（指示を守れていない）" }
           $csv = "$env:ProgramData\Company\data\runs.csv"
           if (-not (Test-Path $csv)) { throw "data\runs.csv が無い（実走の記録が残っていない）" }
           Get-Content $csv
