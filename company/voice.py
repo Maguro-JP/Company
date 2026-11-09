@@ -16,9 +16,32 @@ from typing import Any
 _lock = threading.Lock()
 
 
-def _engine_type():
+def _add_reference() -> None:
+    """System.Speech を読み込む。短い名前では .NET Framework が見つけられない（GAC の中なので完全な名前か道が要る）。"""
     import clr  # noqa: PLC0415  # pythonnet（Windows の配布版に同梱）
-    clr.AddReference("System.Speech")
+    errors: list[str] = []
+    for name in ("System.Speech, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35", "System.Speech"):
+        try:
+            clr.AddReference(name)
+            return
+        except Exception as exc:  # noqa: BLE001
+            errors.append(str(exc).splitlines()[0])
+    import glob  # noqa: PLC0415
+    import os  # noqa: PLC0415
+    win = os.environ.get("SystemRoot", "C:\\Windows")
+    for pattern in (rf"{win}\Microsoft.NET\assembly\GAC_MSIL\System.Speech\*\System.Speech.dll",
+                    r"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.*\System.Speech.dll"):
+        for path in sorted(glob.glob(pattern), reverse=True):
+            try:
+                clr.AddReference(path)
+                return
+            except Exception as exc:  # noqa: BLE001
+                errors.append(str(exc).splitlines()[0])
+    raise RuntimeError("; ".join(errors[-2:]) or "System.Speech が見つかりません")
+
+
+def _engine_type():
+    _add_reference()
     from System.Speech.Recognition import SpeechRecognitionEngine  # noqa: PLC0415
     return SpeechRecognitionEngine
 
