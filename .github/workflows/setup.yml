@@ -138,6 +138,8 @@ jobs:
           if (-not $texts) { throw "役職が本文を 1 つも出していない" }
           if ($texts -join "`n" -match "<tool_call>") { throw "役職の答えに道具の形が混ざっている（指示を守れていない）" }
           if ($texts -join "`n" -match "直近の実測値|守るべきガードレール|会社（要点だけ）|オーナーの指示（これだけをやる）") { throw "役職の答えに文脈の書き写しが混ざっている（指示を守れていない）" }
+          $last = $texts[-1]
+          if ($last -match '^\s*\{.*"name"' -or $last.Trim().Length -lt 8) { throw "役職の最後の答えが文になっていない（道具の形か空）: $last" }
           $csv = "$env:ProgramData\Company\data\runs.csv"
           if (-not (Test-Path $csv)) { throw "data\runs.csv が無い（実走の記録が残っていない）" }
           Get-Content $csv

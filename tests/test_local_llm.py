@@ -207,6 +207,19 @@ class ToolCallParseTest(unittest.TestCase):
         self.assertEqual(call.arguments, {"path": "README.md"})
         self.assertEqual(before, "")
 
+    def test_bare_json_tool_call_without_tag_is_accepted(self):
+        from company.local_llm import parse_tool_call
+        before, call = parse_tool_call('{"name": "read_file", "arguments": {"path": "company.yaml"}}')
+        self.assertEqual(before, "")
+        self.assertEqual(call.name, "read_file")
+        self.assertEqual(call.arguments, {"path": "company.yaml"})
+
+    def test_prose_mentioning_name_is_not_a_tool_call(self):
+        from company.local_llm import parse_tool_call
+        before, call = parse_tool_call('会社の状態は良好です。{"name": "x"} という形は使いません。')
+        self.assertIsNone(call)
+        self.assertTrue(before.startswith("会社の状態"))
+
     def test_braces_inside_strings_do_not_break_parsing(self):
         from company.local_llm import parse_tool_call
         text = '考えます。<tool_call>{"name": "write_file", "arguments": {"path": "a.py", "content": "d = {\\"x\\": 1}"}}</tool_call>'

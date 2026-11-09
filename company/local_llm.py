@@ -272,6 +272,22 @@ def parse_tool_call(text: str) -> tuple[str, ToolCall | None]:
             m = _M()
     if m is None:
         m = JSON_BLOCK_RE.search(text)
+    if m is None:
+        # 1.5B は <tool_call> を付けずに {"name": ..., "arguments": ...} だけを吐くことがある（Windows の実走 run 35）。
+        # 本文がその 1 個の JSON だけなら道具の呼び出しとして読む
+        stripped = text.strip()
+        if stripped.startswith("{") and stripped.endswith("}") and '"name"' in stripped:
+            found = _first_json_object(stripped, 0)
+            if found and found[2] >= len(stripped) - 1:
+                raw = found[0]
+
+                class _B:
+                    def group(self, _i):
+                        return raw
+
+                    def start(self):
+                        return 0
+                m = _B()
     if not m:
         return text.strip(), None
     try:
