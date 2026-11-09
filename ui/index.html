@@ -834,23 +834,43 @@
   $('instruction').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('runBtn').click(); });
 
   // ---------- 声で指示する ----------
+  // アプリのウィンドウ（WebView2）ではブラウザの音声認識が動かないので、まず Windows の音声認識（/api/voice）を使う。
+  // 無いときだけブラウザの認識に落とす。どちらも無ければ理由を出す。
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let rec = null, recBase = '';
-  $('micBtn').addEventListener('click', () => {
-    if (rec) { try { rec.stop(); } catch (_) {} return; }
-    if (!Rec) { dialog('声で指示する', 'この環境には音声認識がありません。指示の欄を押して Windows の音声入力（Win+H）で話してください。'); return; }
+  let rec = null, recBase = '', listening = false;
+  const micOn = (on) => { $('micBtn').classList.toggle('on', on); $('micBtn').textContent = on ? '🎤 聞いています…' : '🎤 声で'; };
+  const runIfTold = () => {
+    const m = $('instruction').value.match(/^(.*?)[\s、。]*(実行|やって|お願い|お願いします)[。！!]?$/s);
+    if (m) { $('instruction').value = m[1].trim(); $('runBtn').click(); }
+  };
+  const listenNative = async () => {
+    listening = true; micOn(true);
+    recBase = $('instruction').value.trim(); recBase = recBase ? recBase + '\n' : '';
+    try {
+      const r = await api('/api/voice/listen', { method: 'POST', body: JSON.stringify({ seconds: 15 }) });
+      if (r.error) toast(`声: ${r.error}`);
+      else if (r.text) { $('instruction').value = recBase + r.text; runIfTold(); }
+    } catch (e) { toast(`声: ${e.message}`); }
+    listening = false; micOn(false);
+  };
+  const listenBrowser = () => {
     rec = new Rec(); rec.lang = 'ja-JP'; rec.interimResults = true; rec.continuous = true;
     recBase = $('instruction').value.trim(); recBase = recBase ? recBase + '\n' : '';
-    $('micBtn').classList.add('on'); $('micBtn').textContent = '🎤 聞いています…';
+    micOn(true);
     let finalText = '';
     rec.onresult = (e) => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalText += t; else interim += t; } $('instruction').value = recBase + finalText + interim; };
     rec.onerror = (e) => toast(`声: ${e.error}`);
-    rec.onend = () => {
-      rec = null; $('micBtn').classList.remove('on'); $('micBtn').textContent = '🎤 声で';
-      const m = $('instruction').value.match(/^(.*?)[\s、。]*(実行|やって|お願い|お願いします)[。！!]?$/s);
-      if (m) { $('instruction').value = m[1].trim(); $('runBtn').click(); }
-    };
-    try { rec.start(); } catch (e) { rec = null; toast(String(e.message || e)); }
+    rec.onend = () => { rec = null; micOn(false); runIfTold(); };
+    try { rec.start(); } catch (e) { rec = null; micOn(false); toast(String(e.message || e)); }
+  };
+  $('micBtn').addEventListener('click', async () => {
+    if (listening) return;
+    if (rec) { try { rec.stop(); } catch (_) {} return; }
+    let v = { available: false, reason: '' };
+    try { v = await api('/api/voice'); } catch (_) {}
+    if (v.available) return listenNative();
+    if (Rec && !navigator.userAgent.includes('WebView2')) return listenBrowser();
+    dialog('声で指示する', `${v.reason || 'この環境には音声認識がありません。'}\n代わりに、指示の欄を押して Windows の音声入力（Win+H）で話せます。`);
   });
 
   // ---------- 履歴 ----------

@@ -69,6 +69,22 @@ class SettingsPatch(BaseModel):
     gpu_layers: int | None = None
 
 
+@app.get("/api/voice")
+def api_voice_status() -> dict[str, Any]:
+    """声で指示できるか（Windows の音声認識が入っているか）。"""
+    from . import voice  # noqa: PLC0415
+    return voice.status()
+
+
+@app.post("/api/voice/listen")
+async def api_voice_listen(body: dict[str, Any] | None = None) -> dict[str, Any]:
+    """マイクから 1 回分を聞き取る。認識は別のスレッドで行い、画面は待てる。"""
+    import asyncio  # noqa: PLC0415
+    from . import voice  # noqa: PLC0415
+    seconds = int((body or {}).get("seconds") or 15)
+    return await asyncio.to_thread(voice.listen, seconds)
+
+
 @app.post("/api/settings")
 def update_settings(patch: SettingsPatch) -> dict[str, Any]:
     return runner.save_settings(patch.model_dump(exclude_none=True))

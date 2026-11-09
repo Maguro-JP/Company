@@ -117,6 +117,13 @@ jobs:
           $c = Invoke-RestMethod -Method Post "$url/api/check" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-coder-1.5b"}'
           "check: " + ($c | ConvertTo-Json -Compress)
           if ($c.error) { throw "内蔵の模型が答えない: $($c.error)" }
+          # 声で指示する: Windows の音声認識（System.Speech）が呼べるか。ランナーにはマイクが無いので、音の代わりに文を入れて認識の経路だけ通す
+          $v = Invoke-RestMethod "$url/api/voice"
+          "voice: " + ($v | ConvertTo-Json -Compress)
+          if ($v.recognizers.Count -eq 0) { throw "音声認識の認識器が 1 つも無い（System.Speech を呼べていない）" }
+          $vt = & $py -c "from company import voice; import json; print(json.dumps(voice.listen(emulate='会社の状態を教えて', lang=voice.status()['recognizers'][0]), ensure_ascii=False))"
+          "voice-emulate: $vt"
+          if ($vt -notmatch '"text": "[^"]+"') { throw "模擬の音声認識が文を返さない: $vt" }
           $run = Invoke-RestMethod -Method Post "$url/api/runs" -Headers $json -Body '{"kind":"role","target":"ceo","instruction":"会社の状態を 1 行で言うだけでよい。ファイルは書かない。"}'
           $done = $false
           foreach ($i in 1..120) {
