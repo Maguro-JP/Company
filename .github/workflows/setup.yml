@@ -121,7 +121,7 @@ jobs:
           $v = Invoke-RestMethod "$url/api/voice"
           "voice: " + ($v | ConvertTo-Json -Compress)
           if ($v.recognizers.Count -eq 0) { throw "音声認識の認識器が 1 つも無い（System.Speech を呼べていない）" }
-          $vt = & $py -c "from company import voice; import json; print(json.dumps(voice.listen(emulate='会社の状態を教えて', lang=voice.status()['recognizers'][0]), ensure_ascii=False))"
+          $vt = & "$env:ProgramFiles\Company\python\python.exe" -c "from company import voice; import json; print(json.dumps(voice.listen(emulate='会社の状態を教えて', lang=voice.status()['recognizers'][0]), ensure_ascii=False))"
           "voice-emulate: $vt"
           if ($vt -notmatch '"text": "[^"]+"') { throw "模擬の音声認識が文を返さない: $vt" }
           $run = Invoke-RestMethod -Method Post "$url/api/runs" -Headers $json -Body '{"kind":"role","target":"ceo","instruction":"会社の状態を 1 行で言うだけでよい。ファイルは書かない。"}'
