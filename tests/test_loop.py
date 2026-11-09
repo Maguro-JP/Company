@@ -190,3 +190,43 @@ class LocalLLMLoopTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MalformedToolCallTest(unittest.TestCase):
+    """<tool_call> と書いたのに読めない返答は本文にせず、言い直させる。2 回続いたら error で止める。"""
+
+    class _P:
+        name = "fake"
+
+        def __init__(self, texts):
+            self.texts = list(texts)
+            self.seen = []
+
+        def user_message(self, text):
+            return {"role": "user", "content": text}
+
+        def tool_results(self, results):
+            return []
+
+        def complete(self, system, history, tools, temperature):
+            from company.providers import Turn
+            self.seen.append(history[-1]["content"])
+            text = self.texts.pop(0)
+            return Turn(text=text, tool_calls=[], assistant_message={"role": "assistant", "content": text}, usage={"input": 1, "output": 1})
+
+    def test_reprompts_then_gives_up(self):
+        p = self._P(['<tool_call>{"name": "x", "arguments": {"a":', '<tool_call>{"name": "x"'])
+        events = []
+        r = run_loop(p, "sys", "task", {}, events.append, max_turns=5, role="ceo")
+        self.assertEqual(r.stopped_reason, "error")
+        self.assertEqual(r.final_text, "")
+        self.assertIn("言い直させます", " ".join(e.get("text", "") for e in events if e["type"] == "status"))
+        self.assertIn("閉じタグ", p.seen[1])
+        self.assertFalse(any(e["type"] == "text" for e in events))
+
+    def test_reprompt_then_good_answer(self):
+        p = self._P(['<tool_call>{"name": "x", "arguments": {"a":', "会社は準備中です。"])
+        events = []
+        r = run_loop(p, "sys", "task", {}, events.append, max_turns=5, role="ceo")
+        self.assertEqual(r.stopped_reason, "done")
+        self.assertEqual(r.final_text, "会社は準備中です。")

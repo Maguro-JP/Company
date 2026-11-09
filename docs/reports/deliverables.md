@@ -15,5 +15,10 @@
 | 8 | キャラクターの絵とアプリのアイコン | ui/characters/ に 6 人の PNG、ui/icon/ に app.ico があり、画面と Setup.exe とショートカットに出る | 完成 | v0.1.1 公開、Windows の写しで確認 | 2026-11-07 |
 | 9 | 配布版の置き場を他のアプリにそろえる | Program Files にプログラム、ProgramData\Company に作業場、C:\LLM\gguf に模型が置かれ、Actions の Windows で入れ直しても作業場が残る | 完成 | v0.2.0 公開。Actions の Windows で Program Files・ProgramData・C:\LLM を確認 | 2026-11-07 |
 | 10 | アプリ本体の更新（「更新を確かめる」） | 右パネルの「更新を確かめる」が releases/latest と VERSION を比べ、新しい版があれば Setup.exe を updates\ に取って開く。偽の API で確かめる | 完成 | v0.2.0 に入っている | 2026-11-07 |
-| 11 | 同じ作者のツールとの連携 | 右パネルに相手の一覧と疎通が出て、MCP の相手の道具を役職の AI が `<相手>__<道具>` で呼べ、AdaptiveAIStudio の設定に Company の /mcp を書ける。偽の MCP と Company 自身の /mcp で経路を通す | 完成 | tests/test_partners.py。本物の NetVision と AdaptiveAIStudio は手元に無く、未確認 | 2026-11-07 |
+| 11 | 同じ作者のツールとの連携 | 右パネルに相手の一覧と疎通が出て、MCP の相手の道具を役職の AI が `<相手>__<道具>` で呼べ、AdaptiveAIStudio の設定に Company の /mcp を書ける。偽の MCP と Company 自身の /mcp で経路を通す | 完成 | tests/test_partners.py。本物の NetVision の MCP で list と call を確認（tech.md）。AdaptiveAIStudio は手元に無く未確認 | 2026-11-07 |
 | 12 | 配布版が Windows で入れてすぐ動く | Actions の Windows で、入れる→起動→内蔵の模型を取る→1 問答える→CEO を 1 周→data/runs.csv に 1 行、まで緑 | 完成 | setup.yml の run 16 で緑（模型 491 MB を 30 秒で取り、1+1=2、CEO 1 周、runs.csv 1 行）。ユーザーの機械での不動は logs\\app.log で切り分ける | 2026-11-07 |
+| 13 | 役職の AI がオーナーの働き方（Ciel のスキル）で動く | 毎回の指示の先頭に CLAUDE.md の決めたこと、lessons の「次から」、work-style ほかのスキルが模型の大きさに合わせて入り、配布版にもスキルが同梱される | 完成 | company/workstyle.py、tests/test_workstyle.py。実モデルでの効き目は未確認 | 2026-11-07 |
+| 14 | 会社の形（親会社 → 子会社 → 部門 → 部署 → 課）で管理する | org.yaml の木に課ごとの席と役職が付き、右パネルの「会社の形」に課ごとのつながりが出て、GET/POST /api/org で読める・直せる。無い席・無い役職・二重の席は保存しない | 完成 | company/org.py、tests/test_org.py（5 件）。画面は Chromium の写しで確認 | 2026-11-07 |
+| 16 | 子会社ごとの社員 | 子会社 7 社に社員（名前、役割、役職 6 人と同じ描き方のデフォルメのアニメ調の全身の絵）があり、会社の形の子会社の行に並び、/api/staff で取れる | 完成 | 7 人を同じ描き方で描き、写しで確認 | 2026-11-08 |
+| 17 | 画面の作り直し（メニュー、画面の切り替え、履歴、成果物、設定、状態の帯） | メニューの帯（ファイル・実行・表示・会社・ヘルプ）、仕事・履歴・成果物・会社・設定の画面、状態の帯があり、履歴は起動し直しても残って 1 件ずつ開ける・消せる。成果物は意思決定の記録・製品の変更・報告・実績を一覧から開ける | 完成 | 各画面の写しで確認。実モデルでの実走は未確認 | 2026-11-08 |
+| 18 | 更新で作業場の同梱物が新しくなる | 前の版を入れた作業場に新しい版を重ねると、手を入れていない company.yaml・org.yaml・agents・docs は新しい物に替わり、同梱から消えた物は消え、直した物はそのまま残る。偽の置き場のテストで確かめる | 完成 | tests/test_paths.py の RefreshBundledTest 4 件。Windows の実走では入れ直しの経路を未確認 | 2026-11-09 |

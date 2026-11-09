@@ -103,18 +103,18 @@ jobs:
           $bmp.Save("$env:GITHUB_WORKSPACE\window.png")
           # ここから先が「本当に動くか」。入って開くだけでは分からない（ユーザーの機械では開いても動かなかった）
           $json = @{ "Content-Type" = "application/json" }
-          Invoke-RestMethod -Method Post "$url/api/settings" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-0.5b","max_turns":4,"context":4096,"gpu_layers":0}' | Out-Null
-          Invoke-RestMethod -Method Post "$url/api/download" -Headers $json -Body '{"model_id":"qwen2.5-0.5b"}' | Out-Null
+          Invoke-RestMethod -Method Post "$url/api/settings" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-coder-1.5b","max_turns":4,"context":4096,"gpu_layers":0}' | Out-Null
+          Invoke-RestMethod -Method Post "$url/api/download" -Headers $json -Body '{"model_id":"qwen2.5-coder-1.5b"}' | Out-Null
           $got = $false
           foreach ($i in 1..180) {
             Start-Sleep -Seconds 5
             $models = Invoke-RestMethod "$url/api/models?provider=builtin"
-            $m = $models.catalog | Where-Object { $_.id -eq "qwen2.5-0.5b" }
+            $m = $models.catalog | Where-Object { $_.id -eq "qwen2.5-coder-1.5b" }
             if ($m -and $m.downloaded) { $got = $true; break }
           }
           if (-not $got) { throw "模型を取れない（C:\LLM\gguf に置けていない）" }
           "model: " + (Get-ChildItem "C:\LLM\gguf" | ForEach-Object { $_.Name + " " + $_.Length }) -join ", "
-          $c = Invoke-RestMethod -Method Post "$url/api/check" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-0.5b"}'
+          $c = Invoke-RestMethod -Method Post "$url/api/check" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-coder-1.5b"}'
           "check: " + ($c | ConvertTo-Json -Compress)
           if ($c.error) { throw "内蔵の模型が答えない: $($c.error)" }
           $run = Invoke-RestMethod -Method Post "$url/api/runs" -Headers $json -Body '{"kind":"role","target":"ceo","instruction":"会社の状態を 1 行で言うだけでよい。ファイルは書かない。"}'
@@ -127,6 +127,9 @@ jobs:
           "run: " + $r.status + " events=" + $r.events.Count; $r.events | Where-Object { $_.type -in @("error","role_end","text") } | ForEach-Object { ($_ | ConvertTo-Json -Compress) }
           if (-not $done) { throw "1 役職の実走が 10 分で終わらない" }
           if ($r.status -eq "error") { throw "実走が落ちた" }
+          $texts = @($r.events | Where-Object { $_.type -eq "text" } | ForEach-Object { $_.text })
+          if (-not $texts) { throw "役職が本文を 1 つも出していない" }
+          if ($texts -join "`n" -match "<tool_call>") { throw "役職の答えに道具の形が混ざっている（指示を守れていない）" }
           $csv = "$env:ProgramData\Company\data\runs.csv"
           if (-not (Test-Path $csv)) { throw "data\runs.csv が無い（実走の記録が残っていない）" }
           Get-Content $csv

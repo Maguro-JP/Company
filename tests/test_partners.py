@@ -150,7 +150,14 @@ class PartnersApiTest(unittest.TestCase):
             with mock.patch.dict(os.environ, {"AAS_CONFIG": str(Path(d) / "aas.config.json")}):
                 r = client.get("/api/partners").json()
                 ids = [p["id"] for p in r["partners"]]
-                self.assertEqual(ids[:4], ["aas", "netvision", "characterdesigner", "ciel"])
+                self.assertEqual(ids[:3], ["aas", "netvision", "characterdesigner"])
+                self.assertIn("ciel", ids)
+                planned = [p for p in r["partners"] if p["planned"]]
+                self.assertIn("video_gen", [p["id"] for p in planned])
+                self.assertIn("tts", [p["id"] for p in planned])
+                self.assertEqual(len(planned), len(partners.PLANNED_SEATS))
+                self.assertTrue(all(p["dept"] for p in r["partners"] if p["id"] != "ciel" or True))
+                self.assertTrue(all(not p["alive"] for p in planned))
                 reg = client.post("/api/partners/aas/register").json()
                 self.assertEqual(reg["url"], "http://testserver/mcp")
                 self.assertTrue(Path(reg["path"]).exists())
@@ -160,3 +167,89 @@ class PartnersApiTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DiscoveryTest(unittest.TestCase):
+    def test_netvision_found_from_bat_or_backend_without_user_input(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "NetVision"
+            (root / "backend" / "app").mkdir(parents=True)
+            (root / "backend" / "app" / "mcp_server.py").write_text("", encoding="utf-8")
+            with mock.patch.dict(os.environ, {"NETVISION_HOME": str(root)}):
+                got = partners.find_netvision_mcp()
+            self.assertEqual(got["cwd"], str(root / "backend"))
+            self.assertEqual(got["command"][1:], ["-m", "app.mcp_server"])
+            (root / "NetVision-mcp.bat").write_text("", encoding="utf-8")
+            with mock.patch.dict(os.environ, {"NETVISION_HOME": str(root)}):
+                got = partners.find_netvision_mcp()
+            self.assertEqual(got["command"], [str(root / "NetVision-mcp.bat")])
+
+    def test_auto_register_only_when_aas_is_installed(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = Path(d) / "nope" / "aas.config.json"
+            with mock.patch.dict(os.environ, {"AAS_CONFIG": str(cfg)}):
+                self.assertIsNone(partners.auto_register_aas("http://127.0.0.1:1/mcp"))
+                self.assertFalse(cfg.exists())
+            cfg.parent.mkdir()
+            with mock.patch.dict(os.environ, {"AAS_CONFIG": str(cfg)}):
+                r = partners.auto_register_aas("http://127.0.0.1:1/mcp")
+            self.assertTrue(r["changed"])
+            self.assertIn("company", json.loads(cfg.read_text(encoding="utf-8"))["mcp"]["servers"])
+
+
+class AggregateMcpTest(unittest.TestCase):
+    """Company の /mcp を 1 つ繋げば、子会社の道具も出る（売り）。偽の標準入出力の MCP で。"""
+
+    def test_company_mcp_lists_and_calls_partner_tools(self):
+        with tempfile.TemporaryDirectory() as d:
+            script = Path(d) / "fake_mcp.py"
+            script.write_text(FAKE_MCP, encoding="utf-8")
+            entries = [{"id": "ledger", "name": "台帳", "mcp": {"command": [sys.executable, "-I", str(script)], "cwd": d}}]
+            with mock.patch.object(partners, "builtin", return_value=[]), \
+                 mock.patch.object(partners, "PARTNERS_FILE", Path(d) / "partners.json"):
+                partners.save_extra(entries)
+                client = TestClient(server.app)
+                listed = client.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"}).json()
+                names = [t["name"] for t in listed["result"]["tools"]]
+                self.assertIn("start_cycle", names)
+                self.assertIn("ledger__device_summary", names)
+                called = client.post("/mcp", json={"jsonrpc": "2.0", "id": 2, "method": "tools/call",
+                                                   "params": {"name": "ledger__device_summary", "arguments": {"q": "x"}}}).json()
+                self.assertFalse(called["result"]["isError"])
+                self.assertIn('"total": 3', called["result"]["content"][0]["text"])
+                missing = client.post("/mcp", json={"jsonrpc": "2.0", "id": 3, "method": "tools/call",
+                                                    "params": {"name": "nobody__x", "arguments": {}}}).json()
+                self.assertTrue(missing["result"]["isError"])
+
+
+class RegistryTest(unittest.TestCase):
+    """自社のツールの登録簿。自分の口を書き、他のツールの口を読んで、設定なしで相手に出る。"""
+
+    def test_register_self_and_load_others(self):
+        with tempfile.TemporaryDirectory() as d:
+            book = Path(d) / "services.json"
+            with mock.patch.dict(os.environ, {"MAGURO_SERVICES": str(book)}):
+                r = partners.register_self(partners.company_entry("http://127.0.0.1:8765"))
+                self.assertEqual(r["entries"], 1)
+                # 別のツールが自分で書いた項目
+                data = json.loads(book.read_text(encoding="utf-8"))
+                data["drawtool"] = {"name": "絵のツール", "dept": "ビジュアル", "about": "描く", "mcp": {"url": "http://127.0.0.1:9999/mcp"}}
+                book.write_text(json.dumps(data), encoding="utf-8")
+                ids = {p["id"]: p for p in partners.load(path=Path(d) / "none.json")}
+            self.assertIn("drawtool", ids)
+            self.assertTrue(ids["drawtool"]["registered"])
+            self.assertNotIn("company", ids)  # 自分は相手に数えない
+            self.assertEqual(data["company"]["mcp"]["url"], "http://127.0.0.1:8765/mcp")
+
+    def test_register_keeps_other_entries_and_survives_bad_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            book = Path(d) / "services.json"
+            book.write_text("{broken", encoding="utf-8")
+            partners.register_self({"id": "company", "name": "Company"}, book)
+            data = json.loads(book.read_text(encoding="utf-8"))
+            self.assertIn("company", data)
+            partners.register_self({"id": "other", "name": "他"}, book)
+            self.assertEqual(set(json.loads(book.read_text(encoding="utf-8"))), {"company", "other"})
+
+    def test_registry_path_follows_platform(self):
+        self.assertEqual(partners.registry_path({"MAGURO_SERVICES": "/x/s.json"}), Path("/x/s.json"))

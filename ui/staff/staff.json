@@ -1,0 +1,51 @@
+[
+ {
+  "company": "aas",
+  "id": "aas",
+  "name": "作業担当",
+  "role": "画面で受けた依頼を作業場で書く",
+  "art": "/staff/aas.png"
+ },
+ {
+  "company": "ciel",
+  "id": "ciel",
+  "name": "スキル職人",
+  "role": "働き方のスキルを作り、直し、配る",
+  "art": "/staff/ciel.png"
+ },
+ {
+  "company": "characterdesigner",
+  "id": "characterdesigner",
+  "name": "作画担当",
+  "role": "頼まれた絵を描き、検品して直す",
+  "art": "/staff/characterdesigner.png"
+ },
+ {
+  "company": "netvision",
+  "id": "netvision",
+  "name": "台帳係",
+  "role": "機器・拠点・保守期限を引く",
+  "art": "/staff/netvision.png"
+ },
+ {
+  "company": "video",
+  "id": "video",
+  "name": "映像係",
+  "role": "絵コンテから動画を作り、編集する",
+  "art": "/staff/video.png"
+ },
+ {
+  "company": "music",
+  "id": "music",
+  "name": "作曲係",
+  "role": "曲と効果音を作り、整える",
+  "art": "/staff/music.png"
+ },
+ {
+  "company": "voice",
+  "id": "voice",
+  "name": "ボイス係",
+  "role": "文を声にし、声を管理する",
+  "art": "/staff/voice.png"
+ }
+]

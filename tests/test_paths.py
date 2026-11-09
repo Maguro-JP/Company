@@ -140,3 +140,44 @@ class UpdaterTest(unittest.TestCase):
         self.assertIsNone(updater.check("http://127.0.0.1:9/latest", timeout=1))
         with self.assertRaises(Exception):
             updater.check("http://127.0.0.1:9/latest", timeout=1, quiet=False)
+
+
+class RefreshBundledTest(unittest.TestCase):
+    """更新で同梱物が変わったとき、手の入っていない物だけが新しくなり、消えた物は消え、直した物は残る。"""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.app = fake_install(self.tmp / "pf")
+        self.ws = self.tmp / "pd" / "Company"
+        migrate.ensure_workspace(self.app, self.ws)
+        self.old_company = migrate._sha256(self.app / "company.yaml")
+        self.old_a = migrate._sha256(self.app / "product" / "a.py")
+
+    def _known(self, *extra: str) -> set[str]:
+        return {self.old_company, self.old_a, *extra}
+
+    def test_untouched_file_is_updated_and_edited_file_is_kept(self):
+        (self.app / "company.yaml").write_text("name: new\n", encoding="utf-8")
+        (self.ws / "product" / "a.py").write_text("print('mine')\n", encoding="utf-8")
+        (self.app / "product" / "a.py").write_text("print(9)\n", encoding="utf-8")
+        r = migrate.refresh_bundled(self.app, self.ws, self._known())
+        self.assertEqual(r, {"updated": 1, "removed": 0, "kept": 1})
+        self.assertEqual((self.ws / "company.yaml").read_text(encoding="utf-8"), "name: new\n")
+        self.assertEqual((self.ws / "product" / "a.py").read_text(encoding="utf-8"), "print('mine')\n")
+
+    def test_file_dropped_from_bundle_is_removed_only_if_untouched(self):
+        (self.app / "product" / "a.py").unlink()
+        r = migrate.refresh_bundled(self.app, self.ws, self._known())
+        self.assertEqual(r["removed"], 1)
+        self.assertFalse((self.ws / "product" / "a.py").exists())
+
+    def test_without_known_table_nothing_changes(self):
+        (self.app / "company.yaml").write_text("name: new\n", encoding="utf-8")
+        self.assertEqual(migrate.refresh_bundled(self.app, self.ws, set())["updated"], 0)
+
+    def test_known_table_covers_current_bundle(self):
+        """コミットの前に tools/known_bundled.py を走らせ忘れると、配った版が表に無く、次の更新で上書きできない。"""
+        root = Path(__file__).resolve().parents[1]
+        known = migrate.known_hashes(root)
+        missing = [str(rel) for rel, src in migrate._bundled_files(root) if migrate._sha256(src) not in known]
+        self.assertEqual(missing, [], "python tools/known_bundled.py を走らせる")

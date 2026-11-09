@@ -6,6 +6,9 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +17,8 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import controls, gemini, local_llm, mcp_http, partners, runner, updater
+from . import controls, gemini, local_llm, mcp_http, org, partners, repos, runner, updater
+from . import config as config_module
 from . import paths
 from .config import ROOT, load_config
 from .providers import ProviderError, answer_check, make_provider, provider_catalog
@@ -26,6 +30,8 @@ app.include_router(mcp_http.router)
 # キャラクターの絵とアイコン。画面は依存なしの 1 ファイルだが、絵だけは別に置く（HTML に埋めると 1 MB を超える）
 app.mount("/characters", StaticFiles(directory=UI_DIR / "characters"), name="characters")
 app.mount("/icon", StaticFiles(directory=UI_DIR / "icon"), name="icon")
+if (UI_DIR / "staff").is_dir():
+    app.mount("/staff", StaticFiles(directory=UI_DIR / "staff"), name="staff")
 
 
 @app.get("/")
@@ -43,7 +49,8 @@ def state() -> dict[str, Any]:
         "cadences": {k: v for k, v in config.raw.get("cadence", {}).items()},
         "roles": runner.list_roles(),
         "settings": runner.load_settings(),
-        "runs": [r.summary() for r in runner.REGISTRY.all()],
+        "runs": runner.REGISTRY.history(),
+        "workspace": str(ROOT),
     }
 
 
@@ -149,10 +156,106 @@ def start(req: StartRequest) -> dict[str, Any]:
 
 @app.get("/api/runs/{run_id}")
 def get_run(run_id: str) -> dict[str, Any]:
-    run = runner.REGISTRY.get(run_id)
-    if run is None:
+    data = runner.REGISTRY.load(run_id)
+    if data is None:
         raise HTTPException(404, "run not found")
-    return {**run.summary(), "events": run.events}
+    return data
+
+
+@app.delete("/api/runs/{run_id}")
+def delete_run(run_id: str) -> dict[str, Any]:
+    """履歴から 1 件消す。実行中は消せない。"""
+    if not runner.REGISTRY.delete(run_id):
+        raise HTTPException(409, "実行中か、記録がありません")
+    return {"deleted": run_id}
+
+
+@app.post("/api/workspace/open")
+def workspace_open() -> dict[str, Any]:
+    """作業場をファイルの画面（エクスプローラー）で開く。中身を自分で見られるように。"""
+    import subprocess  # noqa: PLC0415
+    target = str(ROOT)
+    try:
+        if sys.platform == "win32":
+            os.startfile(target)  # type: ignore[attr-defined]
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", target])
+        else:
+            subprocess.Popen(["xdg-open", target])
+    except OSError as exc:
+        return {"error": f"開けません: {exc}", "path": target}
+    return {"path": target}
+
+
+@app.get("/api/workspace")
+def workspace_info() -> dict[str, Any]:
+    """作業場に何があるか。画面の「このアプリ」とメニューの「作業場」で見せる。"""
+    items = []
+    for name in ("company.yaml", "org.yaml", "agents", "product", "docs", "data", "logs", ".claude", "README.md", "CLAUDE.md"):
+        p = ROOT / name
+        if not p.exists():
+            continue
+        if p.is_dir():
+            n = sum(1 for _ in p.rglob("*") if _.is_file())
+            items.append({"name": name + "/", "what": WORKSPACE_WHAT.get(name, ""), "count": n})
+        else:
+            items.append({"name": name, "what": WORKSPACE_WHAT.get(name, ""), "count": None})
+    return {"path": str(ROOT), "items": items, "git": (ROOT / ".git").exists()}
+
+
+WORKSPACE_WHAT = {
+    "company.yaml": "会社の設定（名前、使命、承認なしでやること、KPI）",
+    "org.yaml": "会社の形（親会社 → 子会社 → 部門 → 部署 → 課）",
+    "agents": "役職の定義（1 役職 1 ファイル）",
+    "product": "会社が作る製品",
+    "docs": "憲章、手順書、知識、報告",
+    "data": "記録（実行の履歴、意思決定、実績、設定、模型）",
+    "logs": "起動の記録（起動しないときはここを見る）",
+    ".claude": "働き方のスキル（Ciel）",
+    "README.md": "説明",
+    "CLAUDE.md": "作業の決まり",
+}
+
+
+@app.get("/api/deliverables")
+def deliverables() -> dict[str, Any]:
+    """成果物の一覧。意思決定の記録、製品の変更（git log）、報告、実績。中身は /api/files で読む。"""
+    import subprocess  # noqa: PLC0415
+
+    decisions = []
+    ddir = ROOT / "data" / "decisions"
+    if ddir.is_dir():
+        for path in sorted(ddir.glob("*.md"), reverse=True):
+            text = path.read_text(encoding="utf-8", errors="replace")
+            first = next((ln.lstrip("# ").strip() for ln in text.splitlines() if ln.strip()), path.stem)
+            decisions.append({"path": str(path.relative_to(ROOT)).replace("\\", "/"), "title": first,
+                              "size": len(text), "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec="minutes")})
+    commits: list[dict[str, Any]] = []
+    try:
+        out = subprocess.run(["git", "log", "--date=iso-strict", "--pretty=%h%x1f%ad%x1f%s", "--stat=120", "-n", "40"],
+                             cwd=ROOT, capture_output=True, text=True, timeout=20, encoding="utf-8", errors="replace")
+        block: dict[str, Any] | None = None
+        for line in out.stdout.splitlines():
+            if "\x1f" in line:
+                h, d, msg = line.split("\x1f", 2)
+                block = {"hash": h, "date": d[:16].replace("T", " "), "message": msg, "files": []}
+                commits.append(block)
+            elif block is not None and line.strip() and "|" in line:
+                block["files"].append(line.strip().split("|")[0].strip())
+    except (OSError, subprocess.SubprocessError):
+        pass
+    reports = []
+    rdir = ROOT / "docs" / "reports"
+    if rdir.is_dir():
+        for path in sorted(rdir.rglob("*.md")):
+            reports.append({"path": str(path.relative_to(ROOT)).replace("\\", "/"), "title": path.stem,
+                            "mtime": datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec="minutes")})
+    rows = []
+    if config_module.RUNS_PATH.exists():
+        import csv  # noqa: PLC0415
+        with config_module.RUNS_PATH.open(encoding="utf-8", newline="") as fh:
+            rows = list(csv.DictReader(fh))[-200:]
+    return {"decisions": decisions, "commits": commits, "reports": reports, "runs": list(reversed(rows)), "workspace": str(ROOT)}
 
 
 @app.post("/api/runs/{run_id}/stop")
@@ -245,6 +348,64 @@ def partners_list() -> dict[str, Any]:
     """相手ごとに生きているかを短く見る。落ちている相手は理由つきで出す。"""
     return {"partners": [partners.probe(p) for p in partners.load()],
             "file": str(partners.PARTNERS_FILE)}
+
+
+@app.get("/api/staff")
+def staff_list() -> dict[str, Any]:
+    """子会社ごとの社員（CharacterDesigner の手順で組んだドット絵）。tools/staff_build.py が書く。"""
+    path = UI_DIR / "staff" / "staff.json"
+    if not path.exists():
+        return {"staff": []}
+    return {"staff": json.loads(path.read_text(encoding="utf-8"))}
+
+
+@app.get("/api/org")
+def org_tree() -> dict[str, Any]:
+    """会社の形（親会社 → 子会社 → 部門 → 部署 → 課）に、席のつながりを乗せて返す。"""
+    tree = org.load()
+    probes = {p["id"]: partners.probe(p) for p in partners.load()}
+    known_roles = {r["role"] for r in runner.list_roles()}
+    return {"tree": org.annotate(tree, probes), "file": str(org.ORG_PATH),
+            "errors": org.validate(tree, set(probes), known_roles)}
+
+
+@app.get("/api/repos")
+def repos_list() -> dict[str, Any]:
+    cache = repos.load_cache()
+    return {**cache, "stale": repos.stale(cache.get("repos", [])), "owner": repos.owner_from_env(),
+            "token": bool(repos.token_from_env())}
+
+
+class ReposSync(BaseModel):
+    owner: str = ""
+    token: str = ""
+
+
+@app.post("/api/repos/sync")
+def repos_sync(req: ReposSync) -> dict[str, Any]:
+    """GitHub からリポジトリを取り、業種ごとの子会社として会社の形に足す。
+    トークンは環境変数（GITHUB_TOKEN）か、この呼び出しの中でだけ使い、保存しない。"""
+    owner = req.owner or repos.owner_from_env()
+    token = req.token or repos.token_from_env()
+    try:
+        return repos.sync(owner, token, org.manual_names())
+    except RuntimeError as exc:
+        return {"error": str(exc)}
+
+
+class OrgPatch(BaseModel):
+    tree: dict[str, Any]
+
+
+@app.post("/api/org")
+def org_save(patch: OrgPatch) -> dict[str, Any]:
+    """木を丸ごと置き換える。誤り（無い席、無い役職、二重の席）があれば保存しない。"""
+    known_roles = {r["role"] for r in runner.list_roles()}
+    errors = org.validate(patch.tree, {p["id"] for p in partners.load()}, known_roles)
+    if errors:
+        raise HTTPException(400, "；".join(errors))
+    org.save(patch.tree)
+    return {"file": str(org.ORG_PATH), "sections": len(org.sections(patch.tree))}
 
 
 @app.get("/api/partners/{partner_id}/tools")

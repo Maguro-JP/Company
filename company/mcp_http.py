@@ -15,7 +15,7 @@ from typing import Any
 
 from fastapi import APIRouter, Request, Response
 
-from . import controls
+from . import controls, partners
 
 PROTOCOL_VERSION = "2025-06-18"
 SERVER_INFO = {"name": "company", "version": "0.1.0"}
@@ -25,10 +25,17 @@ _sessions: set[str] = set()
 
 
 def _tools() -> list[dict[str, Any]]:
-    return [
+    """会社の道具に、つながっている子会社（相手のツール）の道具を <相手>__<道具> で足す。
+    Company を 1 つ繋げば、オーナーの全ツールが MCP で使える、が売り。相手が落ちていればその分は出ない。"""
+    own = [
         {"name": f["name"], "description": f["description"], "inputSchema": f["parameters"]}
         for f in controls.FUNCTIONS
     ]
+    theirs = [
+        {"name": spec.name, "description": spec.description, "inputSchema": spec.parameters}
+        for spec, _ in partners.toolset().values()
+    ]
+    return own + theirs
 
 
 def _result(req_id: Any, result: Any) -> dict[str, Any]:
@@ -62,6 +69,14 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
         args = params.get("arguments") or {}
         if not isinstance(args, dict):
             return _error(req_id, -32602, "arguments はオブジェクトで渡してください")
+        if "__" in name:
+            # 子会社の道具。相手の MCP へそのまま渡し、文で返す
+            entry = partners.toolset().get(name)
+            if entry is None:
+                return _result(req_id, {"content": [{"type": "text", "text": f"道具がありません: {name}"}], "isError": True})
+            text = entry[1](args)
+            failed = text.startswith("（相手が失敗と言っています）") or "が失敗しました:" in text[:80]
+            return _result(req_id, {"content": [{"type": "text", "text": text}], "isError": failed})
         out = controls.dispatch(name, args)
         is_error = "error" in out and len(out) == 1
         return _result(req_id, {

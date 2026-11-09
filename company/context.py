@@ -15,6 +15,13 @@ RECENT_DECISIONS = 3
 RECENT_METRIC_ROWS = 8
 
 
+AUTONOMY_LABELS = {
+    "write_code": "コードを書く", "run_tests": "テストを実行する", "commit": "コミットする", "push": "push する",
+    "decide_roadmap": "次に何を作るかを決める", "decide_pricing": "価格を決める", "publish_externally": "対外的な文章を公開する",
+    "spend_money": "お金を使う",
+}
+
+
 def _metrics_block(path: Path = METRICS_PATH) -> str:
     if not path.exists():
         return "（data/metrics.csv が存在しません。数値は「データなし」として扱うこと）"
@@ -58,6 +65,27 @@ def _runs_block() -> str:
     return "\n".join(lines)
 
 
+def _group_block() -> str:
+    """親会社の直下（子会社と業種グループ）を 1 行ずつ。CEO が「どの子会社に何を頼むか」を決める材料。"""
+    from . import org, repos  # noqa: PLC0415
+    tree = org.load()
+    lines = []
+    for child in tree.get("children") or []:
+        if not isinstance(child, dict):
+            continue
+        if child.get("kind") == "division" and child.get("generated"):
+            names = [c.get("name", "") for c in child.get("children") or []]
+            lines.append(f"- {child['name']}: {', '.join(names[:12])}{'…' if len(names) > 12 else ''}")
+        else:
+            seats = sum(len(n.get("seats") or []) for _, n in org.walk(child))
+            lines.append(f"- {child.get('name', '')}（席 {seats}）: {child.get('about', '')}")
+    cache = repos.load_cache()
+    old = repos.stale(cache.get("repos", []))
+    if old:
+        lines.append(f"- 90 日以上 push の無いリポジトリ: {', '.join(old[:10])}{'…' if len(old) > 10 else ''}")
+    return "\n".join(lines) or "（子会社なし）"
+
+
 def build(config: Config, cadence: str) -> str:
     company = config.company
     autonomy = config.autonomy
@@ -72,10 +100,10 @@ def build(config: Config, cadence: str) -> str:
         f"- ステージ: {company.get('stage', '未設定')}",
         f"- 北極星指標: {config.kpi.get('north_star', '未設定')}",
         "",
-        "## あなたが承認なしに実行してよいこと",
-        "true のものは、確認を取らずに実行してください。提案で止めないこと。",
+        "## 承認なしでやってよいこと（方針。道具の名前ではない）",
+        "「できる」のものは、確認を取らずに進めてください。提案で止めないこと。道具は別に渡します。",
     ]
-    lines += [f"- {key}: {value}" for key, value in autonomy.items()]
+    lines += [f"- {AUTONOMY_LABELS.get(key, key)}: {'できる' if value else 'できない（オーナー作業）'}" for key, value in autonomy.items()]
     lines += [
         "",
         "## AIに手段が無いこと",
@@ -100,6 +128,9 @@ def build(config: Config, cadence: str) -> str:
         "```csv",
         _runs_block(),
         "```",
+        "",
+        "## グループの子会社（会社の形。org.yaml とリポジトリの取り込み）",
+        _group_block(),
         "",
         "## 直近の意思決定記録",
         _decisions_block(),

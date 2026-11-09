@@ -14,7 +14,7 @@ Windows のアプリウィンドウ（またはブラウザ）から操作する
 | 置き場 | 中身 | 更新のとき |
 |---|---|---|
 | `C:\Program Files\Company\` | プログラム（company、ui、同梱の Python、app.py） | 丸ごと置き換える。書き換えない |
-| `C:\ProgramData\Company\` | 作業場（company.yaml、agents、product、docs、data）。AI がここを書き換え、git のリポジトリとして履歴を持つ | 残す。新しい版で増えたファイルだけ足す |
+| `C:\ProgramData\Company\` | 作業場（company.yaml、agents、product、docs、data）。AI がここを書き換え、git のリポジトリとして履歴を持つ | 残す。新しい版で増えたファイルを足し、手を入れていない同梱物（会社の形、役職の指示など）は新しい版に替える。直した物は触らない（`company/migrate.py`、配った版の表は `company/known_bundled.txt`） |
 | `C:\LLM\gguf\` | 言葉の模型。自作のアプリどうしで共有する | 残す。アンインストールでも消さない |
 
 作業場を ProgramData に置くのは、利用者名が全角だと AppData の道で llama.cpp が模型を開けないため。
@@ -52,8 +52,19 @@ run.bat
 `data/models/` に自分で置いた `.gguf` も一覧に出る。
 ダウンロードは途中で切れても、もう一度「取得」を押すと続きから再開する。
 
+### 会社の形（親会社 → 子会社 → 部門 → 部署 → 課）
+
+`org.yaml` に会社の木を書く。親会社は Company（AI の役職が経営）、子会社はオーナーの各ツール、部門はツールの機能別、その下が機能・道具・作業用エージェント。課にツールの席（`seats`。`company/partners.py` の id）、役職（`roles`。agents の名前）、相手側の担当（`agents`）が付き、
+右パネルの「会社の形」に、課ごとのつながり（緑）と予定（○）が出る。`GET /api/org` で木とつながりを、`POST /api/org` で木の置き換えを行う
+（無い席、無い役職、二重の席は保存しない）。ツールが増えたら課を 1 行足し、`partners.py` の席の `planned` を外すだけでつながる。
+部門と課の一覧は [docs/knowledge/creative-series.md](docs/knowledge/creative-series.md)。
+
+子会社ごとの社員は `ui/staff/<会社の id>/<社員の id>.png`（役職 6 人と同じ描き方のデフォルメのアニメ調の絵）と `ui/staff/staff.json`。会社の形の子会社の行に並び、`/api/staff` で一覧が取れる。
+
 ### 同じ作者のツールと連携する
 
+Company はオマケではない。既製品のソフトやユーザーの自作ツールも、MCP・HTTP・ファイルの口があれば `data/partners.json` に書くだけで子会社として AI から使える。自社製品は当たり前に使えるというだけで、抱き合わせにしない。売りは Company にしか無い機能（検品、セキュリティ、法令遵守。会社の形の親会社直下の 3 部門）。
+各ツールは AI のために作り、同時に人が当たり前に使えるように作る（口と画面の両方が一級。人が使いやすい物は AI も使いやすい）。Company は AI 特化の層で、Company の `/mcp` を 1 つ繋ぐと、つながっている全ツールの道具が `<相手>__<道具>` で出る（AI 側はツールごとの設定を持たない）。
 右パネルの「連携しているツール」に、同じ作者のツールが並ぶ（`company/partners.py`）。
 緑はつながっていて、MCP の口を持つ相手の道具は役職の AI がそのまま使える（名前は `<相手>__<道具>`。例: `netvision__list_devices`）。
 相手の中身には触らず、相手が公開している口だけを使う。境界で責任を分け、台帳は NetVision、絵は CharacterDesigner、
@@ -61,11 +72,13 @@ run.bat
 
 | 相手 | 口 | Company からできること |
 |---|---|---|
-| AdaptiveAIStudio | HTTP（`:4174`）、MCP の登録先 | 「AdaptiveAIStudio に Company を登録」で向こうの `aas.config.json` に `/mcp` を書き、向こうから会社を動かす。プロバイダに選べば、役職の仕事を向こうに頼む |
-| NetVision | HTTP（`:8000`）、MCP（`python -m app.mcp_server`） | 機器・拠点・保守期限を役職の AI が引く。置き場は環境変数 `NETVISION_HOME` |
+| AdaptiveAIStudio | HTTP（`:4174`）、MCP の登録先 | 入っていれば起動のたびに向こうの `aas.config.json` に `/mcp` を自動で書き、向こうから会社を動かせる。プロバイダに選べば、役職の仕事を向こうに頼む |
+| NetVision | HTTP（`:8000`）、MCP（配布版の `NetVision-mcp.bat`、開発中は `python -m app.mcp_server`） | 機器・拠点・保守期限を役職の AI が `netvision__device_summary` などで引く（本物の MCP で list と call を確認。docs/knowledge/tech.md）。置き場は Setup.exe の鍵、`C:\NetVision`、Program Files から自動で探す |
 | CharacterDesigner | ピクチャ\CharacterDesigner | 描いた絵の数を見る |
 | Ciel | `.claude/skills` | 入っているスキルの数を見る |
+| 部署の席（予定） | 席だけ | ビジュアル・映像・音響・ボイス・情報システムの部署ごとの席。ツールができたら口を足す（docs/knowledge/creative-series.md） |
 
+自社のツールは共有の登録簿（Windows は `%ProgramData%\Maguro\services.json`、環境変数 `MAGURO_SERVICES` で移せる）に起動時に自分の口を書き、Company はそこから他のツールを読む。Company 自身も `company` として `/mcp` を書く。この決まりに従うツールは、設定なしで Company の画面と /mcp に現れる。
 置き場が違うとき、非公開のツールを足すときは、作業場の `data/partners.json` に `{"id", "name", "about", "http", "mcp", "files"}` の形で書く
 （`POST /api/partners` でも書ける）。public のリポジトリなので、非公開のツールの名前はコードに書かない。
 
@@ -128,32 +141,23 @@ Gemini には会社の操作関数（`start_cycle` / `start_role` / `get_run` / 
 
 ## 画面の使い方
 
-AI Studio と同じ三分割。
+上の帯がメニュー（ファイル、実行、表示、会社、ヘルプ）、その下が画面の切り替え、一番下が状態の帯。
 
-- **左**: サイクル（`build` = 決めて作る、`review` = 進捗と数字を見る）と役職。クリックで対象を選ぶ
-- **中央**: 上に役職のキャラクター（`ui/characters/`。Figma の画像生成で描き、白い背景を抜いて置いた）が並ぶ。今動いている役職が前に出て、考えている・話している・ツールを使っている・終わった、が姿と吹き出しで分かる。その下に実行ログ。モデルの発言、ツール呼び出し、その結果が順に流れる。下の欄にオーナーの指示を書ける（任意）
-- **右**: プロバイダ、モデル、モデルのダウンロード、コンテキスト長、GPU 層数、temperature、最大ターン数、トークン上限、通知（Slack / Discord の Webhook）。変更は即保存される
+| 画面 | 何ができるか |
+|---|---|
+| 仕事 | 左でサイクルか役職を選び、指示を書いて（または「声で」話して）実行する。役職のキャラクターが机で働く様子と、出来事の流れが出る |
+| 履歴 | これまでの実行（起動し直しても残る）。日時・対象・結果・ターン・トークンの一覧から 1 件を開き、出来事を読む。要らない記録は消せる |
+| 成果物 | 意思決定の記録（data/decisions）、製品の変更（git log）、報告（docs/reports）、実績（data/runs.csv）を一覧から開く |
+| 会社 | 会社の形（親会社 → 子会社 → 部門 → 部署 → 課）と社員、連携しているツール、この会社の設定 |
+| 設定 | AI とモデル、詳しい設定、役職ごとの AI、通知、このアプリ（版と更新） |
 
-指示を空のまま「実行」すると、役職定義（`agents/*.md`）に従って自分で判断して動く。
+Ctrl+1〜5 で画面を切り替え、Ctrl+Enter で実行、Esc で停止、Ctrl+, で設定。
 
 ## 作っているもの
 
-`product/` — **Churn Radar**。個人でSaaSを運営している人向けの、解約予兆検知。
-
-```
-cd product
-python -m churn_radar sample_events.csv --today 2026-09-01
-```
-
-```
-予兆 3 件（平常時の14日間と比較）
-
-  beta-labs  停止  稼働 14日 → 0日  最終 2026-08-18 (14日前)
-  gamma-io   急減  稼働 13日 → 1日  最終 2026-08-23 (9日前)
-  delta-app  減少  稼働 10日 → 3日  最終 2026-08-28 (4日前)
-```
-
-アカウント自身の過去と比べて落ちたものを拾う。他社比較も絶対値のしきい値も使わない。
+`product/` は会社が作る製品の置き場で、最初は空。何を作るかは CEO が「会社の形」の子会社と
+[docs/knowledge/group-strategy.md](docs/knowledge/group-strategy.md) を見て決め、実装担当が `product/tests/` のテストを通してからコミットする。
+見本の製品は置かない（置いていた偽の製品は消した）。
 
 ## 会社の仕組み
 
@@ -177,9 +181,12 @@ ui/index.html        画面。依存なしの単一ファイル。キャラク�
 ui/characters/       役職のキャラクターの絵（PNG、背景は透明）。無い役職は index.html の SVG の姿に落ちる
 ui/icon/             アプリのアイコン（app.ico はショートカットと Setup.exe、app-256.png はウィンドウ、app-64.png は画面のタブ）
 company/paths.py     置き場（プログラム・作業場・模型）を 1 か所で決める
+company/migrate.py   作業場の用意と、更新のときの同梱物の反映
+tools/known_bundled.py  配った同梱物のハッシュの表を作る（コミットの前に 1 回）
 company/migrate.py   配布版の作業場を整える。最初の起動と更新、前の版からの移行
 company/updater.py   アプリ本体の更新。releases/latest と VERSION を比べ、Setup.exe を取って開く
 company/partners.py  同じ作者のツールとの連携。疎通、MCP の呼び手、役職の道具への橋、AdaptiveAIStudio への登録
+company/org.py       会社の形（親会社 → 子会社 → 部門 → 部署 → 課）。org.yaml を読み、席と役職を検証し、画面用に数を乗せる
 docs/help/install.md 入れる・置き場・更新・前の版から・消す
 docs/knowledge/learning/user-tools.md  オーナーが作った道具の表（公開分。何か・起こし方・口・置き場）。参考にするとき・呼ぶときはここから
 packaging/company/   Setup.exe の組み方（build.sh、installer.nsi）。VERSION が版

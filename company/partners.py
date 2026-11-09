@@ -42,44 +42,173 @@ def _pictures() -> str:
     return str(home / "Pictures" / "CharacterDesigner")
 
 
+def _reg_install_dir(app: str) -> str:
+    """同じ作者のアプリは Setup.exe が HKLM\\Software\\<App>\\InstallDir に置き場を書く。そこから探す。"""
+    if sys.platform != "win32":
+        return ""
+    try:
+        import winreg  # noqa: PLC0415
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, f"Software\\{app}") as key:
+            return str(winreg.QueryValueEx(key, "InstallDir")[0])
+    except OSError:
+        return ""
+
+
+def _first_existing(cands: list[str]) -> str:
+    for c in cands:
+        if c and Path(c).exists():
+            return c
+    return ""
+
+
+def find_netvision_mcp() -> dict[str, Any] | None:
+    """NetVision の MCP の起こし方を、ユーザーに聞かずに探す。
+    配布版は NetVision-mcp.bat、開発中は backend で python -m app.mcp_server。"""
+    env = os.environ
+    pf = env.get("ProgramFiles", "C:\\Program Files")
+    drive = (env.get("SystemDrive") or "C:") + "\\"
+    roots = [env.get("NETVISION_HOME", ""), _reg_install_dir("NetVision"), str(Path(pf) / "NetVision"),
+             str(Path(drive) / "NetVision"), str(Path.home() / "NetVision"), str(Path.home() / "maguro-jp" / "netvision")]
+    for root in roots:
+        if not root:
+            continue
+        bat = Path(root) / "NetVision-mcp.bat"
+        if bat.exists():
+            return {"command": [str(bat)], "cwd": root}
+        backend = Path(root) / "backend"
+        if (backend / "app" / "mcp_server.py").exists():
+            py = _first_existing([str(backend / ".venv" / "Scripts" / "python.exe"), str(backend / ".venv" / "bin" / "python")]) or sys.executable
+            return {"command": [py, "-m", "app.mcp_server"], "cwd": str(backend)}
+    return None
+
+
+def aas_installed() -> bool:
+    """AdaptiveAIStudio が入っているか（置き場の鍵か、設定の置き場があるか）。"""
+    return bool(_reg_install_dir("AdaptiveAIStudio")) or aas_config_path().parent.exists()
+
+
+# 部門 → 部署の席。役職の AI からは <id>__<道具> で見える。部署が増えたらここに 1 行足す
+PLANNED_SEATS: tuple[tuple[str, str, str, str], ...] = (
+    # (id, 部門, 部署, 仕事の単位)
+    ("character_design", "ビジュアル", "キャラクターデザイン", "設定画、色指定、三面図"),
+    ("illustration", "ビジュアル", "作画", "チャットで頼んで描く、描き直し"),
+    ("art_check", "ビジュアル", "検品（絵）", "崩れを数字で見る、通す・戻す"),
+    ("sprite", "ビジュアル", "スプライト・アニメ", "ドット絵、歩き・待機のコマ"),
+    ("background_art", "ビジュアル", "背景・美術", "背景、小物、舞台"),
+    ("ui_art", "ビジュアル", "UI・アイコン", "アプリの画面の絵、アイコン"),
+    ("storyboard", "映像", "企画・絵コンテ", "台本から絵コンテ"),
+    ("video_gen", "映像", "動画生成", "絵と文から動画"),
+    ("video_edit", "映像", "編集", "切る、つなぐ、テロップ"),
+    ("subtitle", "映像", "字幕・翻訳", "字幕、多言語"),
+    ("video_publish", "映像", "書き出し・配信", "形式、サイズ、配信先"),
+    ("compose", "音響", "作曲", "曲の生成、BGM"),
+    ("sfx", "音響", "効果音", "SE の生成、当て込み"),
+    ("ambient", "音響", "環境音・集中音", "眠りと集中の音"),
+    ("mix", "音響", "ミックス・マスタリング", "音量、整音、書き出し"),
+    ("tts", "ボイス", "合成音声", "文を声にする"),
+    ("voice_cast", "ボイス", "声のキャスト", "キャラクターごとの声の管理"),
+    ("dubbing", "ボイス", "吹き替え・字幕合わせ", "動画に声を当てる"),
+    ("transcribe", "ボイス", "文字起こし", "音声を文に"),
+    ("inventory", "情報システム", "備品", "棚卸、周期"),
+)
+
+
+def _planned_seats() -> list[dict[str, Any]]:
+    return [{"id": i, "name": f"{dept}（{div}）", "about": job, "dept": div, "planned": True}
+            for i, div, dept, job in PLANNED_SEATS]
+
+
 def builtin() -> list[dict[str, Any]]:
-    """公開のツールの既定。置き場が違うときは partners.json で同じ id を上書きする。"""
-    netvision_home = os.environ.get("NETVISION_HOME", "")
+    """公開のツールの既定。置き場は自動で探す。違うときだけ partners.json で同じ id を上書きする。"""
     return [
         {
-            "id": "aas", "name": "AdaptiveAIStudio",
+            "id": "aas", "name": "AdaptiveAIStudio", "dept": "開発",
             "about": "画面で AI に作業を頼む土台。Company を MCP として登録すると、向こうから会社を動かせる",
             "http": {"base_url": "http://127.0.0.1:4174", "probe": "/api/state"},
             "mcp": None,
             "give": "register_mcp",
         },
         {
-            "id": "netvision", "name": "NetVision",
+            "id": "netvision", "name": "NetVision", "dept": "情報システム",
             "about": "ネットワーク機器の台帳。機器・拠点・保守期限を MCP で引ける（読むだけ）",
             "http": {"base_url": "http://127.0.0.1:8000", "probe": "/api/v1/dashboard/summary"},
-            "mcp": {
-                "command": [sys.executable, "-m", "app.mcp_server"],
-                "cwd": str(Path(netvision_home) / "backend") if netvision_home else "",
-            },
+            "mcp": find_netvision_mcp() or {"command": ["python", "-m", "app.mcp_server"], "cwd": ""},
         },
         {
-            "id": "characterdesigner", "name": "CharacterDesigner",
+            "id": "characterdesigner", "name": "CharacterDesigner", "dept": "ビジュアル",
             "about": "チャットで頼むと AI が絵を描く。描いた絵はピクチャの CharacterDesigner に出る",
             "files": {"dir": _pictures(), "glob": "*.png"},
         },
+        # 部署の単位の席（docs/knowledge/creative-series.md）。相手ができたら planned を外し、検出と口を足す
+        *_planned_seats(),
         {
-            "id": "ciel", "name": "Ciel",
+            "id": "ciel", "name": "Ciel", "dept": "開発",
             "about": "Claude Code のスキルを作り・配る。入っているスキルは .claude/skills",
             "files": {"dir": str(ROOT / ".claude" / "skills"), "glob": "*/SKILL.md"},
         },
     ]
 
 
-def load(path: Path | None = None) -> list[dict[str, Any]]:
-    """既定に partners.json を重ねる。同じ id は置き換え、新しい id は足す。
+# ---------- 自社のツールの登録簿（自動で連結するための共有の帳面） ----------
+#
+# シリーズの各ツールは、起動したときに自分の口（HTTP の URL、MCP の起こし方、出来た物の置き場）を
+# この 1 つのファイルに書き、他のツールの口をここから読む。ユーザーは何も設定しない。
+# 置き場は Windows では %ProgramData%\Maguro\services.json（どのアプリも書ける。icacls は Setup.exe が付ける）、
+# それ以外では ~/.local/share/maguro/services.json。環境変数 MAGURO_SERVICES で移せる。
+# 形: {"<id>": {"name", "about", "dept", "http": {...}, "mcp": {...}, "files": {...}, "pid", "updated_at"}}
+
+def registry_path(env: dict[str, str] | None = None) -> Path:
+    env = os.environ if env is None else env
+    if env.get("MAGURO_SERVICES"):
+        return Path(env["MAGURO_SERVICES"])
+    if sys.platform == "win32":
+        return Path(env.get("ProgramData") or "C:\\ProgramData") / "Maguro" / "services.json"
+    return Path(env.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "maguro" / "services.json"
+
+
+def read_registry(path: Path | None = None) -> dict[str, dict[str, Any]]:
+    path = path or registry_path()
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8") or "{}")
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return {k: v for k, v in data.items() if isinstance(v, dict)} if isinstance(data, dict) else {}
+
+
+def register_self(entry: dict[str, Any], path: Path | None = None) -> dict[str, Any]:
+    """自分の口を登録簿に書く（他のツールの項目には触らない）。起動のたびに呼ぶ。"""
+    import time  # noqa: PLC0415
+    path = path or registry_path()
+    current = read_registry(path)
+    current[entry["id"]] = {**current.get(entry["id"], {}), **entry, "pid": os.getpid(), "updated_at": int(time.time())}
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(current, ensure_ascii=False, indent=1), encoding="utf-8")
+        tmp.replace(path)
+    except OSError as exc:
+        return {"error": f"登録簿に書けません（{path}）: {exc}"}
+    return {"path": str(path), "entries": len(current)}
+
+
+def company_entry(base_url: str) -> dict[str, Any]:
+    """Company 自身の口。他のツールはこれを読んで Company の /mcp を使う。"""
+    return {"id": "company", "name": "Company", "dept": "経営",
+            "about": "AI の役職が経営する親会社。/mcp を 1 つ繋げば、つながっている全ツールの道具が使える",
+            "http": {"base_url": base_url, "probe": "/api/state"}, "mcp": {"url": f"{base_url}/mcp"}}
+
+
+def load(path: Path | None = None, registry: Path | None = None) -> list[dict[str, Any]]:
+    """既定に、登録簿（他のツールが自分で書いた口）と partners.json を重ねる。同じ id は後が勝つ。
     置き場は呼ばれたときに見る（テストで差し替えるため。既定引数に書くと import の時に固定される）。"""
     path = path or PARTNERS_FILE
     out = {p["id"]: p for p in builtin()}
+    for pid, entry in read_registry(registry).items():
+        if pid == "company":
+            continue  # 自分は相手ではない
+        out[pid] = {**out.get(pid, {}), **entry, "id": pid, "registered": True}
     if path.exists():
         try:
             extra = json.loads(path.read_text(encoding="utf-8"))
@@ -113,7 +242,11 @@ def probe(partner: dict[str, Any]) -> dict[str, Any]:
     """生きているかを 1 回だけ見る。待つのは短く（画面の一覧で全部を見るため）。"""
     out: dict[str, Any] = {"id": partner["id"], "name": partner.get("name", partner["id"]),
                            "about": partner.get("about", ""), "alive": False, "detail": "", "tools": 0,
-                           "give": partner.get("give", "")}
+                           "give": partner.get("give", ""), "planned": bool(partner.get("planned")),
+                           "dept": partner.get("dept", ""), "registered": bool(partner.get("registered"))}
+    if out["planned"]:
+        out["detail"] = "まだ無い（予定）"
+        return out
     http = partner.get("http")
     files = partner.get("files")
     mcp = partner.get("mcp")
@@ -146,7 +279,7 @@ def probe(partner: dict[str, Any]) -> dict[str, Any]:
         except PartnerError as exc:
             out["mcp_error"] = str(exc)
     elif mcp and mcp.get("command") and not mcp.get("cwd"):
-        out["mcp_error"] = "MCP の起こし場所（cwd）が未設定です。partners.json か環境変数で置き場を教えてください"
+        out["mcp_error"] = "入っている場所が見つかりません（Setup.exe で入れた物、C:\\NetVision、Program Files を探しました）"
     return out
 
 
@@ -343,3 +476,11 @@ def register_with_aas(company_mcp_url: str, config_path: Path | None = None) -> 
     except OSError as exc:
         return {"error": f"{path} に書けません: {exc}"}
     return {"path": str(path), "url": company_mcp_url, "changed": before != servers["company"]}
+
+
+def auto_register_aas(company_mcp_url: str) -> dict[str, Any] | None:
+    """起動のたびに、AdaptiveAIStudio が入っていれば黙って Company を登録する。ユーザーにボタンを押させない。
+    入っていなければ何もしない（設定の置き場を勝手に作らない）。"""
+    if not aas_installed():
+        return None
+    return register_with_aas(company_mcp_url)

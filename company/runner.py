@@ -16,7 +16,7 @@ from typing import Any
 
 from . import context as context_builder
 from . import notify
-from . import partners
+from . import partners, workstyle
 from . import tools as toolkit
 from . import config as config_module
 from .config import AGENTS_DIR, DATA_DIR, DECISIONS_DIR, Config, load_agent, load_config
@@ -111,6 +111,9 @@ def list_roles() -> list[dict[str, str]]:
     return roles
 
 
+RUNS_DIR = DATA_DIR / "runs"
+
+
 @dataclass
 class Run:
     id: str
@@ -119,6 +122,7 @@ class Run:
     started_at: str
     events: list[Event] = field(default_factory=list)
     status: str = "running"   # running | done | error | stopped
+    instruction: str = ""
     stop: threading.Event = field(default_factory=threading.Event)
     _cv: threading.Condition = field(default_factory=threading.Condition)
 
@@ -127,11 +131,31 @@ class Run:
             event.setdefault("at", datetime.now().strftime("%H:%M:%S"))
             self.events.append(event)
             self._cv.notify_all()
+        # 出来事は 1 行ずつ追記する。起動し直しても履歴が読めるように（画面の「履歴」が読む）
+        try:
+            RUNS_DIR.mkdir(parents=True, exist_ok=True)
+            with (RUNS_DIR / f"{self.id}.jsonl").open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(event, ensure_ascii=False) + "\n")
+        except OSError:
+            pass
 
     def finish(self, status: str) -> None:
         with self._cv:
             self.status = status
             self._cv.notify_all()
+        try:
+            RUNS_DIR.mkdir(parents=True, exist_ok=True)
+            (RUNS_DIR / f"{self.id}.json").write_text(json.dumps(self.summary(), ensure_ascii=False, indent=1), encoding="utf-8")
+        except OSError:
+            pass
+
+    def final_texts(self) -> list[dict[str, str]]:
+        """役職ごとの最後の text（成果の要約）。履歴の一覧に出す。"""
+        out: dict[str, str] = {}
+        for ev in self.events:
+            if ev.get("type") == "text" and ev.get("role"):
+                out[ev["role"]] = str(ev.get("text", ""))
+        return [{"role": r, "text": t} for r, t in out.items()]
 
     def wait_for(self, index: int, timeout: float) -> list[Event]:
         """index 以降のイベントを返す。無ければ timeout まで待つ。"""
@@ -141,6 +165,13 @@ class Run:
             return self.events[index:]
 
     def summary(self) -> dict[str, Any]:
+        usage = {"input": 0, "output": 0}
+        turns = 0
+        for ev in self.events:
+            if ev.get("type") == "role_end":
+                usage["input"] += int((ev.get("usage") or {}).get("input", 0) or 0)
+                usage["output"] += int((ev.get("usage") or {}).get("output", 0) or 0)
+                turns += int(ev.get("turns", 0) or 0)
         return {
             "id": self.id,
             "kind": self.kind,
@@ -148,6 +179,10 @@ class Run:
             "started_at": self.started_at,
             "status": self.status,
             "events": len(self.events),
+            "instruction": self.instruction,
+            "turns": turns,
+            "usage": usage,
+            "results": self.final_texts(),
         }
 
 
@@ -156,9 +191,9 @@ class Registry:
         self._runs: dict[str, Run] = {}
         self._lock = threading.Lock()
 
-    def create(self, kind: str, target: str) -> Run:
+    def create(self, kind: str, target: str, instruction: str | None = None) -> Run:
         run = Run(id=uuid.uuid4().hex[:8], kind=kind, target=target,
-                  started_at=datetime.now().isoformat(timespec="seconds"))
+                  started_at=datetime.now().isoformat(timespec="seconds"), instruction=instruction or "")
         with self._lock:
             self._runs[run.id] = run
         return run
@@ -169,15 +204,82 @@ class Registry:
     def all(self) -> list[Run]:
         return sorted(self._runs.values(), key=lambda r: r.started_at, reverse=True)
 
+    def history(self, limit: int = 200) -> list[dict[str, Any]]:
+        """今の実行と、記録に残っている過去の実行を合わせて新しい順に。"""
+        seen = {r.id: r.summary() for r in self._runs.values()}
+        if RUNS_DIR.is_dir():
+            for path in RUNS_DIR.glob("*.json"):
+                if path.stem in seen:
+                    continue
+                try:
+                    seen[path.stem] = json.loads(path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    continue
+        return sorted(seen.values(), key=lambda r: r.get("started_at", ""), reverse=True)[:limit]
+
+    def load(self, run_id: str) -> dict[str, Any] | None:
+        """記録から 1 件（出来事つき）。今の実行なら REGISTRY のものを使う。"""
+        run = self._runs.get(run_id)
+        if run is not None:
+            return {**run.summary(), "events": run.events}
+        meta = RUNS_DIR / f"{run_id}.json"
+        log = RUNS_DIR / f"{run_id}.jsonl"
+        if not meta.exists() and not log.exists():
+            return None
+        try:
+            summary = json.loads(meta.read_text(encoding="utf-8")) if meta.exists() else {"id": run_id, "status": "error"}
+        except json.JSONDecodeError:
+            summary = {"id": run_id, "status": "error"}
+        events: list[dict[str, Any]] = []
+        if log.exists():
+            for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+                try:
+                    events.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        return {**summary, "events": events}
+
+    def delete(self, run_id: str) -> bool:
+        if run_id in self._runs and self._runs[run_id].status == "running":
+            return False
+        self._runs.pop(run_id, None)
+        removed = False
+        for path in (RUNS_DIR / f"{run_id}.json", RUNS_DIR / f"{run_id}.jsonl"):
+            if path.exists():
+                path.unlink()
+                removed = True
+        return removed
+
 
 REGISTRY = Registry()
 
 
+INSTRUCTED_TASK = """
+# オーナーの指示（これだけをやる）
+
+{instruction}
+
+上の指示をそのまま行ってください。指示に無いこと（別の機能を足す、方針を決め直す、提案で止める）はしないでください。
+手順は、必要なら list_files と read_file で現状を見てから、指示の通りに作り、テストが要るなら run_command で通し、
+終わったら何をしたかを 3 行以内で報告してください。指示が読むだけのものなら、読んだ結果だけを報告してください。
+""".strip()
+
+
 def _task_for(role: str, shared: str, instruction: str | None) -> str:
-    base = BUILD_TASK if role in WRITER_ROLES else REVIEW_TASK
+    """役職の仕事の文。オーナーの指示があるときは、それを先頭に置き、それだけをやらせる。
+    末尾に付けると、長い文脈の後ろで小さい模型が指示を無視した（ユーザーの機械で起きた）。"""
     if instruction:
-        base = f"{base}\n\n# オーナーからの指示\n\n{instruction.strip()}\n\nこの指示を最優先してください。"
+        return f"{INSTRUCTED_TASK.format(instruction=instruction.strip())}\n\n# 参考（会社の現状。指示に関係ある所だけ見る）\n\n{shared}"
+    base = BUILD_TASK if role in WRITER_ROLES else REVIEW_TASK
     return f"{shared}\n\n{base}"
+
+
+def _system_for(agent_instructions: str, settings: dict[str, Any], instructed: bool) -> str:
+    """役職の system。オーナーの指示があるときは、その旨を一番先に置く（役職の定義より上）。"""
+    ctx = int(settings.get("context", 8192) or 8192)
+    head = ("オーナーの指示が最優先です。役職の定義や会社の現状より、この後の「オーナーの指示」を優先し、指示に無いことはしないでください。\n\n"
+            if instructed else "")
+    return f"{head}{workstyle.build(max_chars=workstyle.budget_for(ctx))}\n\n{agent_instructions}"
 
 
 def run_role(
@@ -199,7 +301,7 @@ def run_role(
 
     result = run_loop(
         provider=provider,
-        system=agent.instructions,
+        system=_system_for(agent.instructions, settings, bool(instruction)),
         task=_task_for(role, shared, instruction),
         tools={**toolkit.toolset(can_write), **partners.toolset()},
         emit=run.emit,
@@ -295,13 +397,13 @@ def start_cycle(cadence: str, instruction: str | None = None) -> Run:
     roles = config.roles_for(cadence)
     if not roles:
         raise ValueError(f"cadence '{cadence}' が company.yaml にありません。")
-    run = REGISTRY.create("cycle", cadence)
+    run = REGISTRY.create("cycle", cadence, instruction)
     threading.Thread(target=_execute, args=(run, roles, cadence, instruction), daemon=True).start()
     return run
 
 
 def start_role(role: str, instruction: str | None = None) -> Run:
     load_agent(role)  # 存在確認
-    run = REGISTRY.create("role", role)
+    run = REGISTRY.create("role", role, instruction)
     threading.Thread(target=_execute, args=(run, [role], "manual", instruction), daemon=True).start()
     return run

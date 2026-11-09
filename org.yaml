@@ -1,0 +1,206 @@
+# 会社の形。親会社 → 子会社 → 部門 → 部署 → 課 の木。
+#   親会社 = Company（この会社。AI の役職が全体を経営する）
+#   子会社 = オーナーの各ツール（AdaptiveAIStudio、Ciel、CharacterDesigner、NetVision、これから作る映像・音楽・ボイス）
+#   部門   = そのツールの機能のまとまり
+#   部署・課 = 機能、道具（partners の席 = seats）、作業用エージェント（agents = 役職や作業担当）
+# 実際にツールを作るのはオーナーで、Company は席を持っておき、ツールができたら口（MCP など）を当てる。
+# kind は holding | company | division | department | section。seats は partners の id、roles は agents の役職。
+
+name: "Company"
+kind: holding
+about: "AI の役職が経営する親会社。子会社（オーナーの各ツール）を道具として使い、会社を回す"
+roles: [ceo, cfo, ops, cto, cmo, builder]
+children:
+  # Company にしか無い機能（売り）。子会社のツールに組み込まず、親会社が一か所で持つ
+  - name: "検品部門"
+    kind: division
+    about: "出来た物を数字で見て通す・戻す。絵、文、コード、帳票"
+    children:
+      - name: "検品部"
+        kind: department
+        children:
+          - { name: "コード検品課", kind: section, about: "テストが落ちた状態でコミットさせない（run_command の前検査）" }
+          - { name: "成果物検品課", kind: section, about: "絵・文・帳票の崩れを数字で見る（相手の検品の口があればそれを使う）" }
+  - name: "セキュリティ部門"
+    kind: division
+    about: "鍵の混入、脆弱性、外へ出る通信"
+    children:
+      - name: "保安部"
+        kind: department
+        children:
+          - { name: "鍵検査課", kind: section, about: "差分と記録に鍵・個人情報が無いかを見る（secret-leak-check）" }
+          - { name: "脆弱性課", kind: section, about: "週 1 回の見回り（vuln-watch）" }
+          - { name: "通信記録課", kind: section, about: "外へ出る通信と呼んだ口の記録" }
+  - name: "法務部門"
+    kind: division
+    about: "法令遵守と、法人として気にすべきこと"
+    children:
+      - name: "法務部"
+        kind: department
+        children:
+          - { name: "個人情報課", kind: section, about: "個人情報の扱いと公開範囲（public に出す前の検査）" }
+          - { name: "著作権課", kind: section, about: "絵・音・文の出所と利用の可否" }
+          - { name: "取引記録課", kind: section, about: "取引・判断の記録と監査の跡（data/decisions）" }
+  - name: "AdaptiveAIStudio"
+    kind: company
+    staff_id: aas
+    about: "モデル非依存の AI 開発の土台"
+    children:
+      - name: "AI 作業部門"
+        kind: division
+        about: "画面で AI に作業を頼み、作業場で書く"
+        children:
+          - name: "作業部"
+            kind: department
+            children:
+              - { name: "作業課", kind: section, about: "依頼を受けて作業場に書く（/api/send）", seats: [aas], agents: ["作業担当（AAS のセッション）"] }
+              - { name: "モデル課", kind: section, about: "プロバイダとモデルの選択、答えの確認" }
+      - name: "連携部門"
+        kind: division
+        about: "外の道具（MCP）をつなぐ"
+        children:
+          - name: "MCP 部"
+            kind: department
+            children:
+              - { name: "接続課", kind: section, about: "Company の /mcp を登録して会社を動かす（自動登録）" }
+
+  - name: "Ciel"
+    kind: company
+    staff_id: ciel
+    about: "働き方のスキルを作り・配る"
+    children:
+      - name: "スキル部門"
+        kind: division
+        children:
+          - name: "作法部"
+            kind: department
+            children:
+              - { name: "スキル課", kind: section, about: "スキルを作る・直す・配る（週 1 回の skill-upkeep）", seats: [ciel], agents: ["skill-upkeep のセッション"] }
+              - { name: "教訓課", kind: section, about: "失敗の記録（lessons）を集めて次からに生かす" }
+      - name: "見回り部門"
+        kind: division
+        children:
+          - name: "保守部"
+            kind: department
+            children:
+              - { name: "脆弱性課", kind: section, about: "週 1 回の vuln-watch", agents: ["vuln-watch のセッション"] }
+              - { name: "セッション監視課", kind: section, about: "サボり・落ちたセッションの処置（session-watch）" }
+
+  - name: "CharacterDesigner"
+    kind: company
+    staff_id: characterdesigner
+    about: "チャットで頼むと AI が絵を描く"
+    children:
+      - name: "キャラクター部門"
+        kind: division
+        children:
+          - name: "デザイン部"
+            kind: department
+            children:
+              - { name: "設定画課", kind: section, about: "設定画、色指定、三面図（tools/sheet.py）", seats: [character_design] }
+              - { name: "スプライト課", kind: section, about: "ドット絵、歩き・待機のコマ（tools/sprite.py、anim.py）", seats: [sprite] }
+          - name: "作画部"
+            kind: department
+            children:
+              - { name: "作画課", kind: section, about: "チャットで頼んで描く、描き直し（chatdraw）", seats: [illustration, characterdesigner], agents: ["作画担当"] }
+              - { name: "検品課", kind: section, about: "崩れを数字で見る、通す・戻す（tools/check.py）", seats: [art_check], agents: ["作画監督", "checker"] }
+      - name: "美術部門"
+        kind: division
+        children:
+          - name: "美術部"
+            kind: department
+            children:
+              - { name: "背景課", kind: section, about: "背景、小物、舞台", seats: [background_art] }
+              - { name: "UI 課", kind: section, about: "アプリの画面の絵、アイコン", seats: [ui_art] }
+
+  - name: "NetVision"
+    kind: company
+    staff_id: netvision
+    about: "ネットワーク機器の台帳・保守期限"
+    children:
+      - name: "台帳部門"
+        kind: division
+        children:
+          - name: "機器部"
+            kind: department
+            children:
+              - { name: "機器課", kind: section, about: "機器・拠点・保守期限（MCP の list_devices、get_device、device_summary）", seats: [netvision] }
+              - { name: "結線課", kind: section, about: "結線と拠点（list_links、list_sites）" }
+      - name: "取り込み部門"
+        kind: division
+        children:
+          - name: "入出力部"
+            kind: department
+            children:
+              - { name: "取り込み課", kind: section, about: "Excel と CSV の取り込みと書き出し" }
+              - { name: "備品課", kind: section, about: "棚卸、周期（別のツールの予定）", seats: [inventory] }
+
+  - name: "映像（これから）"
+    kind: company
+    staff_id: video
+    about: "映像を作るツール。オーナーの予定"
+    children:
+      - name: "企画部門"
+        kind: division
+        children:
+          - name: "企画部"
+            kind: department
+            children:
+              - { name: "絵コンテ課", kind: section, about: "台本から絵コンテ", seats: [storyboard] }
+      - name: "制作部門"
+        kind: division
+        children:
+          - name: "制作部"
+            kind: department
+            children:
+              - { name: "動画生成課", kind: section, about: "絵と文から動画", seats: [video_gen] }
+              - { name: "編集課", kind: section, about: "切る、つなぐ、テロップ", seats: [video_edit] }
+              - { name: "字幕課", kind: section, about: "字幕、多言語", seats: [subtitle] }
+      - name: "配信部門"
+        kind: division
+        children:
+          - name: "配信部"
+            kind: department
+            children:
+              - { name: "書き出し課", kind: section, about: "形式、サイズ、配信先", seats: [video_publish] }
+
+  - name: "音楽（これから）"
+    kind: company
+    staff_id: music
+    about: "音を作るツール。オーナーの予定"
+    children:
+      - name: "制作部門"
+        kind: division
+        children:
+          - name: "制作部"
+            kind: department
+            children:
+              - { name: "作曲課", kind: section, about: "曲の生成、BGM", seats: [compose] }
+              - { name: "効果音課", kind: section, about: "SE の生成、当て込み", seats: [sfx] }
+              - { name: "環境音課", kind: section, about: "眠りと集中の音", seats: [ambient] }
+      - name: "仕上げ部門"
+        kind: division
+        children:
+          - name: "仕上げ部"
+            kind: department
+            children:
+              - { name: "ミックス課", kind: section, about: "音量、整音、書き出し", seats: [mix] }
+
+  - name: "ボイス（これから）"
+    kind: company
+    staff_id: voice
+    about: "声を作るツール。オーナーの予定"
+    children:
+      - name: "音声部門"
+        kind: division
+        children:
+          - name: "合成部"
+            kind: department
+            children:
+              - { name: "合成音声課", kind: section, about: "文を声にする", seats: [tts] }
+              - { name: "キャスト課", kind: section, about: "キャラクターごとの声の管理", seats: [voice_cast] }
+          - name: "当て込み部"
+            kind: department
+            children:
+              - { name: "吹き替え課", kind: section, about: "動画に声を当てる", seats: [dubbing] }
+              - { name: "文字起こし課", kind: section, about: "音声を文に", seats: [transcribe] }

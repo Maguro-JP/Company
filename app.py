@@ -118,6 +118,17 @@ def main(argv: list[str] | None = None) -> int:
             raise RuntimeError(f"サーバーが起動できませんでした: {failure['exc']!r}") from failure["exc"]
         raise RuntimeError("サーバーが 120 秒たっても応答しません（ウイルス対策か、ポートの制限の可能性）")
     print(f"起動: {url}")
+    # 同じ作者のツールへの登録は起動のたびに黙って行う（AdaptiveAIStudio が入っていれば aas.config.json に /mcp を書く）
+    try:
+        from company import partners  # noqa: PLC0415
+        book = partners.register_self(partners.company_entry(url))
+        if "error" in book:
+            print(book["error"], file=sys.stderr)
+        reg = partners.auto_register_aas(f"{url}/mcp")
+        if reg and reg.get("changed"):
+            print(f"AdaptiveAIStudio に登録: {reg.get('path')}")
+    except Exception as exc:  # noqa: BLE001  登録に失敗しても会社は動く
+        print(f"AdaptiveAIStudio への登録に失敗: {exc!r}", file=sys.stderr)
     try:
         log = _log_path()
         log.parent.mkdir(parents=True, exist_ok=True)

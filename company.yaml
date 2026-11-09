@@ -1,9 +1,9 @@
 # 会社の設定。AIはこの前提で自律的に動く。
 company:
-  name: "Churn Radar"
-  mission: "個人でSaaSを運営する人が、解約されてから気づく状態をなくす"
-  customer: "有料ユーザーが10〜300人規模の、個人運営SaaSの開発者"
-  business_model: "月額サブスクリプション（無料枠あり）"
+  name: "Company"
+  mission: "オーナーが作ったツールを 1 つの会社として束ね、AI の役職が回す。各ツールは人が当たり前に使え、Company を 1 つ繋げば全部が AI の道具になる"
+  customer: "オーナー自身と、既製品や自作のツールを AI で動かしたい人"
+  business_model: "Company 本体の販売と、ツールとのセット売り。抱き合わせにせず、Company にしか無い機能（検品、セキュリティ、法令遵守）を売る"
   stage: "prototype"
   currency: "JPY"
 
@@ -16,12 +16,13 @@ autonomy:
   push: true                # push してPRを出す
   decide_roadmap: true      # 次に何を作るかを決める
   decide_pricing: true      # 価格を決める（実際の課金設定は別）
-  publish_externally: true  # 対外的な文章を書いて公開する
+  publish_externally: false # 対外的な文章の公開はオーナーの承認を経る
   spend_money: false        # 支払い手段を持っていないため実行できない
 
 # AIが物理的に実行できないこと。禁止ではなく、手段が無いという意味。
 # 該当する作業は「オーナー作業リスト」として書き出す。
 blocked_on_owner:
+  - "新しいツール（子会社）のリポジトリを作る・公開する"
   - "法人登記・銀行口座・決済アカウントの開設（本人確認が必要）"
   - "クレジットカードでの支払い（カードを持っていない）"
   - "法的拘束力のある契約への署名"
@@ -31,13 +32,10 @@ cadence:
   review: ["ceo", "cfo", "ops"]   # 進捗と数字を見る
 
 kpi:
-  north_star: "解約予兆アラートを週次で受け取っている有料アカウント数"
+  north_star: "Company から口が通って実際に使えるオーナーのツールの数"
   guardrails:
     - "テストが落ちている状態でコミットしない"
-    - "顧客のデータを外部サービスに送らない"
+    - "オーナーのデータを外部サービスに送らない"
+    - "子会社（相手のツール）の中身に手を入れない。口だけでつなぐ"
 
-# モデルとプロバイダは UI の右パネル（data/settings.json）で選ぶ。
-# ここに書くのは、Anthropic を使うときに役職ごとに使い分けたい場合の既定値だけ。
-model:
-  default: "claude-sonnet-5"
-  deep: "claude-opus-5"
+# モデルとプロバイダは画面の「設定」（data/settings.json）で選ぶ。
