@@ -51,8 +51,13 @@ def copy_missing(src: Path, dst: Path) -> int:
     return count
 
 
+def content_hash(data: bytes) -> str:
+    """改行の違い（Windows の git は CRLF で取り出す）で別物に見えないよう、CRLF を LF にそろえて数える。"""
+    return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+
+
 def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return content_hash(path.read_bytes())
 
 
 def known_hashes(app_root: Path) -> set[str]:

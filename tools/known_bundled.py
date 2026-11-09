@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from company import paths  # noqa: E402
+from company.migrate import content_hash  # noqa: E402
 
 OUT = ROOT / "company" / "known_bundled.txt"
 
@@ -35,7 +35,7 @@ def main() -> int:
     hashes = set(OUT.read_text(encoding="utf-8").split()) if OUT.exists() else set()
     for blob in sorted(blobs):
         data = subprocess.run(["git", "cat-file", "blob", blob], cwd=ROOT, check=True, capture_output=True).stdout
-        hashes.add(hashlib.sha256(data).hexdigest())
+        hashes.add(content_hash(data))
     # 作業ツリーの今の中身（まだコミットしていない物）も入れる
     for name in paths.WORKSPACE_ITEMS:
         src = ROOT / name
@@ -43,7 +43,7 @@ def main() -> int:
         for p in files:
             if "__pycache__" in p.parts:
                 continue
-            hashes.add(hashlib.sha256(p.read_bytes()).hexdigest())
+            hashes.add(content_hash(p.read_bytes()))
     OUT.write_text("\n".join(sorted(hashes)) + "\n", encoding="utf-8")
     print(f"{OUT.relative_to(ROOT)}: {len(hashes)} 件")
     return 0
