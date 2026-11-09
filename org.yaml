@@ -234,4 +234,3 @@ children:
             children:
               - { name: "書き出し課", kind: section, about: "glTF・FBX・VRM の書き出し、映像とゲームへ渡す", seats: [export3d] }
               - { name: "レンダリング課", kind: section, about: "静止画と動画のレンダリング", seats: [render3d] }
-
