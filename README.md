@@ -76,7 +76,7 @@ Company はオマケではない。既製品のソフトやユーザーの自作
 | NetVision | HTTP（`:8000`）、MCP（配布版の `NetVision-mcp.bat`、開発中は `python -m app.mcp_server`） | 機器・拠点・保守期限を役職の AI が `netvision__device_summary` などで引く（本物の MCP で list と call を確認。docs/knowledge/tech.md）。置き場は Setup.exe の鍵、`C:\NetVision`、Program Files から自動で探す |
 | CharacterDesigner | ピクチャ\CharacterDesigner | 描いた絵の数を見る |
 | Ciel | `.claude/skills` | 入っているスキルの数を見る |
-| 部署の席（予定） | 席だけ | ビジュアル・映像・音響・ボイス・情報システムの部署ごとの席。ツールができたら口を足す（docs/knowledge/creative-series.md） |
+| 部署の席（予定） | 席だけ | ビジュアル・映像・音響・ボイス・3D・情報システムの部署ごとの席。ツールができたら口を足す（docs/knowledge/creative-series.md） |
 
 自社のツールは共有の登録簿（Windows は `%ProgramData%\Maguro\services.json`、環境変数 `MAGURO_SERVICES` で移せる）に起動時に自分の口を書き、Company はそこから他のツールを読む。Company 自身も `company` として `/mcp` を書く。この決まりに従うツールは、設定なしで Company の画面と /mcp に現れる。
 置き場が違うとき、非公開のツールを足すときは、作業場の `data/partners.json` に `{"id", "name", "about", "http", "mcp", "files"}` の形で書く

@@ -47,5 +47,12 @@
   "name": "ボイス係",
   "role": "文を声にし、声を管理する",
   "art": "/staff/voice.png"
+ },
+ {
+  "company": "model3d",
+  "id": "model3d",
+  "name": "3D 係",
+  "role": "3D のモデルを作り、リグとポーズを付け、書き出す",
+  "art": "/staff/model3d.png"
  }
 ]

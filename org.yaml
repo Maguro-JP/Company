@@ -204,3 +204,34 @@ children:
             children:
               - { name: "吹き替え課", kind: section, about: "動画に声を当てる", seats: [dubbing] }
               - { name: "文字起こし課", kind: section, about: "音声を文に", seats: [transcribe] }
+
+  - name: "3D（これから）"
+    kind: company
+    staff_id: model3d
+    about: "3D のモデルを作るツール。キャラクターデザインの絵を立体にし、映像とゲームに渡す。オーナーの予定"
+    children:
+      - name: "モデリング部門"
+        kind: division
+        children:
+          - name: "造形部"
+            kind: department
+            children:
+              - { name: "モデリング課", kind: section, about: "設定画から 3D のモデル（キャラクター、小物、舞台）", seats: [model3d] }
+              - { name: "質感課", kind: section, about: "テクスチャ、マテリアル、色", seats: [texture] }
+      - name: "アニメーション部門"
+        kind: division
+        children:
+          - name: "動き部"
+            kind: department
+            children:
+              - { name: "リグ課", kind: section, about: "骨と動かし方、表情", seats: [rig] }
+              - { name: "モーション課", kind: section, about: "歩き・待機・演技のモーション", seats: [motion] }
+      - name: "書き出し部門"
+        kind: division
+        children:
+          - name: "出力部"
+            kind: department
+            children:
+              - { name: "書き出し課", kind: section, about: "glTF・FBX・VRM の書き出し、映像とゲームへ渡す", seats: [export3d] }
+              - { name: "レンダリング課", kind: section, about: "静止画と動画のレンダリング", seats: [render3d] }
+
