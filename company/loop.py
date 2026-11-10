@@ -47,9 +47,12 @@ def run_loop(
     stop: threading.Event | None = None,
     role: str = "",
     max_total_tokens: int = 0,
+    result_chars: int = 0,
 ) -> LoopResult:
     """max_total_tokens は入力＋出力の合計の上限。0 なら無制限。
-    超えたターンで止める（途中では切れないので、上限を少し超えて止まる）。"""
+    超えたターンで止める（途中では切れないので、上限を少し超えて止まる）。
+    result_chars は道具の結果 1 つを模型に返す上限の文字数。0 なら切らない。
+    小さいコンテキスト（4096）で read_file の結果をそのまま返すと 2 回で溢れた（Windows の実走 run 36）。"""
     history: list[Any] = [provider.user_message(task)]
     specs = [spec for spec, _ in tools.values()]
     turn_box = {"n": 0}
@@ -131,6 +134,8 @@ def run_loop(
                     output = str(exc)
                 except Exception as exc:  # ツール内部の失敗はモデルに返して続行させる
                     output = f"ツール実行エラー: {type(exc).__name__}: {exc}"
+            if result_chars and len(output) > result_chars:
+                output = output[:result_chars] + f"\n...（長いので {len(output) - result_chars} 文字を省きました。要る所だけを読み直してください）"
             results.append((call, output))
             emit({
                 "type": "tool_result",

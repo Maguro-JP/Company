@@ -230,3 +230,42 @@ class MalformedToolCallTest(unittest.TestCase):
         r = run_loop(p, "sys", "task", {}, events.append, max_turns=5, role="ceo")
         self.assertEqual(r.stopped_reason, "done")
         self.assertEqual(r.final_text, "会社は準備中です。")
+
+
+class ResultClipTest(unittest.TestCase):
+    """小さいコンテキストでは道具の結果を切って模型に返す。表示（tool_result の出来事）は別に 1500 文字で切る。"""
+
+    def test_result_chars_depends_on_builtin_context(self):
+        from company import runner
+        self.assertEqual(runner.result_chars_for({"provider": "builtin", "context": 4096}), 2456)
+        self.assertEqual(runner.result_chars_for({"provider": "builtin", "context": 8192}), 4914)
+        self.assertEqual(runner.result_chars_for({"provider": "anthropic", "context": 4096}), 0)
+
+    def test_long_tool_output_is_clipped_for_the_model(self):
+        from company.loop import run_loop
+        from company.providers import ToolCall
+
+        class P:
+            def __init__(self):
+                self.seen = []
+
+            def user_message(self, text):
+                return {"role": "user", "content": text}
+
+            def tool_results(self, results):
+                self.seen.extend(out for _c, out in results)
+                return [{"role": "tool", "content": out} for _c, out in results]
+
+            def complete(self, system, history, tools, temperature=0.2):
+                from company.providers import Turn as ProviderResult
+                if len(history) == 1:
+                    return ProviderResult(text="", tool_calls=[ToolCall(id="1", name="big", arguments={})], usage={})
+                return ProviderResult(text="終わり", tool_calls=[], usage={})
+
+        p = P()
+        tools = {"big": ({"name": "big", "description": "", "parameters": {"type": "object", "properties": {}}}, lambda a: "x" * 10000)}
+        run_loop(p, "s", "t", tools, lambda e: None, max_turns=3, role="ceo", result_chars=500)
+        self.assertEqual(len(p.seen), 1)
+        self.assertLess(len(p.seen[0]), 600)
+        self.assertIn("省きました", p.seen[0])
+

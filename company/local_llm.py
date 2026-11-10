@@ -368,7 +368,7 @@ class BuiltinProvider:
         except Exception as exc:
             msg = str(exc)
             if "exceed" in msg or "context" in msg.lower():
-                raise ProviderError(f"コンテキスト長（{self.n_ctx}）を超えました。右パネルで増やすか、ターン数を減らしてください。") from exc
+                raise ProviderError(f"コンテキスト長（{self.n_ctx}）を超えました。設定でコンテキスト長を増やすか、ターン数を減らしてください。") from exc
             raise ProviderError(f"内蔵エンジンのエラー: {exc}") from exc
 
         raw = (resp["choices"][0]["message"].get("content") or "")

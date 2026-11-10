@@ -275,6 +275,15 @@ def _task_for(role: str, shared: str, instruction: str | None) -> str:
     return f"{shared}\n\n{base}"
 
 
+def result_chars_for(settings: dict[str, Any]) -> int:
+    """道具の結果 1 つの上限の文字数。内蔵エンジンはコンテキストが小さいので、その 3 割（1 トークン ≒ 2 文字）に収める。
+    クラウドの模型は大きいので切らない。"""
+    if settings.get("provider") != "builtin":
+        return 0
+    ctx = int(settings.get("context", 8192) or 8192)
+    return max(1200, int(ctx * 0.3) * 2)
+
+
 def _system_for(agent_instructions: str, settings: dict[str, Any], instructed: bool) -> str:
     """役職の system。オーナーの指示があるときは、その旨を一番先に置く（役職の定義より上）。"""
     ctx = int(settings.get("context", 8192) or 8192)
@@ -312,6 +321,7 @@ def run_role(
         stop=run.stop,
         role=role,
         max_total_tokens=int(settings.get("max_tokens_per_run", 0) or 0),
+        result_chars=result_chars_for(settings),
     )
     run.emit({"type": "role_end", "role": role, "turns": result.turns,
               "tool_calls": result.tool_calls, "usage": result.usage, "reason": result.stopped_reason})
