@@ -103,18 +103,18 @@ jobs:
           $bmp.Save("$env:GITHUB_WORKSPACE\window.png")
           # ここから先が「本当に動くか」。入って開くだけでは分からない（ユーザーの機械では開いても動かなかった）
           $json = @{ "Content-Type" = "application/json" }
-          Invoke-RestMethod -Method Post "$url/api/settings" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-coder-1.5b","max_turns":4,"context":4096,"gpu_layers":0}' | Out-Null
-          Invoke-RestMethod -Method Post "$url/api/download" -Headers $json -Body '{"model_id":"qwen2.5-coder-1.5b"}' | Out-Null
+          Invoke-RestMethod -Method Post "$url/api/settings" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-coder-3b","max_turns":4,"context":4096,"gpu_layers":0}' | Out-Null
+          Invoke-RestMethod -Method Post "$url/api/download" -Headers $json -Body '{"model_id":"qwen2.5-coder-3b"}' | Out-Null
           $got = $false
           foreach ($i in 1..180) {
             Start-Sleep -Seconds 5
             $models = Invoke-RestMethod "$url/api/models?provider=builtin"
-            $m = $models.catalog | Where-Object { $_.id -eq "qwen2.5-coder-1.5b" }
+            $m = $models.catalog | Where-Object { $_.id -eq "qwen2.5-coder-3b" }
             if ($m -and $m.downloaded) { $got = $true; break }
           }
           if (-not $got) { throw "模型を取れない（C:\LLM\gguf に置けていない）" }
           "model: " + (Get-ChildItem "C:\LLM\gguf" | ForEach-Object { $_.Name + " " + $_.Length }) -join ", "
-          $c = Invoke-RestMethod -Method Post "$url/api/check" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-coder-1.5b"}'
+          $c = Invoke-RestMethod -Method Post "$url/api/check" -Headers $json -Body '{"provider":"builtin","model":"qwen2.5-coder-3b"}'
           "check: " + ($c | ConvertTo-Json -Compress)
           if ($c.error) { throw "内蔵の模型が答えない: $($c.error)" }
           # 声で指示する: Windows の音声認識（System.Speech）が呼べるか。ランナーにはマイクが無いので、音の代わりに文を入れて認識の経路だけ通す

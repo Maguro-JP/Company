@@ -405,8 +405,14 @@ class BuiltinProvider:
             raise ProviderError(f"内蔵エンジンのエラー: {exc}") from exc
 
         raw = (resp["choices"][0]["message"].get("content") or "")
-        usage = resp.get("usage") or {}
-        text, call = parse_tool_call(raw)
+        return self._turn_from(raw, resp.get("usage") or {}, tools)
+
+    def _turn_from(self, raw: str, usage: dict[str, Any], tools: list[Any]) -> Turn:
+        if tools:
+            text, call = parse_tool_call(raw)
+        else:
+            # 道具を渡していないのに道具の形を書いたら、それは答えではないので文だけを残す（上限で答えを書かせる 1 回）
+            text, call = raw.replace("<tool_call>", "").replace("</tool_call>", "").strip(), None
         return Turn(
             text=text,
             tool_calls=[call] if call else [],

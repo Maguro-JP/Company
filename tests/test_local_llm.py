@@ -129,7 +129,9 @@ class StreamingTest(unittest.TestCase):
     def test_tool_call_still_parsed_from_streamed_text(self):
         p, _ = self._provider('<tool_call>{"name": "list_files", "arguments": {}}')
         p.on_delta = lambda d: None
-        turn = p.complete("s", [p.user_message("hi")], [], 0.2)
+        from company.providers import ToolSpec
+        spec = ToolSpec(name="list_files", description="", parameters={"type": "object", "properties": {}})
+        turn = p.complete("s", [p.user_message("hi")], [spec], 0.2)  # 道具を渡した回だけ道具の形を読む
         self.assertEqual(turn.tool_calls[0].name, "list_files")
 
     def test_loop_emits_delta_events_before_the_final_text(self):
@@ -219,6 +221,13 @@ class ToolCallParseTest(unittest.TestCase):
         before, call = parse_tool_call('会社の状態は良好です。{"name": "x"} という形は使いません。')
         self.assertIsNone(call)
         self.assertTrue(before.startswith("会社の状態"))
+
+    def test_no_tools_means_tool_shaped_text_is_just_text(self):
+        from company.local_llm import BuiltinProvider
+        p = BuiltinProvider.__new__(BuiltinProvider)
+        raw = '<tool_call>{"name": "read_file", "arguments": {"path": "a"}}</tool_call>'
+        self.assertEqual(p._turn_from(raw, {}, []).text, '{"name": "read_file", "arguments": {"path": "a"}}')
+        self.assertEqual(p._turn_from(raw, {}, [object()]).tool_calls[0].name, "read_file")
 
     def test_braces_inside_strings_do_not_break_parsing(self):
         from company.local_llm import parse_tool_call
