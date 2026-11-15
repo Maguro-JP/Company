@@ -42,3 +42,10 @@ tools/list は list_devices、get_device、device_summary、list_links、list_si
 `NETVISION_DATABASE_URL=sqlite:///...` で空の台帳を作ると `{"total": 0, ...}` と `{"sites": []}` が返った。
 役職の AI からは `netvision__device_summary` の名前で同じ道具が見える。
 AdaptiveAIStudio は手元に無く、登録（aas.config.json への書き込み）は偽の置き場でしか確かめていない。
+
+## 大きい模型と Strata（2026-11-15）
+
+内蔵エンジン（llama.cpp の CPU 版）はメモリに入る模型しか動かず、入らない理由を言わなければユーザーには「動かない」としか見えない。
+Strata（Niko1221/Strata、MIT）は 125B の MoE 模型を、よく使う部分を GPU、全体を RAM、表を SSD に置いて家庭の機械で動かし、`http://127.0.0.1:8080/v1` に OpenAI 互換の口を出す。
+Company は同じ物を作らず、先に機械を見て（メモリ、GPU、エンジンの版）入る物だけを勧め、動いている Strata を見つけて選べるようにする。
+

@@ -44,10 +44,14 @@ run.bat
 
 | モデル | サイズ | 目安 |
 |---|---|---|
+| Qwen2.5 Coder 32B | 19.9 GB | 最高の質。メモリ 24GB 以上か GPU 24GB |
+| Qwen2.5 Coder 14B | 9.0 GB | 高い質。メモリ 12GB 以上 |
 | Qwen2.5 Coder 7B | 4.7 GB | 推奨。メモリ 8GB 以上。CPU だと 1 ターン数十秒 |
 | Qwen2.5 Coder 3B | 2.1 GB | 軽量。メモリ 4GB 以上 |
 | Qwen2.5 Coder 1.5B | 1.1 GB | 最軽量。判断は粗い |
 | Qwen2.5 0.5B | 0.5 GB | 動作確認用。実用には弱い |
+
+設定の「この機械」にメモリと GPU と内蔵エンジンの版（CPU か GPU）が出て、各模型に「入る / 入らない」と理由が付く（`company/hardware.py`）。入らない大きい模型は、手元で動いているエンジン（Strata、Ollama、LM Studio、AdaptiveAIStudio）を Company が見つけて「使う」1 回で選べる（`company/engines.py`）。Strata のように GPU と CPU に分けて動かすエンジンなら、内蔵エンジンに入らない模型も動く。
 
 `data/models/` に自分で置いた `.gguf` も一覧に出る。
 ダウンロードは途中で切れても、もう一度「取得」を押すと続きから再開する。

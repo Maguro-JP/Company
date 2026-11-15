@@ -147,4 +147,16 @@ def run_loop(
         history.extend(provider.tool_results(results))
 
     emit({"type": "status", "role": role, "text": f"ターン上限 {max_turns} に達しました"})
+    if not final_text:
+        # 道具を呼び続けて文を 1 つも出さずに上限に来た（Windows の実走 run 37）。道具を渡さず、答えだけを 1 回書かせる
+        try:
+            history.append(provider.user_message("ターンの上限です。道具はもう使えません。ここまでに分かったことから、指示への答えだけを文で書いてください。"))
+            last = provider.complete(system, history, [], temperature)
+            if last.text:
+                final_text = last.text
+                emit({"type": "text", "role": role, "text": last.text, "turn": max_turns + 1})
+                for k, v in (last.usage or {}).items():
+                    usage[k] = usage.get(k, 0) + int(v or 0)
+        except Exception as exc:  # noqa: BLE001  # 答えを書かせる 1 回は失敗しても止めない
+            emit({"type": "status", "role": role, "text": f"最後の答えを書かせられませんでした: {exc}"})
     return LoopResult(final_text, max_turns, tool_calls_total, usage, "max_turns")

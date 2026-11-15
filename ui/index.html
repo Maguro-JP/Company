@@ -402,6 +402,14 @@
     <section data-sec="model" class="active">
       <h2>AI とモデル</h2>
       <div class="lead">どの AI で会社を回すか。内蔵モデルなら鍵もネットも要らない。</div>
+      <div class="field"><span>この機械</span>
+        <div class="small" id="hwLine">調べています…</div>
+        <div class="small" id="hwHint"></div>
+      </div>
+      <div class="field" id="enginesField"><span>手元で動いているエンジン</span>
+        <div class="small" id="enginesEmpty">Strata、Ollama、LM Studio、AdaptiveAIStudio が起動していれば、ここに出ます（URL を書く必要はありません）</div>
+        <div id="engines"></div>
+      </div>
       <label class="field"><span>プロバイダ</span><select id="provider"></select></label>
       <label class="field" id="baseUrlField"><span>エンドポイント</span>
         <input type="text" id="baseUrl" placeholder="http://localhost:11434/v1">
@@ -429,7 +437,7 @@
       </label>
       <label class="field" id="gpuField"><span>GPU に載せる層数</span>
         <input type="number" id="gpuLayers" min="-1" max="200" value="-1">
-        <span class="small">-1 = 全部（GPU 版のときだけ効く）。CPU 版では無視される</span>
+        <span class="small">-1 = 全部（GPU 版のときだけ効く）。CPU 版では無視される。今の版は「この機械」の行に出る</span>
       </label>
       <label class="field"><span>Temperature <b id="tempVal">0.2</b></span><input type="range" id="temperature" min="0" max="1" step="0.05" value="0.2"></label>
       <label class="field"><span>最大ターン数</span><input type="number" id="maxTurns" min="1" max="500" value="60"></label>
@@ -628,10 +636,34 @@
     if (p === 'openai_compatible' && $('baseUrl').value.includes('4174')) $('baseUrl').value = 'http://localhost:11434/v1';
     refreshModels();
   });
+  const loadHardware = async () => {
+    try {
+      const h = await api('/api/hardware');
+      $('hwLine').textContent = h.summary;
+      $('hwHint').textContent = h.recommended ? `この機械に入る中で一番大きい内蔵モデルは ${h.recommended} です` : '内蔵モデルはこの機械のメモリに入りません。手元のエンジン（Strata など）か、クラウドの AI を選んでください';
+    } catch (e) { $('hwLine').textContent = ''; }
+  };
+  const loadEngines = async () => {
+    try {
+      const { engines } = await api('/api/engines');
+      $('enginesEmpty').style.display = engines.length ? 'none' : '';
+      $('engines').innerHTML = engines.map((e) => `<div class="cat"><div class="lbl">${esc(e.label)}<div class="small">${esc(e.base_url)} · 模型 ${e.models.length} 件${e.models.length ? '（' + esc(e.models.slice(0, 3).join(', ')) + (e.models.length > 3 ? ' …' : '') + '）' : ''}</div></div><button class="btn sm" data-engine="${esc(e.id)}" data-url="${esc(e.base_url)}" data-model="${esc(e.models[0] || '')}">使う</button></div>`).join('');
+    } catch (e) { $('engines').innerHTML = ''; }
+  };
+  $('engines').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-engine]'); if (!b) return;
+    $('provider').value = b.dataset.engine; toggleProviderFields();
+    if (b.dataset.engine === 'aas') $('baseUrl').value = b.dataset.url;
+    await refreshModels();
+    if (b.dataset.model) $('model').value = b.dataset.model;
+    saveSettings(); toast(`${b.dataset.engine} を使います。「本当に答えるか確かめる」で確かめられます`);
+  });
   const refreshModels = async () => {
     const note = $('modelNote'); note.style.display = 'none'; note.className = 'note';
+    if ($('provider').value === 'builtin') loadHardware();
+    loadEngines();
     const s = readSettings();
-    const q = new URLSearchParams({ provider: s.provider, base_url: s.base_url, api_key: s.api_key });
+    const q = new URLSearchParams({ provider: s.provider, base_url: s.base_url, api_key: s.api_key, context: s.context || '' });
     $('refreshModels').disabled = true;
     try {
       const { models, error, catalog } = await api('/api/models?' + q);
@@ -660,7 +692,8 @@
     $('catalog').innerHTML = catalog.map((m) => {
       const dl = m.downloading;
       const action = m.downloaded ? '<span class="ok small">取得済み</span>' : dl ? `<span class="small">${dl.percent}%</span>` : `<button class="btn sm" data-dl="${esc(m.id)}">取得</button>`;
-      return `<div class="cat"><div class="lbl">${esc(m.label)}<div>${gb(m.bytes)}</div>${dl ? `<div class="bar"><i style="width:${dl.percent}%"></i></div>` : ''}${dl && dl.error ? `<div class="err small">${esc(dl.error)}</div>` : ''}</div>${action}</div>`;
+      const fit = m.fit ? `<div class="small ${m.fit.fits ? 'ok' : 'err'}">${m.fit.fits ? '入る' : '入らない'}: ${esc(m.fit.note)}</div>` : '';
+      return `<div class="cat"><div class="lbl">${esc(m.label)}<div>${gb(m.bytes)}</div>${fit}${dl ? `<div class="bar"><i style="width:${dl.percent}%"></i></div>` : ''}${dl && dl.error ? `<div class="err small">${esc(dl.error)}</div>` : ''}</div>${action}</div>`;
     }).join('');
     catalog.filter((m) => m.downloading && !pollers[m.id]).forEach((m) => poll(m.id));
   };

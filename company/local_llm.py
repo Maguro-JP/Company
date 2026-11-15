@@ -22,6 +22,20 @@ MODELS_DIR = paths.models_dir()   # 配布版と Windows は共有の C:\LLM\ggu
 # 初回にアプリ内からダウンロードできるモデル。全て Qwen 公式の GGUF。
 CATALOG: list[dict[str, Any]] = [
     {
+        "id": "qwen2.5-coder-32b",
+        "label": "Qwen2.5 Coder 32B（最高の質・要メモリ 24GB か GPU 24GB）",
+        "file": "qwen2.5-coder-32b-instruct-q4_k_m.gguf",
+        "url": "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct-GGUF/resolve/main/qwen2.5-coder-32b-instruct-q4_k_m.gguf",
+        "bytes": 19851335872,
+    },
+    {
+        "id": "qwen2.5-coder-14b",
+        "label": "Qwen2.5 Coder 14B（高い質・要メモリ 12GB）",
+        "file": "qwen2.5-coder-14b-instruct-q4_k_m.gguf",
+        "url": "https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct-GGUF/resolve/main/qwen2.5-coder-14b-instruct-q4_k_m.gguf",
+        "bytes": 8988110272,
+    },
+    {
         "id": "qwen2.5-coder-7b",
         "label": "Qwen2.5 Coder 7B（推奨・要メモリ 8GB）",
         "file": "qwen2.5-coder-7b-instruct-q4_k_m.gguf",
@@ -71,9 +85,11 @@ def model_path(model_id: str) -> Path:
     return MODELS_DIR / f"{model_id}.gguf"
 
 
-def list_models() -> list[dict[str, Any]]:
-    """カタログと data/models 内の GGUF を、ダウンロード状況付きで返す。"""
+def list_models(n_ctx: int = 8192) -> list[dict[str, Any]]:
+    """カタログと data/models 内の GGUF を、ダウンロード状況と「この機械に入るか」付きで返す。"""
+    from . import hardware  # noqa: PLC0415
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    mem, g, backend = hardware.memory(), hardware.gpus(), hardware.engine_backend()
     seen = set()
     out = []
     for entry in CATALOG:
@@ -83,13 +99,23 @@ def list_models() -> list[dict[str, Any]]:
             "id": entry["id"], "label": entry["label"], "bytes": entry["bytes"],
             "downloaded": path.exists() and path.stat().st_size >= entry["bytes"],
             "downloading": DOWNLOADS.status(entry["id"]),
+            "fit": hardware.fit(entry["bytes"], n_ctx, mem, g, backend),
         })
     for path in sorted(MODELS_DIR.glob("*.gguf")):
         if path.name in seen:
             continue
-        out.append({"id": path.name, "label": path.name, "bytes": path.stat().st_size,
-                    "downloaded": True, "downloading": None})
+        size = path.stat().st_size
+        out.append({"id": path.name, "label": path.name, "bytes": size,
+                    "downloaded": True, "downloading": None, "fit": hardware.fit(size, n_ctx, mem, g, backend)})
     return out
+
+
+def recommended(n_ctx: int = 8192) -> str | None:
+    """この機械に入る中で一番大きいカタログの模型。"""
+    for m in list_models(n_ctx):
+        if m["id"] in {e["id"] for e in CATALOG} and m["fit"]["fits"]:
+            return m["id"]
+    return None
 
 
 @dataclass
@@ -177,7 +203,14 @@ def _engine(path: Path, n_ctx: int, n_gpu_layers: int):
     with _ENGINE_LOCK:
         if key not in _ENGINES:
             _ENGINES.clear()  # メモリを食うので同時に1つだけ保持する
-            _ENGINES[key] = Llama(model_path=str(path), n_ctx=n_ctx, n_gpu_layers=n_gpu_layers, verbose=False)
+            try:
+                _ENGINES[key] = Llama(model_path=str(path), n_ctx=n_ctx, n_gpu_layers=n_gpu_layers, verbose=False,
+                                      use_mmap=True, use_mlock=False)
+            except (MemoryError, ValueError, RuntimeError, OSError) as exc:
+                # 大きい模型が読めないときは、理由を機械の数字で言う（「動かない」だけでは直せない）
+                from . import hardware  # noqa: PLC0415
+                f = hardware.fit(path.stat().st_size if path.exists() else 0, n_ctx)
+                raise ProviderError(f"模型 {path.name} を読み込めません。{f['note']}（{hardware.status(n_ctx)['summary']}）。元のエラー: {str(exc)[:200]}") from exc
         return _ENGINES[key]
 
 

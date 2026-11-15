@@ -269,3 +269,30 @@ class ResultClipTest(unittest.TestCase):
         self.assertLess(len(p.seen[0]), 600)
         self.assertIn("省きました", p.seen[0])
 
+
+
+class FinalAnswerTest(unittest.TestCase):
+    """道具を呼び続けて上限に来たら、道具なしで答えだけを 1 回書かせる（Windows の実走 run 37）。"""
+
+    def test_turn_limit_without_text_forces_a_final_answer(self):
+        from company.loop import run_loop
+        from company.providers import ToolCall, Turn
+
+        class P:
+            def user_message(self, text):
+                return {"role": "user", "content": text}
+
+            def tool_results(self, results):
+                return [{"role": "tool", "content": out} for _c, out in results]
+
+            def complete(self, system, history, tools, temperature=0.2):
+                if tools:
+                    return Turn(text="", tool_calls=[ToolCall(id="1", name="peek", arguments={})], usage={})
+                return Turn(text="会社は順調です。", tool_calls=[], usage={"input": 5, "output": 3})
+
+        tools = {"peek": ({"name": "peek", "description": "", "parameters": {"type": "object", "properties": {}}}, lambda a: "ok")}
+        events = []
+        r = run_loop(P(), "s", "t", tools, events.append, max_turns=2, role="ceo")
+        self.assertEqual(r.stopped_reason, "max_turns")
+        self.assertEqual(r.final_text, "会社は順調です。")
+        self.assertTrue(any(e["type"] == "text" for e in events))

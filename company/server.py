@@ -95,11 +95,28 @@ def providers() -> dict[str, Any]:
     return {"providers": provider_catalog()}
 
 
+@app.get("/api/hardware")
+def api_hardware() -> dict[str, Any]:
+    """この機械の力（メモリ、GPU、内蔵エンジンの版）と、入る中で一番大きい模型。"""
+    from . import hardware  # noqa: PLC0415
+    ctx = int(runner.load_settings().get("context", 8192) or 8192)
+    return {**hardware.status(ctx), "recommended": local_llm.recommended(ctx)}
+
+
+@app.get("/api/engines")
+async def api_engines() -> dict[str, Any]:
+    """手元で動いている AI のエンジン（Strata、Ollama、LM Studio、AdaptiveAIStudio）。URL を書かずに「使う」で選べる。"""
+    import asyncio  # noqa: PLC0415
+    from . import engines  # noqa: PLC0415
+    return {"engines": await asyncio.to_thread(engines.detect)}
+
+
 @app.get("/api/models")
-def models(provider: str, base_url: str = "", api_key: str = "") -> dict[str, Any]:
+def models(provider: str, base_url: str = "", api_key: str = "", context: int = 0) -> dict[str, Any]:
     if provider == "builtin":
-        return {"models": [m["id"] for m in local_llm.list_models() if m["downloaded"]],
-                "catalog": local_llm.list_models()}
+        ctx = int(context or runner.load_settings().get("context", 8192) or 8192)
+        catalog = local_llm.list_models(ctx)
+        return {"models": [m["id"] for m in catalog if m["downloaded"]], "catalog": catalog}
     try:
         # モデル名は一覧取得に不要なのでダミーを入れる
         p = make_provider({"provider": provider, "base_url": base_url, "api_key": api_key, "model": "-"})

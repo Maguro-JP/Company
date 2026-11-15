@@ -321,6 +321,7 @@ PRESETS: list[dict[str, Any]] = [
     {"id": "mistral", "label": "Mistral", "base_url": "https://api.mistral.ai/v1", "key_env": "MISTRAL_API_KEY"},
     {"id": "together", "label": "Together AI", "base_url": "https://api.together.xyz/v1", "key_env": "TOGETHER_API_KEY"},
     {"id": "perplexity", "label": "Perplexity", "base_url": "https://api.perplexity.ai", "key_env": "PERPLEXITY_API_KEY"},
+    {"id": "strata", "label": "Strata（手元。大きい模型を GPU と CPU に分けて動かす）", "base_url": "http://127.0.0.1:8080/v1", "key_env": "", "local": True},
     {"id": "ollama", "label": "Ollama（手元）", "base_url": "http://localhost:11434/v1", "key_env": "", "local": True},
     {"id": "lmstudio", "label": "LM Studio（手元）", "base_url": "http://localhost:1234/v1", "key_env": "", "local": True},
 ]
@@ -360,7 +361,7 @@ def make_provider(settings: dict[str, Any]) -> Provider:
         key = settings.get("api_key") or (os.environ.get(preset["key_env"]) if preset["key_env"] else "") or ""
         if preset["key_env"] and not key:
             raise ProviderError(
-                f"{preset['label']} の API キーがありません。右パネルに入れるか、環境変数 {preset['key_env']} を設定してください。"
+                f"{preset['label']} の API キーがありません。設定に入れるか、環境変数 {preset['key_env']} を設定してください。"
             )
         return OpenAICompatibleProvider(base_url=preset["base_url"], model=model, api_key=key)
     if kind == "builtin":
